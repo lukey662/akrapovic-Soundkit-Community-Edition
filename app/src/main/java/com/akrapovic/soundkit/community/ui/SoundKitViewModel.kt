@@ -6,6 +6,8 @@ import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
+import com.akrapovic.soundkit.community.diagnostics.CrashReporter
+import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
@@ -24,9 +26,12 @@ class SoundKitViewModel @Inject constructor(
     private val bleRepository: BleRepository,
     private val settingsRepository: SettingsStore,
     private val diagnosticsRepository: DiagnosticsRepository,
+    private val diagnosticsReportBuilder: DiagnosticsReportBuilder,
+    private val crashReporter: CrashReporter,
 ) : ViewModel() {
     private val commandInFlight = MutableStateFlow(false)
     private val lastError = MutableStateFlow<String?>(null)
+    private val hasPendingCrash = MutableStateFlow(crashReporter.hasPendingCrash())
 
     private val coreState = combine(
         bleRepository.discoveredDevices,
@@ -49,7 +54,8 @@ class SoundKitViewModel @Inject constructor(
         diagnosticsRepository.entries,
         commandInFlight,
         lastError,
-    ) { core, diagnostics, inFlight, error ->
+        hasPendingCrash,
+    ) { core, diagnostics, inFlight, error, pendingCrash ->
         SoundKitUiState(
             devices = core.devices,
             connectionState = core.connectionState,
@@ -60,6 +66,7 @@ class SoundKitViewModel @Inject constructor(
             commandInFlight = inFlight,
             lastError = error,
             protocolVerified = SoundKitProtocol.VERIFIED,
+            hasPendingCrash = pendingCrash,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -109,10 +116,38 @@ class SoundKitViewModel @Inject constructor(
         }
     }
 
+    fun setGarageTheme(themeId: String) {
+        viewModelScope.launch {
+            settingsRepository.setGarageThemeId(themeId)
+        }
+    }
+
     fun forgetDevice() {
         viewModelScope.launch {
             settingsRepository.forgetDevice()
             bleRepository.disconnect()
+        }
+    }
+
+    fun buildDiagnosticsReport(): String {
+        return diagnosticsReportBuilder.buildDiagnosticsReport(uiState.value.diagnostics)
+    }
+
+    fun writeDiagnosticsReportFile(): java.io.File {
+        return diagnosticsReportBuilder.writeDiagnosticsReportFile(uiState.value.diagnostics)
+    }
+
+    fun buildCrashReport(): String {
+        return diagnosticsReportBuilder.buildCrashReport()
+    }
+
+    fun writeCrashReportFile(): java.io.File {
+        return diagnosticsReportBuilder.writeCrashReportFile()
+    }
+
+    fun clearPendingCrash() {
+        if (crashReporter.clearPendingCrash()) {
+            hasPendingCrash.value = false
         }
     }
 

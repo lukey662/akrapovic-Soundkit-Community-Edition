@@ -14,15 +14,7 @@ Visual and interaction polish is **ongoing**; see `ROADMAP.md` for planned UX wo
 
 ## Status
 
-The Android app builds around a fail-closed BLE protocol layer. OPEN and CLOSE writes are intentionally disabled until the original APK or a physical HCI capture verifies:
-
-- Sound Kit service UUID
-- Write characteristic UUID
-- Open command bytes
-- Close command bytes
-- Write type
-- Pairing/bonding behavior
-- Notify/indicate behavior
+The original Android APK has been statically analyzed and the core protocol is documented. The receiver uses one verified toggle payload (`01`) on characteristic `0000fff4-0000-1000-8000-00805f9b34fb`; OPEN and CLOSE in this app are state-gated so no write is sent until receiver notifications report whether the valves are currently open or closed.
 
 See `APK_ANALYSIS.md` and `BLE_PROTOCOL.md`.
 
@@ -63,6 +55,8 @@ Install Android Studio with Android SDK 35 and JDK 17, then from the repository 
 ./gradlew :app:assembleDebug
 ```
 
+The debug build runs JVM unit tests first and fails before packaging if they fail.
+
 The debug APK is generated at:
 
 ```text
@@ -81,7 +75,7 @@ Grant the requested Bluetooth permissions when prompted.
 
 ## Safety
 
-Test while parked. Do not send unknown BLE payloads to the receiver. This repository refuses valve writes until the protocol is verified and documented.
+Test while parked. Do not send unknown BLE payloads to the receiver. This app only sends the verified toggle command when the receiver state is known and the requested state requires a change.
 
 ## Android Auto
 

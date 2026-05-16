@@ -16,6 +16,7 @@ data class SoundKitUiState(
     val commandInFlight: Boolean = false,
     val lastError: String? = null,
     val protocolVerified: Boolean = false,
+    val hasPendingCrash: Boolean = false,
 )
 
 enum class AppScreen {

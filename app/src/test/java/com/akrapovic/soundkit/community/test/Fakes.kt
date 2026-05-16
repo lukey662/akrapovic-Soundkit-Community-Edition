@@ -70,6 +70,7 @@ class FakeSettingsStore(
     var forgetCount = 0
     var autoReconnectChanges = mutableListOf<Boolean>()
     var debugLoggingChanges = mutableListOf<Boolean>()
+    var garageThemeChanges = mutableListOf<String>()
 
     override suspend fun rememberDevice(device: SoundKitDevice) {
         rememberedDevices += device
@@ -95,6 +96,11 @@ class FakeSettingsStore(
     override suspend fun setDebugLoggingEnabled(enabled: Boolean) {
         debugLoggingChanges += enabled
         settings.value = settings.value.copy(debugLoggingEnabled = enabled)
+    }
+
+    override suspend fun setGarageThemeId(themeId: String) {
+        garageThemeChanges += themeId
+        settings.value = settings.value.copy(garageThemeId = themeId)
     }
 }
 

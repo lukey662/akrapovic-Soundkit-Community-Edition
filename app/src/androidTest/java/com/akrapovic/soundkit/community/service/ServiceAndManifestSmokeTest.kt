@@ -42,6 +42,19 @@ class ServiceAndManifestSmokeTest {
     }
 
     @Test
+    fun manifestDeclaresNonExportedDiagnosticsFileProvider() {
+        val provider = context.packageManager.resolveContentProvider(
+            "${context.packageName}.fileprovider",
+            PackageManager.GET_META_DATA,
+        )
+
+        assertTrue(provider != null)
+        assertEquals("androidx.core.content.FileProvider", provider?.name)
+        assertFalse(provider?.exported ?: true)
+        assertTrue(provider?.grantUriPermissions ?: false)
+    }
+
+    @Test
     fun androidAutoServiceDeclaresIotCategory() {
         val intent = Intent(CarAppService.SERVICE_INTERFACE).apply {
             setPackage(context.packageName)

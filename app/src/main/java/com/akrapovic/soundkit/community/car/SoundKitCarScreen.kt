@@ -11,6 +11,7 @@ import androidx.car.app.model.Template
 import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,44 +38,46 @@ class SoundKitCarScreen(
     override fun onGetTemplate(): Template {
         val connectionState = repository.connectionState.value
         if (!SoundKitProtocol.VERIFIED) {
-            return MessageTemplate.Builder("Valve controls are disabled until the BLE protocol is verified from the original APK or an HCI capture.")
-                .setTitle("Protocol verification required")
+            return MessageTemplate.Builder("Controls are unavailable in this build.")
+                .setTitle("Sound Kit")
                 .setHeaderAction(Action.APP_ICON)
                 .build()
         }
+        val valveState = repository.valveState.value
 
-        val pane = Pane.Builder()
+        val paneBuilder = Pane.Builder()
             .addRow(
                 Row.Builder()
-                    .setTitle("Connection")
+                    .setTitle("Receiver")
                     .addText(connectionState.asCarText())
                     .build(),
             )
             .addRow(
                 Row.Builder()
-                    .setTitle("Valve")
-                    .addText(repository.valveState.value.name)
+                    .setTitle("Valves")
+                    .addText(valveState.asCarText())
                     .build(),
             )
-            .addAction(
-                Action.Builder()
-                    .setTitle("OPEN")
-                    .setOnClickListener {
-                        scope.launch { repository.openValve() }
-                    }
-                    .build(),
-            )
-            .addAction(
-                Action.Builder()
-                    .setTitle("CLOSE")
-                    .setOnClickListener {
-                        scope.launch { repository.closeValve() }
-                    }
-                    .build(),
-            )
-            .build()
 
-        return PaneTemplate.Builder(pane)
+        if (connectionState is ConnectionState.Connected) {
+            when (valveState) {
+                ValveState.Closed -> paneBuilder.addAction(
+                    Action.Builder()
+                        .setTitle("Open")
+                        .setOnClickListener { scope.launch { repository.openValve() } }
+                        .build(),
+                )
+                ValveState.Open -> paneBuilder.addAction(
+                    Action.Builder()
+                        .setTitle("Close")
+                        .setOnClickListener { scope.launch { repository.closeValve() } }
+                        .build(),
+                )
+                ValveState.Unknown -> Unit
+            }
+        }
+
+        return PaneTemplate.Builder(paneBuilder.build())
             .setTitle("Sound Kit")
             .setHeaderAction(Action.APP_ICON)
             .build()
@@ -88,6 +91,14 @@ class SoundKitCarScreen(
             is ConnectionState.Connected -> "Connected to ${device.name}"
             is ConnectionState.Reconnecting -> "Reconnecting, attempt $attempt"
             is ConnectionState.Error -> message
+        }
+    }
+
+    private fun ValveState.asCarText(): String {
+        return when (this) {
+            ValveState.Open -> "Open"
+            ValveState.Closed -> "Closed"
+            ValveState.Unknown -> "Checking status"
         }
     }
 }

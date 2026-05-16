@@ -22,6 +22,7 @@ interface SettingsStore {
     suspend fun forgetDevice()
     suspend fun setAutoReconnect(enabled: Boolean)
     suspend fun setDebugLoggingEnabled(enabled: Boolean)
+    suspend fun setGarageThemeId(themeId: String)
 }
 
 @Singleton
@@ -33,6 +34,7 @@ class SettingsRepository @Inject constructor(
         val RememberedDeviceAddress = stringPreferencesKey("remembered_device_address")
         val AutoReconnect = booleanPreferencesKey("auto_reconnect")
         val DebugLoggingEnabled = booleanPreferencesKey("debug_logging_enabled")
+        val GarageThemeId = stringPreferencesKey("garage_theme_id")
     }
 
     override val settings: Flow<SoundKitSettings> = context.settingsDataStore.data.map { preferences ->
@@ -41,6 +43,7 @@ class SettingsRepository @Inject constructor(
             rememberedDeviceAddress = preferences[Keys.RememberedDeviceAddress],
             autoReconnect = preferences[Keys.AutoReconnect] ?: true,
             debugLoggingEnabled = preferences[Keys.DebugLoggingEnabled] ?: true,
+            garageThemeId = preferences[Keys.GarageThemeId] ?: "studio-dark",
         )
     }
 
@@ -67,6 +70,12 @@ class SettingsRepository @Inject constructor(
     override suspend fun setDebugLoggingEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.DebugLoggingEnabled] = enabled
+        }
+    }
+
+    override suspend fun setGarageThemeId(themeId: String) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.GarageThemeId] = themeId
         }
     }
 }

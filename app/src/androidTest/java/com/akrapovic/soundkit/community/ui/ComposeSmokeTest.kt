@@ -1,13 +1,18 @@
 package com.akrapovic.soundkit.community.ui
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
+import com.akrapovic.soundkit.community.diagnostics.CrashReporter
+import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.DiagnosticsEntry
@@ -29,6 +34,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
 
+@SdkSuppress(maxSdkVersion = 35)
 class ComposeSmokeTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -74,7 +80,7 @@ class ComposeSmokeTest {
     }
 
     @Test
-    fun controlScreenDisablesValveButtonsWhenProtocolIsUnverified() {
+    fun controlScreenWaitsForReceiverStatusBeforeCommands() {
         val device = testDeviceForSmoke()
         composeRule.setContent {
             SoundKitTheme {
@@ -82,7 +88,7 @@ class ComposeSmokeTest {
                     state = SoundKitUiState(
                         connectionState = ConnectionState.Connected(device),
                         valveState = ValveState.Unknown,
-                        protocolVerified = false,
+                        protocolVerified = true,
                     ),
                     onOpen = {},
                     onClose = {},
@@ -91,33 +97,58 @@ class ComposeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("Protocol verification required").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Open exhaust valve").assertIsNotEnabled()
-        composeRule.onNodeWithContentDescription("Close exhaust valve").assertIsNotEnabled()
+        composeRule.onNodeWithText("Waiting for receiver status").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Valve controls waiting for receiver status").assertIsNotEnabled()
     }
 
     @Test
-    fun diagnosticsScreenShowsExportAction() {
+    fun diagnosticsScreenShowsExportActionsAndHandlesDuplicateTimestamps() {
         composeRule.setContent {
             SoundKitTheme {
                 DiagnosticsScreen(
                     entries = listOf(
                         DiagnosticsEntry(
+                            id = 0L,
                             timestampMillis = 1_000L,
                             level = DiagnosticsLevel.Info,
                             message = "GATT services discovered",
                         ),
+                        DiagnosticsEntry(
+                            id = 1L,
+                            timestampMillis = 1_000L,
+                            level = DiagnosticsLevel.Debug,
+                            message = "GATT PROFILE START\nGATT PROFILE END",
+                        ),
                     ),
+                    onBuildReport = { "report" },
                 )
             }
         }
 
         composeRule.onNodeWithText("Diagnostics").assertIsDisplayed()
-        composeRule.onNodeWithText("Copy diagnostics report").assertIsDisplayed()
+        composeRule.onNodeWithText("Copy report").assertIsDisplayed()
+        composeRule.onNodeWithText("Share report").assertIsDisplayed()
     }
 
     @Test
-    fun settingsScreenShowsSafetyAndBatteryControls() {
+    fun diagnosticsScreenShowsPendingCrashPanel() {
+        composeRule.setContent {
+            SoundKitTheme {
+                DiagnosticsScreen(
+                    entries = emptyList(),
+                    hasPendingCrash = true,
+                    onBuildReport = { "report" },
+                    onBuildCrashReport = { "crash" },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Crash detected on last session").assertIsDisplayed()
+        composeRule.onNodeWithText("Share crash").assertIsDisplayed()
+    }
+
+    @Test
+    fun settingsScreenShowsConnectionAndBatteryControls() {
         composeRule.setContent {
             SoundKitTheme {
                 SettingsScreen(
@@ -130,18 +161,22 @@ class ComposeSmokeTest {
         }
 
         composeRule.onNodeWithText("Auto reconnect").assertIsDisplayed()
-        composeRule.onNodeWithText("Battery optimization").assertIsDisplayed()
-        composeRule.onNodeWithText("Safety").assertIsDisplayed()
+        composeRule.onNodeWithText("Background connection").assertIsDisplayed()
+        composeRule.onNodeWithText("Detailed logs").assertIsDisplayed()
     }
 
     @Test
     fun appShellShowsTidiedPrimaryNavigation() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val crashReporter = CrashReporter(context)
         composeRule.setContent {
             SoundKitApp(
                 viewModel = SoundKitViewModel(
                     bleRepository = FakeBleRepositoryForSmoke(),
                     settingsRepository = FakeSettingsStoreForSmoke(),
                     diagnosticsRepository = DiagnosticsRepository(),
+                    diagnosticsReportBuilder = DiagnosticsReportBuilder(context, crashReporter),
+                    crashReporter = crashReporter,
                 ),
                 permissions = emptyList(),
                 permissionsGranted = true,
@@ -149,9 +184,9 @@ class ComposeSmokeTest {
             )
         }
 
-        composeRule.onNodeWithText("SCAN").assertIsDisplayed()
-        composeRule.onNodeWithText("CONTROL").assertIsDisplayed()
-        composeRule.onNodeWithText("MORE").assertIsDisplayed()
+        composeRule.onNodeWithText("Find").assertIsDisplayed()
+        composeRule.onNodeWithText("Control").assertIsDisplayed()
+        composeRule.onNodeWithText("More").assertIsDisplayed()
     }
 
     @Test
@@ -165,7 +200,7 @@ class ComposeSmokeTest {
         composeRule.onNodeWithText("Diagnostics").assertIsDisplayed()
         composeRule.onNodeWithText("Settings").assertIsDisplayed()
         composeRule.onNodeWithText("Roadmap").assertIsDisplayed()
-        composeRule.onNodeWithText("Garage / Themes").assertIsDisplayed()
+        composeRule.onNodeWithText("Appearance").assertIsDisplayed()
     }
 
     @Test
@@ -182,7 +217,7 @@ class ComposeSmokeTest {
     }
 
     @Test
-    fun garageThemeScreenShowsAudiRs3Preset() {
+    fun garageThemeScreenShowsLightAndCarPresets() {
         composeRule.setContent {
             SoundKitTheme {
                 GarageThemeScreen(
@@ -192,7 +227,10 @@ class ComposeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("Audi RS3 White Sportback").assertIsDisplayed()
+        composeRule.onNodeWithText("Studio").assertIsDisplayed()
+        composeRule.onNodeWithText("Audi RS").assertIsDisplayed()
+        composeRule.onNodeWithText("Light").assertIsDisplayed()
+        composeRule.onNodeWithText("Dark").assertIsDisplayed()
     }
 }
 
@@ -240,6 +278,10 @@ private class FakeSettingsStoreForSmoke : SettingsStore {
 
     override suspend fun setDebugLoggingEnabled(enabled: Boolean) {
         settings.value = settings.value.copy(debugLoggingEnabled = enabled)
+    }
+
+    override suspend fun setGarageThemeId(themeId: String) {
+        settings.value = settings.value.copy(garageThemeId = themeId)
     }
 }
 

@@ -2,11 +2,15 @@ package com.akrapovic.soundkit.community.ui
 
 import app.cash.turbine.test
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
+import com.akrapovic.soundkit.community.diagnostics.CrashReporter
+import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
+import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportMetadata
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.test.FakeBleRepository
 import com.akrapovic.soundkit.community.test.FakeSettingsStore
 import com.akrapovic.soundkit.community.test.MainDispatcherRule
 import com.akrapovic.soundkit.community.test.testDevice
+import java.io.File
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -27,11 +31,37 @@ class SoundKitViewModelTest {
     private val settingsStore = FakeSettingsStore()
     private val diagnosticsRepository = DiagnosticsRepository()
 
-    private fun viewModel() = SoundKitViewModel(
-        bleRepository = bleRepository,
-        settingsRepository = settingsStore,
-        diagnosticsRepository = diagnosticsRepository,
-    )
+    private fun viewModel(): SoundKitViewModel {
+        val outputDirectory = File(System.getProperty("java.io.tmpdir"), "soundkit-${System.nanoTime()}")
+        val crashReporter = CrashReporter(
+            crashFile = File(outputDirectory, "last_crash.txt"),
+            metadataProvider = { "applicationId=test" },
+        )
+        return SoundKitViewModel(
+            bleRepository = bleRepository,
+            settingsRepository = settingsStore,
+            diagnosticsRepository = diagnosticsRepository,
+            diagnosticsReportBuilder = DiagnosticsReportBuilder(
+                metadataProvider = {
+                    DiagnosticsReportMetadata(
+                        exportedAt = "2026-05-16 16:10:00.000 +1000",
+                        applicationId = "test",
+                        versionName = "test",
+                        versionCode = 1,
+                        buildType = "debug",
+                        debug = true,
+                        manufacturer = "Google",
+                        model = "Pixel",
+                        androidRelease = "16",
+                        androidApi = 35,
+                    )
+                },
+                crashReader = { crashReporter.readPendingCrash() },
+                outputDirectoryProvider = { outputDirectory },
+            ),
+            crashReporter = crashReporter,
+        )
+    }
 
     @Test
     fun startScanDelegatesToRepositoryAndUpdatesState() = runTest(mainDispatcherRule.dispatcher) {
@@ -83,10 +113,12 @@ class SoundKitViewModelTest {
 
         viewModel.setAutoReconnect(false)
         viewModel.setDebugLogging(false)
+        viewModel.setGarageTheme("audi-rs-light")
         runCurrent()
 
         assertEquals(listOf(false), settingsStore.autoReconnectChanges)
         assertEquals(listOf(false), settingsStore.debugLoggingChanges)
+        assertEquals(listOf("audi-rs-light"), settingsStore.garageThemeChanges)
     }
 
     @Test

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,13 +23,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.ui.components.AkraCard
+import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
+import com.akrapovic.soundkit.community.ui.components.AkraStatusPill
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
 import com.akrapovic.soundkit.community.ui.theme.GarageTheme
-import com.akrapovic.soundkit.community.ui.theme.GarageThemePresets
+import com.akrapovic.soundkit.community.ui.theme.GarageThemeFamilies
+import com.akrapovic.soundkit.community.ui.theme.GarageThemeFamily
 
 @Composable
 fun GarageThemeScreen(
@@ -41,84 +45,153 @@ fun GarageThemeScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(AkraColors.Ink)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Spacer(Modifier.height(8.dp))
-            Eyebrow("// GARAGE / THEMES")
-            Text(
-                text = "Brand-inspired presets",
-                style = MaterialTheme.typography.displaySmall,
-                color = AkraColors.Pearl,
-            )
-            Text(
-                text = "Community palettes only. No official logos, badges, or OEM UI copies.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AkraColors.Silver,
-                modifier = Modifier.padding(top = 6.dp),
+            AkraHeroHeader(
+                eyebrow = "Garage themes",
+                title = "Pick the mood",
+                subtitle = "Choose a car-inspired family, then pick the light or dark version.",
+                modifier = Modifier.padding(top = 10.dp),
             )
         }
 
-        items(GarageThemePresets, key = { it.id }) { theme ->
-            GarageThemeCard(
-                theme = theme,
-                selected = theme.id == selectedThemeId,
-                onClick = { onThemeSelected(theme.id) },
+        items(GarageThemeFamilies, key = { it.id }) { family ->
+            GarageThemeFamilyCard(
+                family = family,
+                selectedThemeId = selectedThemeId,
+                onThemeSelected = onThemeSelected,
             )
         }
     }
 }
 
 @Composable
-private fun GarageThemeCard(
-    theme: GarageTheme,
-    selected: Boolean,
-    onClick: () -> Unit,
+private fun GarageThemeFamilyCard(
+    family: GarageThemeFamily,
+    selectedThemeId: String,
+    onThemeSelected: (String) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(2.dp))
-            .background(AkraColors.Carbon)
-            .border(
-                width = 1.dp,
-                color = if (selected) theme.highlight else AkraColors.Titanium,
-                shape = RoundedCornerShape(2.dp),
-            )
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = "Select ${theme.name} theme" }
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    val selected = family.contains(selectedThemeId)
+    val previewTheme = when (selectedThemeId) {
+        family.light.id -> family.light
+        else -> family.dark
+    }
+
+    AkraCard(
+        accent = if (selected) previewTheme.accent else MaterialTheme.colorScheme.outline,
+        contentDescription = "Select ${family.name} theme",
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            ThemeSwatch(theme = theme)
+            BrandMark(
+                theme = previewTheme,
+                contentDescription = "${family.name} brand mark",
+            )
             Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = theme.name,
+                    text = family.name,
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = AkraColors.Pearl,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = theme.subtitle,
+                    text = family.subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = AkraColors.Silver,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (selected) {
-                Text(
-                    text = "ACTIVE",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = theme.highlight,
-                )
+                AkraStatusPill(text = if (previewTheme.isDark) "DARK" else "LIGHT", color = previewTheme.highlight)
             }
         }
+        ThemeSwatch(theme = previewTheme)
+        VariantSelector(
+            family = family,
+            selectedThemeId = selectedThemeId,
+            onThemeSelected = onThemeSelected,
+        )
         Text(
-            text = "Preview only for now. Persisted app-wide theming can follow once the navigation and roadmap surfaces settle.",
+            text = if (selected) "Applied across the app and saved for next launch." else "Choose Light or Dark to apply instantly.",
             style = MaterialTheme.typography.bodyMedium,
-            color = AkraColors.Mist,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun BrandMark(
+    theme: GarageTheme,
+    contentDescription: String,
+) {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.28f), RoundedCornerShape(18.dp))
+            .padding(9.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.foundation.Image(
+            painter = painterResource(theme.brandMark),
+            contentDescription = contentDescription,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+@Composable
+private fun VariantSelector(
+    family: GarageThemeFamily,
+    selectedThemeId: String,
+    onThemeSelected: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.34f), RoundedCornerShape(999.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        VariantButton(
+            label = "Light",
+            selected = selectedThemeId == family.light.id,
+            onClick = { onThemeSelected(family.light.id) },
+            modifier = Modifier.weight(1f),
+        )
+        VariantButton(
+            label = "Dark",
+            selected = selectedThemeId == family.dark.id,
+            onClick = { onThemeSelected(family.dark.id) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun VariantButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "$label theme variant" }
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -127,8 +200,7 @@ private fun GarageThemeCard(
 private fun ThemeSwatch(theme: GarageTheme) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(2.dp))
-            .border(1.dp, AkraColors.Titanium, RoundedCornerShape(2.dp)),
+            .clip(RoundedCornerShape(999.dp)),
     ) {
         SwatchBlock(theme.base)
         SwatchBlock(theme.surface)
@@ -147,11 +219,3 @@ private fun SwatchBlock(color: Color) {
     )
 }
 
-@Composable
-private fun Eyebrow(label: String) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelLarge,
-        color = AkraColors.Amber,
-    )
-}

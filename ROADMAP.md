@@ -5,7 +5,7 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 ## Principles
 
 - **Safety first** — No silent automation that could surprise a driver. Clear manual override, visible “why did the valve change?” affordances where automation exists.
-- **Fail-closed protocol** — Automation that sends valve commands must only run when `BLE_PROTOCOL.md` is verified and `SoundKitProtocol` allows writes.
+- **Fail-closed protocol** — Automation that sends valve commands must only run when the receiver state is known and `SoundKitProtocol` allows a state-gated toggle write.
 - **Privacy** — Geofencing and location-backed rules need **opt-in**, plain-language disclosure, and minimal retention. No selling or sharing location data (there is no backend today).
 - **Accessibility** — Target **WCAG 2.1 AA** for contrast, semantics, touch targets (≥48dp), and screen reader labels as screens are touched.
 
@@ -13,14 +13,16 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 
 | Area | Intent |
 |------|--------|
-| **Verified BLE protocol** | Capture UUIDs, payloads, write type, bonding, notify behavior; document evidence in `BLE_PROTOCOL.md`; enable guarded OPEN/CLOSE in app. |
+| **Physical receiver validation** | Confirm the verified APK toggle protocol against the car receiver, including pairing, notifications, and state-gated OPEN/CLOSE behavior. |
+| **Theme polish** | Per-family Light/Dark themes and local brand marks are in place; continue refining gradients, spacing, and contrast from real-device screenshots. |
 | **CI reliability** | Ensure Gradle wrapper JAR is present so GitHub Actions can run `./gradlew` without bootstrap failures. |
 
 ## UX / UI (cross-cutting, parallel)
 
 These improvements can advance **alongside** protocol work. Early passes do not require verified writes.
 
-- Extend the **industrial / amber HUD** language from the scan shell to **Connected**, **Diagnostics**, and **Settings** (see `STYLE_GUIDE.md`).
+- Keep the consumer-first companion UI calm and simple across **Find**, **Control**, **Diagnostics**, and **Settings** (see `STYLE_GUIDE.md`).
+- Maintain brand-inspired families with explicit Light/Dark variants. Gradients and marks should add identity without making primary controls harder to read.
 - **Empty, loading, and error** states on every screen with recovery actions (retry scan, open settings, copy diagnostics).
 - **First-run onboarding** — short flow for Bluetooth permissions, notifications (foreground service), and battery optimization guidance (already partially in settings; unify the story).
 - **Motion and haptics** — subtle, optional; never required to complete a task.

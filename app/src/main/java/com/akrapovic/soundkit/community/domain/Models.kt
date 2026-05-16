@@ -33,6 +33,8 @@ sealed interface CommandResult {
 }
 
 data class DiagnosticsEntry(
+    /** Monotonic id — required for stable LazyColumn keys when timestamps collide. */
+    val id: Long,
     val timestampMillis: Long,
     val level: DiagnosticsLevel,
     val message: String,
@@ -50,5 +52,6 @@ data class SoundKitSettings(
     val rememberedDeviceAddress: String? = null,
     val autoReconnect: Boolean = true,
     val debugLoggingEnabled: Boolean = true,
+    val garageThemeId: String = "akra-carbon",
 )
 

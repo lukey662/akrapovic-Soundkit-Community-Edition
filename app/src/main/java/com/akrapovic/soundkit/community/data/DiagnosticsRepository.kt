@@ -7,6 +7,7 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -14,6 +15,7 @@ import timber.log.Timber
 
 @Singleton
 class DiagnosticsRepository @Inject constructor() {
+    private val nextEntryId = AtomicLong(0L)
     private val _entries = MutableStateFlow<List<DiagnosticsEntry>>(emptyList())
     val entries: StateFlow<List<DiagnosticsEntry>> = _entries
 
@@ -42,6 +44,7 @@ class DiagnosticsRepository @Inject constructor() {
             DiagnosticsLevel.Error -> Timber.e(message)
         }
         val entry = DiagnosticsEntry(
+            id = nextEntryId.getAndIncrement(),
             timestampMillis = System.currentTimeMillis(),
             level = level,
             message = message,

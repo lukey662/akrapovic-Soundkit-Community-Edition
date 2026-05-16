@@ -52,7 +52,7 @@ class BleScanner @Inject constructor(
         val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 val device = result.device.toSoundKitDevice(result.rssi)
-                if (device.isLikelySoundKit || SoundKitProtocol.serviceUuid != null) {
+                if (device.isLikelySoundKit || SoundKitProtocol.hasAdvertisingSignature(result.scanRecord?.bytes)) {
                     devices[device.address] = device
                     diagnosticsRepository.debug("BLE scan result ${device.name} ${device.address} rssi=${device.rssi}")
                     trySend(devices.values.toList())
@@ -62,7 +62,7 @@ class BleScanner @Inject constructor(
             override fun onBatchScanResults(results: MutableList<ScanResult>) {
                 results.forEach { result ->
                     val device = result.device.toSoundKitDevice(result.rssi)
-                    if (device.isLikelySoundKit || SoundKitProtocol.serviceUuid != null) {
+                    if (device.isLikelySoundKit || SoundKitProtocol.hasAdvertisingSignature(result.scanRecord?.bytes)) {
                         devices[device.address] = device
                     }
                 }

@@ -25,6 +25,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.ui.components.AkraCardShape
+import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
 
 @Composable
@@ -34,23 +36,15 @@ fun RoadmapScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AkraColors.Ink)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Spacer(Modifier.height(8.dp))
-        Eyebrow("// ROADMAP")
-        Text(
-            text = "Built so far",
-            style = MaterialTheme.typography.displaySmall,
-            color = AkraColors.Pearl,
-        )
-        Text(
-            text = "Feature progress stays visible in the app, with valve commands still fail-closed until the protocol is verified.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = AkraColors.Silver,
-            modifier = Modifier.padding(top = 6.dp),
+        AkraHeroHeader(
+            eyebrow = "Roadmap",
+            title = "Built so far",
+            subtitle = "Progress stays visible. Valve writes remain locked until protocol evidence is complete.",
         )
         RoadmapSection(
             title = "Done",
@@ -59,7 +53,7 @@ fun RoadmapScreen(
         )
         RoadmapSection(
             title = "Next",
-            accent = AkraColors.Amber,
+            accent = MaterialTheme.colorScheme.primary,
             items = nextItems,
         )
         RoadmapSection(
@@ -79,9 +73,9 @@ private fun RoadmapSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(2.dp))
-            .background(AkraColors.Carbon)
-            .border(1.dp, AkraColors.Titanium, RoundedCornerShape(2.dp))
+            .clip(AkraCardShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, AkraColors.Titanium, AkraCardShape)
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -95,7 +89,7 @@ private fun RoadmapSection(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                color = AkraColors.Pearl,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
         items.forEach { item ->
@@ -123,12 +117,12 @@ private fun RoadmapRow(
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = AkraColors.Pearl,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = item.body,
                 style = MaterialTheme.typography.bodyMedium,
-                color = AkraColors.Silver,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -139,7 +133,7 @@ private fun Eyebrow(label: String) {
     Text(
         text = label,
         style = MaterialTheme.typography.labelLarge,
-        color = AkraColors.Amber,
+        color = MaterialTheme.colorScheme.primary,
     )
 }
 
@@ -151,42 +145,50 @@ private data class RoadmapItem(
 private val doneItems = listOf(
     RoadmapItem(
         title = "Real SoundKit receiver discovered",
-        body = "Scan now finds the receiver by name and RSSI, including the confirmed SoundKit device.",
+        body = "Scan finds the receiver by name and RSSI. Confirmed against DC:F3:1C:16:EE:DA.",
     ),
     RoadmapItem(
-        title = "GATT connection reaches service discovery",
-        body = "Android connects to the receiver and discovers services while keeping command writes disabled.",
+        title = "GATT connection and service discovery",
+        body = "Android connects and reaches GATT service discovery. GATT profile is copy-ready from More → Diagnostics.",
     ),
     RoadmapItem(
         title = "Fail-closed valve safety",
-        body = "OPEN and CLOSE remain blocked until UUIDs, command bytes, and write type are verified.",
+        body = "OPEN and CLOSE stay blocked until UUIDs, command bytes, and write type are verified in BLE_PROTOCOL.md.",
     ),
     RoadmapItem(
         title = "Diagnostics and local-only controls",
-        body = "Diagnostics export, foreground service, notification actions, Quick Settings, and Android Auto scaffold are in place.",
+        body = "Diagnostics export, foreground BLE service, notification actions, Quick Settings tile, and Android Auto scaffold.",
     ),
     RoadmapItem(
-        title = "Premium scan shell",
-        body = "The dark industrial scan surface and Akrapovic amber HUD language are live.",
+        title = "Premium HUD scan and control shell",
+        body = "Dark industrial surface, amber accent, instrument-cluster status strips, and HUD typography throughout.",
+    ),
+    RoadmapItem(
+        title = "Reconnect polish",
+        body = "Same-device reconnect guard prevents duplicate connect requests and unnecessary reconnect cycles.",
+    ),
+    RoadmapItem(
+        title = "Garage themes",
+        body = "Eight brand-inspired palettes. Active now — tap a preset in Appearance to apply immediately.",
+    ),
+    RoadmapItem(
+        title = "Back navigation",
+        body = "System back gesture and back chevron work correctly from all More sub-screens.",
     ),
 )
 
 private val nextItems = listOf(
     RoadmapItem(
-        title = "GATT profile capture",
-        body = "Log services, characteristics, descriptors, and properties in a copy-ready block.",
+        title = "BLE protocol evidence",
+        body = "Paste GATT PROFILE block from Diagnostics into BLE_PROTOCOL.md, then capture command bytes via JADX or HCI snoop.",
     ),
     RoadmapItem(
-        title = "Control screen redesign",
-        body = "Bring the same HUD panel system to the connected valve screen.",
+        title = "Verified valve writes",
+        body = "Once UUIDs, write type, and payload bytes are documented, enable OPEN / CLOSE in SoundKitProtocol.kt.",
     ),
     RoadmapItem(
-        title = "Reconnect polish",
-        body = "Avoid duplicate same-device connect requests triggering unnecessary reconnect cycles.",
-    ),
-    RoadmapItem(
-        title = "Garage themes",
-        body = "Start with Audi RS3 White Sportback and other brand-inspired community presets.",
+        title = "Theme persistence",
+        body = "Save selected Garage theme to DataStore so it restores after the app restarts.",
     ),
 )
 

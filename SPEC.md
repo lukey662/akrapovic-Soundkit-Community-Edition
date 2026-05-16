@@ -2,7 +2,7 @@
 
 ## Goal
 
-Provide a modern Android app that locally controls an Akrapovic Sound Kit BLE receiver after the receiver protocol is verified.
+Provide a modern Android app that locally controls an Akrapovic Sound Kit BLE receiver using the protocol verified from the original Android APK.
 
 ## Package
 
@@ -32,23 +32,28 @@ flowchart TD
 
 ## BLE Behavior
 
-- Scan uses service UUID filtering after verification.
-- Until verification, scan results include likely receivers by advertised or connected name hints.
+- Scan accepts likely receivers by Sound Kit name hints and the original APK advertising signature (`FFFFFF` followed by ASCII `103`).
 - Connect uses `connectGatt` with LE transport where available.
-- Service discovery logs every discovered service and characteristic and emits a copy-ready GATT profile block for protocol evidence capture.
-- Valve writes require verified protocol fields:
-  - service UUID
-  - command characteristic UUID
-  - write type
-  - command payload
-- Missing protocol data produces a non-recoverable user-visible error and no BLE write.
+- If the receiver is not bonded, Android system pairing is started. The app does not hard-code a PIN.
+- Service discovery logs every discovered service and characteristic and emits a copy-ready GATT profile block for troubleshooting.
+- The original APK does not use a service UUID; the app finds characteristic `0000fff4-0000-1000-8000-00805f9b34fb` across all discovered services.
+- Notifications are enabled on the same characteristic through CCCD `00002902-0000-1000-8000-00805f9b34fb`.
+- Valve state is updated only from receiver status notifications:
+  - `02` / `07`: closed
+  - `03` / `06`: open
+  - `04`: receiver error
+- OPEN and CLOSE remain user-facing actions, but both are implemented safely over the verified toggle payload `01`:
+  - Unknown state: no write.
+  - Requested state already active: no-op success.
+  - Requested state opposite current state: send one toggle write with `WRITE_TYPE_DEFAULT`.
 
 ## UI Behavior
 
-- Scan screen handles permission rationale, scanning, empty state, and device list.
-- Control screen displays connection status, receiver identity, valve state, and large OPEN/CLOSE buttons.
-- Diagnostics screen shows local BLE logs and can copy an export report.
-- Settings screen controls auto-reconnect, debug logging, remembered receiver removal, and battery optimization guidance.
+- Scan screen is a guided setup flow with plain permission copy, one scan action, empty state, and receiver cards.
+- Control screen focuses on current valve state and one safe next action. Protocol details are hidden from the primary journey.
+- Diagnostics screen shows local logs, can copy/share a full report, and exposes locally captured crash logs after a crash.
+- Settings screen controls auto-reconnect, detailed local logging, remembered receiver removal, and background connection reliability.
+- Garage themes are persisted in DataStore and apply app-wide to the calmer premium companion UI. Themes are grouped into brand-inspired families, each with explicit Light and Dark variants, local brand mark drawables, and theme-driven gradients.
 
 ## Background Behavior
 
@@ -62,8 +67,9 @@ flowchart TD
 - No internet permission.
 - No secrets.
 - No cloud logging.
-- No BLE writes to unverified characteristics.
-- Minimal persisted data: receiver name/address and user settings.
+- No BLE writes to unknown characteristics or while valve state is unknown.
+- No hard-coded pairing PIN.
+- Minimal persisted data: receiver name/address, selected theme, and user settings.
 
 ## Future scope
 
@@ -72,6 +78,6 @@ Planned features (favorites, rules, schedules, geofencing, broader UI polish) ar
 ## Testing
 
 - JVM unit tests cover protocol guardrails, permission policy, retry policy, repository state transitions, and ViewModel state reduction.
-- Android instrumented smoke tests cover key Compose screens, notification construction, no-internet manifest behavior, and Android Auto IoT declaration.
-- Physical receiver smoke testing is documented in `TESTING.md` and must pass before enabling verified valve commands.
+- Android instrumented smoke tests cover key Compose screens, notification construction, diagnostics sharing, no-internet manifest behavior, FileProvider declaration, and Android Auto IoT declaration.
+- Physical receiver smoke testing is documented in `TESTING.md` and must pass before public release of valve control.
 

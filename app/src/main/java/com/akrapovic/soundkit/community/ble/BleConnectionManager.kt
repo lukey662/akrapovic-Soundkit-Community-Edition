@@ -10,7 +10,10 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
@@ -54,6 +57,7 @@ class BleConnectionManager @Inject constructor(
     private var connectedDevice: SoundKitDevice? = null
     private var pendingWrite: CompletableDeferred<CommandResult>? = null
     private var pendingCommand: ValveCommand? = null
+    private var bondReceiverRegistered = false
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val connectionState: StateFlow<ConnectionState> = _connectionState
@@ -105,11 +109,15 @@ class BleConnectionManager @Inject constructor(
         val activeGatt = gatt ?: return@withLock CommandResult.Failure("No active BLE connection", recoverable = true)
         val characteristic = commandCharacteristic
             ?: return@withLock CommandResult.Failure("Command characteristic was not discovered", recoverable = true)
-        val payload = SoundKitProtocol.commandPayload(command).getOrElse { error ->
+        val requestedState = command.toValveState()
+        val payload = SoundKitProtocol.commandPayload(command, _valveState.value).getOrElse { error ->
             return@withLock CommandResult.Failure(error.message.orEmpty(), recoverable = false)
         }
+        if (payload == null) {
+            diagnosticsRepository.info("${command.name} request already matches receiver state")
+            return@withLock CommandResult.Success(requestedState)
+        }
         val writeType = SoundKitProtocol.writeType
-            ?: return@withLock CommandResult.Failure("Write type is not verified", recoverable = false)
 
         characteristic.writeType = writeType
         val deferred = CompletableDeferred<CommandResult>()
@@ -126,8 +134,9 @@ class BleConnectionManager @Inject constructor(
 
         val result = withTimeoutOrNull(WRITE_TIMEOUT_MS) { deferred.await() }
             ?: CommandResult.Failure("Timed out waiting for BLE write confirmation", recoverable = true)
-        if (result is CommandResult.Success) {
-            _valveState.value = result.valveState
+        if (pendingWrite == deferred) {
+            pendingWrite = null
+            pendingCommand = null
         }
         result
     }
@@ -138,6 +147,7 @@ class BleConnectionManager @Inject constructor(
         pendingWrite = null
         pendingCommand = null
         commandCharacteristic = null
+        unregisterBondReceiver()
         gatt?.disconnect()
         gatt?.close()
         gatt = null
@@ -158,12 +168,13 @@ class BleConnectionManager @Inject constructor(
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     _connectionState.value = ConnectionState.Connecting(device)
-                    diagnosticsRepository.info("Connected at link layer; discovering GATT services")
-                    gatt.discoverServices()
+                    diagnosticsRepository.info("Connected at link layer; checking receiver pairing")
+                    continueAfterBond(gatt)
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     commandCharacteristic = null
                     _valveState.value = ValveState.Unknown
+                    unregisterBondReceiver()
                     _connectionState.value = if (status == BluetoothGatt.GATT_SUCCESS) {
                         ConnectionState.Disconnected
                     } else {
@@ -194,11 +205,11 @@ class BleConnectionManager @Inject constructor(
             }
             diagnosticsRepository.info(buildGattProfileReport(gatt))
 
-            val serviceUuid = SoundKitProtocol.serviceUuid
-            val characteristicUuid = SoundKitProtocol.commandCharacteristicUuid
-            if (serviceUuid != null && characteristicUuid != null) {
-                commandCharacteristic = gatt.getService(serviceUuid)?.getCharacteristic(characteristicUuid)
-                maybeEnableNotifications(gatt, SoundKitProtocol.notificationCharacteristicUuid)
+            commandCharacteristic = findCharacteristic(gatt, SoundKitProtocol.commandCharacteristicUuid)
+            if (commandCharacteristic != null) {
+                maybeEnableNotifications(gatt, commandCharacteristic)
+            } else {
+                diagnosticsRepository.error("Sound Kit command characteristic was not found")
             }
 
             val device = connectedDevice ?: SoundKitDevice(
@@ -214,20 +225,12 @@ class BleConnectionManager @Inject constructor(
             characteristic: BluetoothGattCharacteristic,
             status: Int,
         ) {
-            val commandState = when (status) {
-                BluetoothGatt.GATT_SUCCESS -> inferStateFromPendingCommand()
-                else -> null
-            }
             diagnosticsRepository.debug("BLE write completed characteristic=${characteristic.uuid} status=$status")
-            pendingWrite?.complete(
-                if (commandState != null) {
-                    CommandResult.Success(commandState)
-                } else {
-                    CommandResult.Failure("BLE write failed with status $status", recoverable = true)
-                },
-            )
-            pendingWrite = null
-            pendingCommand = null
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                pendingWrite?.complete(CommandResult.Failure("BLE write failed with status $status", recoverable = true))
+                pendingWrite = null
+                pendingCommand = null
+            }
         }
 
         override fun onCharacteristicChanged(
@@ -236,6 +239,7 @@ class BleConnectionManager @Inject constructor(
             value: ByteArray,
         ) {
             diagnosticsRepository.debug("BLE notify ${characteristic.uuid}: ${value.toHexString()}")
+            handleStatusNotification(value)
         }
 
         @Deprecated("Required by Android BluetoothGattCallback before API 33.")
@@ -243,26 +247,16 @@ class BleConnectionManager @Inject constructor(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
         ) {
-            diagnosticsRepository.debug("BLE notify ${characteristic.uuid}: ${characteristic.value?.toHexString().orEmpty()}")
-        }
-    }
-
-    private fun inferStateFromPendingCommand(): ValveState {
-        return when (pendingCommand) {
-            ValveCommand.Open -> ValveState.Open
-            ValveCommand.Close -> ValveState.Closed
-            null -> ValveState.Unknown
+            @Suppress("DEPRECATION")
+            val value = characteristic.value ?: byteArrayOf()
+            diagnosticsRepository.debug("BLE notify ${characteristic.uuid}: ${value.toHexString()}")
+            handleStatusNotification(value)
         }
     }
 
     @SuppressLint("MissingPermission")
-    private fun maybeEnableNotifications(gatt: BluetoothGatt, uuid: UUID?) {
-        if (uuid == null) return
-        val characteristic = gatt.services
-            .asSequence()
-            .mapNotNull { it.getCharacteristic(uuid) }
-            .firstOrNull() ?: return
-
+    private fun maybeEnableNotifications(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic?) {
+        if (characteristic == null) return
         val enabled = gatt.setCharacteristicNotification(characteristic, true)
         diagnosticsRepository.debug("Notification registration ${characteristic.uuid} enabled=$enabled")
 
@@ -279,6 +273,109 @@ class BleConnectionManager @Inject constructor(
             cccd.value = value
             @Suppress("DEPRECATION")
             gatt.writeDescriptor(cccd)
+        }
+    }
+
+    private fun findCharacteristic(gatt: BluetoothGatt, uuid: UUID): BluetoothGattCharacteristic? {
+        return gatt.services
+            .asSequence()
+            .flatMap { it.characteristics.asSequence() }
+            .firstOrNull { it.uuid == uuid }
+    }
+
+    private fun handleStatusNotification(value: ByteArray) {
+        SoundKitProtocol.statusByteToValveState(value)
+            .onSuccess { state ->
+                if (state != ValveState.Unknown) {
+                    _valveState.value = state
+                    diagnosticsRepository.info("Receiver valve state is ${state.name.lowercase()}")
+                } else {
+                    diagnosticsRepository.debug("Receiver status did not include valve state")
+                }
+                completePendingCommandIfMatched(state)
+            }
+            .onFailure { error ->
+                diagnosticsRepository.error(error.message.orEmpty())
+                pendingWrite?.complete(CommandResult.Failure(error.message.orEmpty(), recoverable = true))
+                pendingWrite = null
+                pendingCommand = null
+                _connectionState.value = ConnectionState.Error(error.message.orEmpty(), recoverable = true)
+            }
+    }
+
+    private fun completePendingCommandIfMatched(state: ValveState) {
+        val command = pendingCommand ?: return
+        val expectedState = command.toValveState()
+        if (state == expectedState) {
+            pendingWrite?.complete(CommandResult.Success(state))
+            pendingWrite = null
+            pendingCommand = null
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun continueAfterBond(gatt: BluetoothGatt) {
+        when (gatt.device.bondState) {
+            BluetoothDevice.BOND_BONDED -> {
+                diagnosticsRepository.info("Receiver paired; discovering GATT services")
+                gatt.discoverServices()
+            }
+            BluetoothDevice.BOND_BONDING -> {
+                diagnosticsRepository.info("Waiting for receiver pairing to finish")
+                registerBondReceiver()
+            }
+            else -> {
+                registerBondReceiver()
+                val started = gatt.device.createBond()
+                diagnosticsRepository.info("Starting Android pairing for receiver: $started")
+                if (!started) {
+                    _connectionState.value = ConnectionState.Error("Could not start receiver pairing", recoverable = true)
+                }
+            }
+        }
+    }
+
+    private fun registerBondReceiver() {
+        if (bondReceiverRegistered) return
+        ContextCompat.registerReceiver(
+            context,
+            bondReceiver,
+            IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        bondReceiverRegistered = true
+    }
+
+    private fun unregisterBondReceiver() {
+        if (!bondReceiverRegistered) return
+        runCatching { context.unregisterReceiver(bondReceiver) }
+        bondReceiverRegistered = false
+    }
+
+    private val bondReceiver = object : BroadcastReceiver() {
+        @SuppressLint("MissingPermission")
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != BluetoothDevice.ACTION_BOND_STATE_CHANGED) return
+            val activeGatt = gatt ?: return
+            val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+            } ?: return
+            if (device.address != activeGatt.device.address) return
+
+            when (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)) {
+                BluetoothDevice.BOND_BONDED -> {
+                    diagnosticsRepository.info("Receiver pairing complete; discovering GATT services")
+                    unregisterBondReceiver()
+                    activeGatt.discoverServices()
+                }
+                BluetoothDevice.BOND_NONE -> {
+                    diagnosticsRepository.warning("Receiver pairing was cancelled or failed")
+                    _connectionState.value = ConnectionState.Error("Receiver pairing was cancelled", recoverable = true)
+                }
+            }
         }
     }
 
@@ -370,6 +467,13 @@ class BleConnectionManager @Inject constructor(
     }
 
     private fun ByteArray.toHexString(): String = joinToString(separator = " ") { "%02X".format(it) }
+
+    private fun ValveCommand.toValveState(): ValveState {
+        return when (this) {
+            ValveCommand.Open -> ValveState.Open
+            ValveCommand.Close -> ValveState.Closed
+        }
+    }
 
     private companion object {
         val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")

@@ -16,6 +16,19 @@ The canonical package identity is:
 
 Do not use APKs whose package name differs from `si.sunesis.akrapovic.soundkit` for car protocol extraction. In particular, `si.sunesis.akrapovic.soundkitcustom` appears to be a different motorcycle/custom Sound Kit app and must not be treated as authoritative for the 2026 Audi RS3 car receiver.
 
+Analyzed APK:
+
+- Source: user-provided APKPure APK, analyzed locally on 2026-05-16.
+- Filename: `Akrapovič Car SoundKit_1.1.2_APKPure.apk`.
+- Handling: static-only analysis; the APK was not installed or executed.
+- Package: `si.sunesis.akrapovic.soundkit`.
+- Version: `1.1.2` / code `20`.
+- APK SHA-256: `dd72807560ead0cc41d0062fe4f4db1d2e917ce296e0c12d1c60fdf6e9b3529e`.
+- Signer DN: `CN=Sunesis, OU=IT, O=Akrapovic Manufacturing, L=Ivancna Gorica, ST=Ivancna Gorica, C=SI`.
+- Signer certificate SHA-256: `0a0d55fe747cc2c8481a2d30fa6c19df3253986f257513fbb58978ed6994f04a`.
+
+The APK identity and signer are credible for protocol extraction. The manifest declares Bluetooth, vibration, and location permissions only; no `INTERNET` permission or native libraries were found during static inspection.
+
 ## Verification Checklist
 
 Before decompiling, verify the APK identity:
@@ -117,6 +130,8 @@ From static analysis, capture:
 - Any unlock, authentication, checksum, sequence, or keepalive bytes
 
 If the command is constructed dynamically, trace the call chain from the UI button handler to the final `BluetoothGatt.writeCharacteristic(...)` invocation.
+
+Findings from the analyzed APK are recorded in `BLE_PROTOCOL.md`. The critical protocol detail is that the original APK does not have separate open and close command bytes. It sends one toggle payload (`01`) to characteristic `0000fff4-0000-1000-8000-00805f9b34fb` and relies on notifications from the same characteristic for valve state.
 
 ## Runtime Capture Workflow
 
