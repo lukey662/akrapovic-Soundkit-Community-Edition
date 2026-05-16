@@ -35,7 +35,7 @@ flowchart TD
 - Scan uses service UUID filtering after verification.
 - Until verification, scan results include likely receivers by advertised or connected name hints.
 - Connect uses `connectGatt` with LE transport where available.
-- Service discovery logs every discovered service and characteristic.
+- Service discovery logs every discovered service and characteristic and emits a copy-ready GATT profile block for protocol evidence capture.
 - Valve writes require verified protocol fields:
   - service UUID
   - command characteristic UUID

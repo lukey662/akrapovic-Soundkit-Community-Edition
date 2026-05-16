@@ -192,6 +192,7 @@ class BleConnectionManager @Inject constructor(
                     )
                 }
             }
+            diagnosticsRepository.info(buildGattProfileReport(gatt))
 
             val serviceUuid = SoundKitProtocol.serviceUuid
             val characteristicUuid = SoundKitProtocol.commandCharacteristicUuid
@@ -305,6 +306,62 @@ class BleConnectionManager @Inject constructor(
     private fun hasConnectPermission(): Boolean {
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun buildGattProfileReport(gatt: BluetoothGatt): String {
+        return buildString {
+            appendLine("GATT PROFILE START")
+            appendLine("services=${gatt.services.size}")
+            gatt.services.forEachIndexed { serviceIndex, service ->
+                appendLine("service[$serviceIndex]=${service.uuid}")
+                appendLine("  type=${if (service.type == android.bluetooth.BluetoothGattService.SERVICE_TYPE_PRIMARY) "PRIMARY" else "SECONDARY"}")
+                service.characteristics.forEachIndexed { characteristicIndex, characteristic ->
+                    appendLine("  characteristic[$characteristicIndex]=${characteristic.uuid}")
+                    appendLine("    properties=${characteristic.properties.toCharacteristicPropertiesText()}")
+                    appendLine("    permissions=${characteristic.permissions.toPermissionsText()}")
+                    if (characteristic.descriptors.isEmpty()) {
+                        appendLine("    descriptors=none")
+                    } else {
+                        characteristic.descriptors.forEachIndexed { descriptorIndex, descriptor ->
+                            appendLine("    descriptor[$descriptorIndex]=${descriptor.uuid}")
+                            appendLine("      permissions=${descriptor.permissions.toPermissionsText()}")
+                            if (descriptor.uuid == CCCD_UUID) {
+                                appendLine("      known=CCCD")
+                            }
+                        }
+                    }
+                }
+            }
+            append("GATT PROFILE END")
+        }
+    }
+
+    private fun Int.toCharacteristicPropertiesText(): String {
+        val values = buildList {
+            if (this@toCharacteristicPropertiesText and BluetoothGattCharacteristic.PROPERTY_BROADCAST != 0) add("BROADCAST")
+            if (this@toCharacteristicPropertiesText and BluetoothGattCharacteristic.PROPERTY_READ != 0) add("READ")
+            if (this@toCharacteristicPropertiesText and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0) add("WRITE_NO_RESPONSE")
+            if (this@toCharacteristicPropertiesText and BluetoothGattCharacteristic.PROPERTY_WRITE != 0) add("WRITE")
+            if (this@toCharacteristicPropertiesText and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) add("NOTIFY")
+            if (this@toCharacteristicPropertiesText and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0) add("INDICATE")
+            if (this@toCharacteristicPropertiesText and BluetoothGattCharacteristic.PROPERTY_SIGNED_WRITE != 0) add("SIGNED_WRITE")
+            if (this@toCharacteristicPropertiesText and BluetoothGattCharacteristic.PROPERTY_EXTENDED_PROPS != 0) add("EXTENDED_PROPS")
+        }
+        return values.joinToString(separator = "|").ifBlank { "NONE" } + " ($this)"
+    }
+
+    private fun Int.toPermissionsText(): String {
+        val values = buildList {
+            if (this@toPermissionsText and BluetoothGattCharacteristic.PERMISSION_READ != 0) add("READ")
+            if (this@toPermissionsText and BluetoothGattCharacteristic.PERMISSION_READ_ENCRYPTED != 0) add("READ_ENCRYPTED")
+            if (this@toPermissionsText and BluetoothGattCharacteristic.PERMISSION_READ_ENCRYPTED_MITM != 0) add("READ_ENCRYPTED_MITM")
+            if (this@toPermissionsText and BluetoothGattCharacteristic.PERMISSION_WRITE != 0) add("WRITE")
+            if (this@toPermissionsText and BluetoothGattCharacteristic.PERMISSION_WRITE_ENCRYPTED != 0) add("WRITE_ENCRYPTED")
+            if (this@toPermissionsText and BluetoothGattCharacteristic.PERMISSION_WRITE_ENCRYPTED_MITM != 0) add("WRITE_ENCRYPTED_MITM")
+            if (this@toPermissionsText and BluetoothGattCharacteristic.PERMISSION_WRITE_SIGNED != 0) add("WRITE_SIGNED")
+            if (this@toPermissionsText and BluetoothGattCharacteristic.PERMISSION_WRITE_SIGNED_MITM != 0) add("WRITE_SIGNED_MITM")
+        }
+        return values.joinToString(separator = "|").ifBlank { "NONE" } + " ($this)"
     }
 
     @SuppressLint("MissingPermission")

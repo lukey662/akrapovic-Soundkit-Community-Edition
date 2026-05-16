@@ -32,10 +32,11 @@ Planned features, UX direction, and non-goals are tracked in `ROADMAP.md`.
 
 1. Obtain and verify the original `si.sunesis.akrapovic.soundkit` APK.
 2. Follow `APK_ANALYSIS.md`.
-3. Populate `BLE_PROTOCOL.md` with evidence.
-4. Update `SoundKitProtocol.kt`.
-5. Add protocol unit tests for UUIDs, write type, and payload bytes.
-6. Test while parked with diagnostics enabled.
+3. Connect to the physical receiver with this app and copy the `GATT PROFILE START` / `GATT PROFILE END` diagnostics block from `More -> Diagnostics`.
+4. Populate `BLE_PROTOCOL.md` with candidate GATT evidence and separate command evidence from JADX, nRF Connect, or HCI snoop logs.
+5. Update `SoundKitProtocol.kt` only after service UUID, command characteristic UUID, write type, payload bytes, and safe valve behavior are all verified.
+6. Add protocol unit tests for UUIDs, write type, payload bytes, and forbidden/unsafe payload guardrails.
+7. Test while parked with diagnostics enabled.
 
 ## Android Auto Testing
 

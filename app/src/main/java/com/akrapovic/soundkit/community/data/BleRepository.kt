@@ -49,6 +49,7 @@ class BleRepositoryImpl @Inject constructor(
     private var lastRequestedDevice: SoundKitDevice? = null
     private var autoReconnectEnabled: Boolean = true
     private var hadStableConnection: Boolean = false
+    private var suppressNextAutoReconnect: Boolean = false
 
     private val _discoveredDevices = MutableStateFlow<List<SoundKitDevice>>(emptyList())
     override val discoveredDevices: StateFlow<List<SoundKitDevice>> = _discoveredDevices.asStateFlow()
@@ -68,17 +69,28 @@ class BleRepositoryImpl @Inject constructor(
         scope.launch {
             connectionState.collect { state ->
                 when (state) {
-                    is ConnectionState.Connected -> hadStableConnection = true
+                    is ConnectionState.Connected -> {
+                        suppressNextAutoReconnect = false
+                        hadStableConnection = true
+                    }
                     is ConnectionState.Error -> {
                         val device = lastRequestedDevice
-                        if (state.recoverable && autoReconnectEnabled && device != null) {
+                        if (suppressNextAutoReconnect) {
+                            suppressNextAutoReconnect = false
+                            hadStableConnection = false
+                            diagnosticsRepository.debug("Suppressing auto reconnect during deliberate connection transition")
+                        } else if (state.recoverable && autoReconnectEnabled && device != null) {
                             hadStableConnection = false
                             scheduleReconnect(device, startAttempt = 1)
                         }
                     }
                     ConnectionState.Disconnected -> {
                         val device = lastRequestedDevice
-                        if (hadStableConnection && autoReconnectEnabled && device != null) {
+                        if (suppressNextAutoReconnect) {
+                            suppressNextAutoReconnect = false
+                            hadStableConnection = false
+                            diagnosticsRepository.debug("Suppressing auto reconnect after deliberate disconnect")
+                        } else if (hadStableConnection && autoReconnectEnabled && device != null) {
                             hadStableConnection = false
                             scheduleReconnect(device, startAttempt = 1)
                         }
@@ -115,11 +127,20 @@ class BleRepositoryImpl @Inject constructor(
 
     override suspend fun connect(device: SoundKitDevice) {
         stopScan()
-        lastRequestedDevice = device
         settingsRepository.rememberDevice(device)
+        if (connectionState.value.isActiveFor(device)) {
+            lastRequestedDevice = device
+            diagnosticsRepository.info("Already connected or connecting to ${device.name}")
+            return
+        }
+        if (connectionState.value.hasDifferentActiveDevice(device)) {
+            suppressNextAutoReconnect = true
+        }
+        lastRequestedDevice = device
         reconnectJob?.cancel()
         diagnosticsRepository.info("User requested connection to ${device.name}")
         connectionManager.connect(device).onFailure { error ->
+            suppressNextAutoReconnect = false
             diagnosticsRepository.error("Initial connection failed: ${error.message}", error)
             scheduleReconnect(device, startAttempt = 1)
         }
@@ -127,6 +148,8 @@ class BleRepositoryImpl @Inject constructor(
 
     override suspend fun disconnect() {
         reconnectJob?.cancel()
+        suppressNextAutoReconnect = true
+        hadStableConnection = false
         lastRequestedDevice = null
         connectionManager.disconnect()
     }
@@ -163,6 +186,27 @@ class BleRepositoryImpl @Inject constructor(
         when (result) {
             is CommandResult.Success -> diagnosticsRepository.info("$command command accepted; state=${result.valveState}")
             is CommandResult.Failure -> diagnosticsRepository.warning("$command command failed: ${result.message}")
+        }
+    }
+
+    private fun ConnectionState.isActiveFor(device: SoundKitDevice): Boolean {
+        return activeDeviceAddress() == device.address
+    }
+
+    private fun ConnectionState.hasDifferentActiveDevice(device: SoundKitDevice): Boolean {
+        val activeAddress = activeDeviceAddress()
+        return activeAddress != null && activeAddress != device.address
+    }
+
+    private fun ConnectionState.activeDeviceAddress(): String? {
+        return when (this) {
+            is ConnectionState.Connected -> device.address
+            is ConnectionState.Connecting -> device.address
+            is ConnectionState.Reconnecting -> device.address
+            ConnectionState.Disconnected,
+            ConnectionState.Scanning,
+            is ConnectionState.Error,
+            -> null
         }
     }
 }

@@ -79,6 +79,38 @@ class BleRepositoryImplTest {
     }
 
     @Test
+    fun connectToAlreadyConnectedReceiverDoesNotReconnectGatt() = runTest(mainDispatcherRule.dispatcher) {
+        val repository = repository()
+        val device = testDevice()
+
+        repository.connect(device)
+        connection.connectionState.value = ConnectionState.Connected(device)
+        runCurrent()
+        repository.connect(device)
+        runCurrent()
+
+        assertEquals(listOf(device), connection.connectedDevices)
+        assertTrue(diagnostics.entries.value.any { it.message.contains("Already connected") })
+    }
+
+    @Test
+    fun deliberateConnectionReplacementDoesNotScheduleAutoReconnect() = runTest(mainDispatcherRule.dispatcher) {
+        val repository = repository()
+        val firstDevice = testDevice(address = "00:11:22:33:44:55")
+        val secondDevice = testDevice(address = "66:77:88:99:AA:BB")
+
+        repository.connect(firstDevice)
+        connection.connectionState.value = ConnectionState.Connected(firstDevice)
+        runCurrent()
+        repository.connect(secondDevice)
+        connection.connectionState.value = ConnectionState.Disconnected
+        advanceTimeBy(2_000)
+        runCurrent()
+
+        assertTrue(connection.reconnectMarks.isEmpty())
+    }
+
+    @Test
     fun disconnectCancelsPendingReconnect() = runTest(mainDispatcherRule.dispatcher) {
         val repository = repository()
         val device = testDevice()

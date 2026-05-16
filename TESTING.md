@@ -64,7 +64,29 @@ CI uploads:
 
 ## Physical Receiver Smoke Checklist
 
-Only run this checklist after `BLE_PROTOCOL.md` contains verified UUIDs, command bytes, and write type from the original APK or an HCI capture.
+The first hardware pass is discovery-only. Do not send valve commands until `BLE_PROTOCOL.md` contains verified UUIDs, command bytes, and write type from the original APK, nRF Connect observation, or an HCI capture.
+
+### Discovery Capture Pass
+
+Use this pass before protocol verification:
+
+1. Install the debug APK.
+2. Grant Bluetooth permissions.
+3. Confirm the app has no internet permission in Android app info.
+4. Power on the Sound Kit receiver.
+5. Scan and verify the receiver appears with the expected name or service UUID.
+6. Connect to the receiver.
+7. Open `More -> Diagnostics`.
+8. Tap `Copy diagnostics report`.
+9. Save the report with the APK version, phone model, Android version, receiver address, and vehicle state.
+10. Paste the `GATT PROFILE START` / `GATT PROFILE END` block into `BLE_PROTOCOL.md` as candidate service evidence.
+11. If command bytes are still unknown, capture the original app with nRF Connect where possible or Android Bluetooth HCI snoop logs.
+
+Stop discovery if the receiver repeatedly disconnects, Android shows pairing errors, or the diagnostics report does not include a GATT profile block.
+
+### Command Smoke Pass
+
+Only run this command checklist after `BLE_PROTOCOL.md` contains verified UUIDs, command bytes, safe valve behavior, and write type from the original APK or an HCI capture.
 
 Safety requirements:
 
@@ -83,7 +105,7 @@ Steps:
 5. Scan and verify the receiver appears with the expected name or service UUID.
 6. Connect to the receiver.
 7. Confirm service discovery logs match `BLE_PROTOCOL.md`.
-8. Send CLOSE once.
+8. Send CLOSE once only if the command is verified safe and not a known/suspected full-shut payload.
 9. Confirm the valve physically closes.
 10. Send OPEN once.
 11. Confirm the valve physically opens.

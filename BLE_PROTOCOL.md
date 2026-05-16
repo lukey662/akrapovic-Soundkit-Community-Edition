@@ -79,6 +79,34 @@ Implementation rule until verified:
 | Notification characteristic | Pending | Pending JADX/HCI evidence | Pending |
 | CCCD descriptor | `00002902-0000-1000-8000-00805f9b34fb` if notifications are used | Standard BLE descriptor; use only if characteristic confirms notify/indicate | Pending |
 
+### App GATT Profile Capture
+
+After connecting to the receiver, the app emits a copy-ready diagnostics block:
+
+```text
+GATT PROFILE START
+services=<count>
+service[0]=<uuid>
+  type=PRIMARY|SECONDARY
+  characteristic[0]=<uuid>
+    properties=READ|WRITE|WRITE_NO_RESPONSE|NOTIFY|INDICATE (<raw int>)
+    permissions=READ|WRITE|... (<raw int>)
+    descriptor[0]=<uuid>
+      permissions=<flags>
+      known=CCCD
+GATT PROFILE END
+```
+
+Capture steps:
+
+1. Install the debug APK.
+2. Open the app and connect to the receiver while parked.
+3. Go to `More -> Diagnostics`.
+4. Tap `Copy diagnostics report`.
+5. Paste the `GATT PROFILE START` / `GATT PROFILE END` block into this file before changing any protocol constants.
+
+Use this app capture only to identify candidate UUIDs and properties. Command payloads and write type still require original APK analysis, nRF Connect observation, or Android HCI snoop evidence.
+
 ## Valve Commands
 
 | Command | Payload | Write Type | Evidence | Status |
@@ -126,4 +154,13 @@ Add entries here as protocol facts are discovered.
 - No verified APK or capture is present in the repository.
 - Public app metadata was found for `si.sunesis.akrapovic.soundkit`.
 - Protocol constants remain intentionally unresolved and command writes are disabled.
+
+### 2026-05-16 - Real Receiver Scan And Connection
+
+- Physical receiver advertised as `SoundKit`.
+- Receiver address observed as `DC:F3:1C:16:EE:DA`.
+- RSSI observed around `-51` to `-59` near the vehicle.
+- Android link-layer connection succeeded with `status=0 newState=2`.
+- GATT service discovery completed for `SoundKit`.
+- Service UUIDs, characteristic UUIDs, descriptors, command bytes, and write type remain pending until a full `GATT PROFILE` diagnostics block and command evidence are captured.
 
