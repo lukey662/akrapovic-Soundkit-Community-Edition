@@ -9,13 +9,21 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 - **Privacy** — Geofencing and location-backed rules need **opt-in**, plain-language disclosure, and minimal retention. No selling or sharing location data (there is no backend today).
 - **Accessibility** — Target **WCAG 2.1 AA** for contrast, semantics, touch targets (≥48dp), and screen reader labels as screens are touched.
 
+## Done
+
+- **Physical receiver validation** — verified APK toggle protocol with pairing, notifications, and state-gated OPEN/CLOSE behavior confirmed against a real receiver.
+- **Per-family Light/Dark themes** with local brand marks and gradients.
+- **First-run "use at your own risk" gate** with persisted acceptance and prominent README disclaimer.
+- **Animated valve visual** on the Control screen (open / closed / unknown).
+- **Diagnostics export hygiene** — file-only share intent (no email subject/body autofill) and explicit Save-to-file via Storage Access Framework.
+
 ## Near term (foundation)
 
 | Area | Intent |
 |------|--------|
-| **Physical receiver validation** | Confirm the verified APK toggle protocol against the car receiver, including pairing, notifications, and state-gated OPEN/CLOSE behavior. |
-| **Theme polish** | Per-family Light/Dark themes and local brand marks are in place; continue refining gradients, spacing, and contrast from real-device screenshots. |
+| **Theme polish** | Continue refining gradients, spacing, and contrast from real-device screenshots; replace placeholder brand marks with locally-sourced SVGs as users provide them. |
 | **CI reliability** | Ensure Gradle wrapper JAR is present so GitHub Actions can run `./gradlew` without bootstrap failures. |
+| **Easy-win confirmations** | Disconnect and Forget Device confirmation dialogs to prevent in-car mistaps. |
 
 ## UX / UI (cross-cutting, parallel)
 
@@ -59,6 +67,7 @@ These improvements can advance **alongside** protocol work. Early passes do not 
 
 - **Cloud** accounts, remote control over the internet, or telemetry backends.
 - **Warranty** or official integration with Akrapovič systems.
+- **Projected Android Auto distribution.** Google Play policy only allows projected Android Auto apps in published categories (navigation, parking, charging, media, messaging, video, weather, POI). A valve-toggle controller fits none of them. We continue to ship the `IOT` Car App surface for Android **Automotive OS** users and DHU testing — see `DOCS.md` § Android Auto Testing.
 
 ## Dependency sketch
 

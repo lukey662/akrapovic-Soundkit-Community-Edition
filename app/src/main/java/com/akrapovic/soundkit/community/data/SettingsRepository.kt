@@ -23,6 +23,7 @@ interface SettingsStore {
     suspend fun setAutoReconnect(enabled: Boolean)
     suspend fun setDebugLoggingEnabled(enabled: Boolean)
     suspend fun setGarageThemeId(themeId: String)
+    suspend fun acceptRiskNotice()
 }
 
 @Singleton
@@ -35,6 +36,7 @@ class SettingsRepository @Inject constructor(
         val AutoReconnect = booleanPreferencesKey("auto_reconnect")
         val DebugLoggingEnabled = booleanPreferencesKey("debug_logging_enabled")
         val GarageThemeId = stringPreferencesKey("garage_theme_id")
+        val RiskNoticeAcceptedAt = androidx.datastore.preferences.core.longPreferencesKey("risk_notice_accepted_at")
     }
 
     override val settings: Flow<SoundKitSettings> = context.settingsDataStore.data.map { preferences ->
@@ -44,6 +46,7 @@ class SettingsRepository @Inject constructor(
             autoReconnect = preferences[Keys.AutoReconnect] ?: true,
             debugLoggingEnabled = preferences[Keys.DebugLoggingEnabled] ?: true,
             garageThemeId = preferences[Keys.GarageThemeId] ?: "studio-dark",
+            riskNoticeAcceptedAt = preferences[Keys.RiskNoticeAcceptedAt] ?: 0L,
         )
     }
 
@@ -76,6 +79,12 @@ class SettingsRepository @Inject constructor(
     override suspend fun setGarageThemeId(themeId: String) {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.GarageThemeId] = themeId
+        }
+    }
+
+    override suspend fun acceptRiskNotice() {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.RiskNoticeAcceptedAt] = System.currentTimeMillis()
         }
     }
 }

@@ -126,8 +126,9 @@ class ComposeSmokeTest {
         }
 
         composeRule.onNodeWithText("Diagnostics").assertIsDisplayed()
-        composeRule.onNodeWithText("Copy report").assertIsDisplayed()
-        composeRule.onNodeWithText("Share report").assertIsDisplayed()
+        composeRule.onNodeWithText("Copy").assertIsDisplayed()
+        composeRule.onNodeWithText("Save").assertIsDisplayed()
+        composeRule.onNodeWithText("Share").assertIsDisplayed()
     }
 
     @Test
@@ -144,7 +145,8 @@ class ComposeSmokeTest {
         }
 
         composeRule.onNodeWithText("Crash detected on last session").assertIsDisplayed()
-        composeRule.onNodeWithText("Share crash").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Save crash log to a file").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Share crash log file").assertIsDisplayed()
     }
 
     @Test
@@ -217,6 +219,31 @@ class ComposeSmokeTest {
     }
 
     @Test
+    fun riskNoticeDialogIsShownOnFirstLaunchOnly() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val crashReporter = CrashReporter(context)
+        composeRule.setContent {
+            SoundKitApp(
+                viewModel = SoundKitViewModel(
+                    bleRepository = FakeBleRepositoryForSmoke(),
+                    settingsRepository = FakeSettingsStoreForSmoke(
+                        initial = SoundKitSettings(riskNoticeAcceptedAt = 0L),
+                    ),
+                    diagnosticsRepository = DiagnosticsRepository(),
+                    diagnosticsReportBuilder = DiagnosticsReportBuilder(context, crashReporter),
+                    crashReporter = crashReporter,
+                ),
+                permissions = emptyList(),
+                permissionsGranted = true,
+                onRequestPermissions = {},
+            )
+        }
+
+        composeRule.onNodeWithText("Use at your own risk").assertIsDisplayed()
+        composeRule.onNodeWithText("I understand and accept").assertIsDisplayed()
+    }
+
+    @Test
     fun garageThemeScreenShowsLightAndCarPresets() {
         composeRule.setContent {
             SoundKitTheme {
@@ -265,8 +292,10 @@ private class FakeBleRepositoryForSmoke : BleRepository {
     }
 }
 
-private class FakeSettingsStoreForSmoke : SettingsStore {
-    override val settings = MutableStateFlow(SoundKitSettings())
+private class FakeSettingsStoreForSmoke(
+    initial: SoundKitSettings = SoundKitSettings(riskNoticeAcceptedAt = 1L),
+) : SettingsStore {
+    override val settings = MutableStateFlow(initial)
 
     override suspend fun rememberDevice(device: SoundKitDevice) = Unit
 
@@ -282,6 +311,10 @@ private class FakeSettingsStoreForSmoke : SettingsStore {
 
     override suspend fun setGarageThemeId(themeId: String) {
         settings.value = settings.value.copy(garageThemeId = themeId)
+    }
+
+    override suspend fun acceptRiskNotice() {
+        settings.value = settings.value.copy(riskNoticeAcceptedAt = System.currentTimeMillis())
     }
 }
 

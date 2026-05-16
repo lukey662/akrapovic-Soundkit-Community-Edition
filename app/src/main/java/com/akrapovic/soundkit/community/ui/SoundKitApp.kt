@@ -42,6 +42,7 @@ import com.akrapovic.soundkit.community.ui.control.ConnectedDeviceScreen
 import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
 import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
 import com.akrapovic.soundkit.community.ui.more.MoreScreen
+import com.akrapovic.soundkit.community.ui.onboarding.RiskNoticeDialog
 import com.akrapovic.soundkit.community.ui.roadmap.RoadmapScreen
 import com.akrapovic.soundkit.community.ui.scan.ScanScreen
 import com.akrapovic.soundkit.community.ui.settings.SettingsScreen
@@ -144,6 +145,10 @@ fun SoundKitApp(
                     selectedThemeId = state.settings.garageThemeId,
                     onThemeSelected = viewModel::setGarageTheme,
                 )
+            }
+
+            if (!state.settings.riskNoticeAccepted) {
+                RiskNoticeDialog(onAccept = viewModel::acceptRiskNotice)
             }
         }
     }

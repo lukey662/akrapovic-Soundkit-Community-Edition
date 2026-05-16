@@ -1,19 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon (Android 13+) variant of the valve glyph. White-only,
+     matching the foreground geometry. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M20,56 L24,52 L26,44 L30,38 L38,32 L48,28 L58,26 L72,26 L82,28 L88,32 L92,38 L94,44 L94,50 L92,54 L88,56 L82,56 L78,52 L72,50 L68,52 L64,56 L58,56 L52,54 L48,50 L42,50 L36,52 L30,54 L24,56 Z" />
+        android:pathData="M54,22 a32,32 0 1,1 0,64 a32,32 0 1,1 0,-64 z M54,28 a26,26 0 1,0 0,52 a26,26 0 1,0 0,-52 z" />
+
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M34,58m9,0a9,9 0,1 1,-18,0a9,9 0,1 1,18,0z" />
+        android:pathData="M32.0,42.0 A26,26 0 0,1 76.0,42.0 L70.6,46.6 A20,20 0 0,0 37.4,46.6 Z" />
+
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M68,58m10,0a10,10 0,1 1,-20,0a10,10 0,1 1,20,0z" />
+        android:pathData="M32.0,66.0 A26,26 0 0,0 76.0,66.0 L70.6,61.4 A20,20 0 0,1 37.4,61.4 Z" />
+
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M86,54m5,0a5,5 0,1 1,-10,0a5,5 0,1 1,10,0z" />
+        android:pathData="M54,54 m-5,0 a5,5 0,1 1,10,0 a5,5 0,1 1,-10,0 z" />
 </vector>

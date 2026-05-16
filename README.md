@@ -12,6 +12,19 @@ The **official** Car SoundKit Android app for the Sound Kit receiver is **no lon
 
 Visual and interaction polish is **ongoing**; see `ROADMAP.md` for planned UX work alongside product features.
 
+## Disclaimer — Use at your own risk
+
+By installing or using this app you acknowledge and accept that:
+
+- This is an **independent open-source project**. It is **not affiliated with, endorsed by, or supported by** Akrapovič d.d. or the original publisher.
+- The valve protocol was **reverse-engineered** from a public APK. Behavior may differ from the official app.
+- Using this app may **void your exhaust, vehicle, or component warranty**.
+- Operating exhaust valves can change **emissions, sound levels, and legal compliance**. You are solely responsible for following all applicable **local noise and emissions regulations**.
+- **Never operate the valves while driving.** Use only when the vehicle is parked with safe ventilation.
+- The app is provided **as-is**, with **no warranty of any kind**, express or implied. The authors and contributors accept **no liability** for equipment damage, legal exposure, personal injury, or any other loss arising from use.
+
+The app shows this disclaimer once on first launch; you must accept it before any features are enabled.
+
 ## Status
 
 The original Android APK has been statically analyzed and the core protocol is documented. The receiver uses one verified toggle payload (`01`) on characteristic `0000fff4-0000-1000-8000-00805f9b34fb`; OPEN and CLOSE in this app are state-gated so no write is sent until receiver notifications report whether the valves are currently open or closed.

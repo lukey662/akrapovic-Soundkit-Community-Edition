@@ -122,6 +122,19 @@ class SoundKitViewModelTest {
     }
 
     @Test
+    fun acceptRiskNoticePersistsThroughSettingsStore() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = viewModel()
+
+        assertFalse(settingsStore.settings.value.riskNoticeAccepted)
+
+        viewModel.acceptRiskNotice()
+        runCurrent()
+
+        assertEquals(1, settingsStore.riskNoticeAcceptCount)
+        assertTrue(settingsStore.settings.value.riskNoticeAccepted)
+    }
+
+    @Test
     fun forgetDeviceClearsStoreAndDisconnects() = runTest(mainDispatcherRule.dispatcher) {
         val viewModel = viewModel()
 

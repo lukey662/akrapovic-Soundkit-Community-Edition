@@ -127,3 +127,53 @@ Introduce narrow interfaces for scanning, connection management, and settings pe
 - Regression tests can prove fail-closed behavior before protocol values are known.
 - Android-specific behavior remains covered by smaller instrumented smoke tests.
 
+## 2026-05-16: Diagnostics Share Is File-Only To Avoid Email Auto-Population
+
+### Context
+
+The previous diagnostics share intent attached the report file *and* set `EXTRA_SUBJECT` and `EXTRA_TEXT` to a preview of the report. Gmail (and similar email handlers) treat any `ACTION_SEND` with subject/body text as a draft email and auto-populate the user's signed-in account in the From: line. Users reported this leaked their personal email into the share flow even when they only wanted to attach the file.
+
+### Decision
+
+Strip `EXTRA_SUBJECT` and `EXTRA_TEXT` from the share intent. The chooser now offers a **file attachment only** flow, with `EXTRA_STREAM` and `ClipData` carrying the report URI. Pair this with a new **Save to file** action that uses `ACTION_CREATE_DOCUMENT` (the Storage Access Framework) so users can save reports to Files / Drive / SD card without engaging any email handler at all.
+
+### Consequences
+
+- No more From: auto-fill of the user's email account.
+- Users get an explicit "Save" option that never touches a mail client.
+- Email clients can still receive the report when chosen explicitly; they simply start with a blank compose.
+- The instrumented test `DiagnosticsShareTest` asserts that the share intent contains neither `EXTRA_SUBJECT` nor `EXTRA_TEXT` to prevent regressions.
+
+## 2026-05-16: Blocking First-Run Risk Acknowledgement
+
+### Context
+
+The app drives a reverse-engineered protocol on a third-party exhaust accessory. Misuse can affect warranty, emissions compliance, and personal safety. Burying that disclosure inside Settings or the README does not give users a reasonable chance to opt out.
+
+### Decision
+
+Show a non-dismissible `AlertDialog` on first launch that summarizes: independent project, reverse-engineered protocol, may void warranty, may affect emissions / noise compliance, do not operate while driving, no warranty. The user must tap **I understand and accept** to continue, or **Exit app** to leave. Acceptance timestamp is persisted in DataStore so the dialog never returns once accepted.
+
+### Consequences
+
+- Users are explicitly informed before any feature (including scanning) is reachable.
+- The same disclaimer is mirrored prominently in `README.md`.
+- Clearing app data re-shows the dialog, which is the desired behavior.
+- The dialog adds one tap to the first launch only; no other flow is affected.
+
+## 2026-05-16: Projected Android Auto Is A Non-Goal
+
+### Context
+
+Several users asked why the app does not appear in their car's projected Android Auto. Google's Android Auto policy only allows projected apps in published categories (navigation, parking, charging, media, messaging, video, weather, POI). A valve-toggle controller fits none of them. The Car App Library `IOT` category we declare is intended for Android **Automotive OS** built-in head units and the Desktop Head Unit simulator.
+
+### Decision
+
+Document the limitation in `DOCS.md` § Android Auto Testing and list "Projected Android Auto distribution" as a Non-goal in `ROADMAP.md`. Continue to ship the IoT Car App surface so Automotive OS users and DHU testers can reach the same state-gated controls.
+
+### Consequences
+
+- Expectations are set up front, with steps to test via the Desktop Head Unit when contributors want to exercise the surface.
+- No effort is sunk into trying to fit valve control into an unrelated Play category.
+- If Google ever publishes a category that fits, this decision can be revisited.
+

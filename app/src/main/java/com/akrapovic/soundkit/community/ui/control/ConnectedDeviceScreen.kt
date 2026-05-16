@@ -13,10 +13,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +36,7 @@ import com.akrapovic.soundkit.community.ui.components.AkraButtonRow
 import com.akrapovic.soundkit.community.ui.components.AkraCard
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
 import com.akrapovic.soundkit.community.ui.components.AkraStatusPill
+import com.akrapovic.soundkit.community.ui.components.ValveVisual
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
 import com.akrapovic.soundkit.community.ui.theme.LocalAkraTheme
 
@@ -136,6 +141,12 @@ private fun ValveStateCard(state: SoundKitUiState) {
             text = state.connectionState.shortText(),
             color = if (state.connectionState is ConnectionState.Connected) AkraColors.Signal else AkraColors.Mist,
         )
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            ValveVisual(state = state.valveState)
+        }
         Text(
             text = state.valveState.displayTitle(),
             style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
@@ -205,6 +216,8 @@ private fun ReceiverCard(
     device: SoundKitDevice?,
     onDisconnect: () -> Unit,
 ) {
+    val showConfirm = remember { mutableStateOf(false) }
+
     AkraCard(accent = AkraColors.Mist) {
         Text(
             text = device?.name ?: "No receiver connected",
@@ -222,9 +235,28 @@ private fun ReceiverCard(
                 modifier = Modifier.weight(1f),
                 enabled = device != null,
                 filled = false,
-                onClick = onDisconnect,
+                onClick = { showConfirm.value = true },
             )
         }
+    }
+
+    if (showConfirm.value) {
+        AlertDialog(
+            onDismissRequest = { showConfirm.value = false },
+            title = { Text("Disconnect from receiver?") },
+            text = {
+                Text("The valves will keep their current position. You can reconnect any time from Find.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirm.value = false
+                    onDisconnect()
+                }) { Text("Disconnect") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm.value = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 

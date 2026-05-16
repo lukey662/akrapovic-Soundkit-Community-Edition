@@ -3,6 +3,7 @@ package com.akrapovic.soundkit.community.service
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import com.akrapovic.soundkit.community.R
 import androidx.car.app.CarAppService
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -52,6 +53,20 @@ class ServiceAndManifestSmokeTest {
         assertEquals("androidx.core.content.FileProvider", provider?.name)
         assertFalse(provider?.exported ?: true)
         assertTrue(provider?.grantUriPermissions ?: false)
+    }
+
+    @Test
+    fun manifestDeclaresAutomotiveAppDescription() {
+        val appInfo = context.packageManager.getApplicationInfo(
+            context.packageName,
+            PackageManager.GET_META_DATA,
+        )
+        val metaData = appInfo.metaData
+        assertTrue(metaData.containsKey("com.google.android.gms.car.application"))
+        assertEquals(
+            R.xml.automotive_app_desc,
+            metaData.getInt("com.google.android.gms.car.application"),
+        )
     }
 
     @Test

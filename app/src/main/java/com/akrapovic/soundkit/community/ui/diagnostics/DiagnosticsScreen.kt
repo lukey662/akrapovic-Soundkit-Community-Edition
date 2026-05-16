@@ -18,9 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +60,29 @@ fun DiagnosticsScreen(
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
 
+    val pendingSaveFile = remember { mutableStateOf<File?>(null) }
+    val saveLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain"),
+    ) { destination ->
+        val file = pendingSaveFile.value
+        if (destination != null && file != null) {
+            DiagnosticsShare.writeToUri(context, file, destination)
+        }
+        pendingSaveFile.value = null
+    }
+
+    val pendingCrashSaveFile = remember { mutableStateOf<File?>(null) }
+    val crashSaveLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain"),
+    ) { destination ->
+        val file = pendingCrashSaveFile.value
+        if (destination != null && file != null) {
+            DiagnosticsShare.writeToUri(context, file, destination)
+            onCrashHandled()
+        }
+        pendingCrashSaveFile.value = null
+    }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -72,11 +99,11 @@ fun DiagnosticsScreen(
             val hasReport = entries.isNotEmpty() || hasPendingCrash
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 DiagnosticsButton(
                     modifier = Modifier.weight(1f),
-                    label = "Copy report",
+                    label = "Copy",
                     enabled = hasReport,
                     filled = true,
                     contentDescription = "Copy diagnostics report to clipboard",
@@ -86,18 +113,26 @@ fun DiagnosticsScreen(
                 )
                 DiagnosticsButton(
                     modifier = Modifier.weight(1f),
-                    label = "Share report",
+                    label = "Save",
                     enabled = hasReport,
                     filled = false,
-                    contentDescription = "Share diagnostics report",
+                    contentDescription = "Save diagnostics report to a file",
                     onClick = {
                         onCreateReportFile()?.let { file ->
-                            DiagnosticsShare.shareReport(
-                                context = context,
-                                file = file,
-                                subject = "Sound Kit diagnostics",
-                                previewText = onBuildReport(),
-                            )
+                            pendingSaveFile.value = file
+                            saveLauncher.launch(file.name)
+                        }
+                    },
+                )
+                DiagnosticsButton(
+                    modifier = Modifier.weight(1f),
+                    label = "Share",
+                    enabled = hasReport,
+                    filled = false,
+                    contentDescription = "Share diagnostics report file",
+                    onClick = {
+                        onCreateReportFile()?.let { file ->
+                            DiagnosticsShare.shareReport(context = context, file = file)
                         }
                     },
                 )
@@ -111,14 +146,15 @@ fun DiagnosticsScreen(
                     onCopyCrash = {
                         clipboardManager.setText(AnnotatedString(onBuildCrashReport()))
                     },
+                    onSaveCrash = {
+                        onCreateCrashReportFile()?.let { file ->
+                            pendingCrashSaveFile.value = file
+                            crashSaveLauncher.launch(file.name)
+                        }
+                    },
                     onShareCrash = {
                         onCreateCrashReportFile()?.let { file ->
-                            DiagnosticsShare.shareReport(
-                                context = context,
-                                file = file,
-                                subject = "Sound Kit crash log",
-                                previewText = onBuildCrashReport(),
-                            )
+                            DiagnosticsShare.shareReport(context = context, file = file)
                             onCrashHandled()
                         }
                     },
@@ -182,6 +218,7 @@ private fun DiagnosticsButton(
 @Composable
 private fun CrashPanel(
     onCopyCrash: () -> Unit,
+    onSaveCrash: () -> Unit,
     onShareCrash: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -216,10 +253,10 @@ private fun CrashPanel(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 DiagnosticsButton(
                     modifier = Modifier.weight(1f),
-                    label = "Copy crash",
+                    label = "Copy",
                     enabled = true,
                     filled = false,
                     contentDescription = "Copy crash log",
@@ -227,10 +264,18 @@ private fun CrashPanel(
                 )
                 DiagnosticsButton(
                     modifier = Modifier.weight(1f),
-                    label = "Share crash",
+                    label = "Save",
+                    enabled = true,
+                    filled = false,
+                    contentDescription = "Save crash log to a file",
+                    onClick = onSaveCrash,
+                )
+                DiagnosticsButton(
+                    modifier = Modifier.weight(1f),
+                    label = "Share",
                     enabled = true,
                     filled = true,
-                    contentDescription = "Share crash log",
+                    contentDescription = "Share crash log file",
                     onClick = onShareCrash,
                 )
             }

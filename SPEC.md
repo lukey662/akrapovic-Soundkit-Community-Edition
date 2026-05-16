@@ -50,9 +50,11 @@ flowchart TD
 ## UI Behavior
 
 - Scan screen is a guided setup flow with plain permission copy, one scan action, empty state, and receiver cards.
-- Control screen focuses on current valve state and one safe next action. Protocol details are hidden from the primary journey.
-- Diagnostics screen shows local logs, can copy/share a full report, and exposes locally captured crash logs after a crash.
-- Settings screen controls auto-reconnect, detailed local logging, remembered receiver removal, and background connection reliability.
+- Control screen focuses on current valve state and one safe next action. Protocol details are hidden from the primary journey. The valve state is rendered as an animated **valve visual** (two opposing arc plates that animate apart when Open and together when Closed; a soft accent glow pulses while Open). The visual is decorative; the helper text is the source of truth for screen readers.
+- Diagnostics screen shows local logs and exposes a **file-only** export. Copy puts plain text on the clipboard; Save uses the system Storage Access Framework (`ACTION_CREATE_DOCUMENT`) to let the user pick a destination; Share builds an `ACTION_SEND` intent with **no `EXTRA_SUBJECT` and no `EXTRA_TEXT`** so email apps cannot auto-populate the user's account or message body.
+- Settings screen controls auto-reconnect, detailed local logging, remembered receiver removal (with confirmation dialog), and background connection reliability.
+- Disconnect and Forget receiver actions show a confirmation `AlertDialog` to prevent accidental in-car taps.
+- A blocking first-run "Use at your own risk" dialog is shown until the user accepts; the acceptance timestamp is persisted in DataStore.
 - Garage themes are persisted in DataStore and apply app-wide to the calmer premium companion UI. Themes are grouped into brand-inspired families, each with explicit Light and Dark variants, local brand mark drawables, and theme-driven gradients.
 
 ## Background Behavior
@@ -60,7 +62,7 @@ flowchart TD
 - A foreground service maintains the BLE connection and persistent notification.
 - Notification actions call the same repository command path as the UI.
 - Quick Settings tile opens the app when disconnected and toggles the last known valve state when connected.
-- Android Auto exposes minimal low-distraction controls through the IoT category.
+- Android Auto exposes minimal low-distraction controls through the IoT category. The app targets Android **Automotive OS** (built-in head units) and the Desktop Head Unit simulator; it does **not** appear in **projected Android Auto** (phone-projected) because a valve-toggle controller does not fit any Google Play projected category. See `DOCS.md` § Android Auto Testing.
 
 ## Security
 

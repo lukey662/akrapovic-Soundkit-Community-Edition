@@ -52,6 +52,9 @@ data class SoundKitSettings(
     val rememberedDeviceAddress: String? = null,
     val autoReconnect: Boolean = true,
     val debugLoggingEnabled: Boolean = true,
-    val garageThemeId: String = "akra-carbon",
-)
+    val garageThemeId: String = "studio-dark",
+    val riskNoticeAcceptedAt: Long = 0L,
+) {
+    val riskNoticeAccepted: Boolean get() = riskNoticeAcceptedAt > 0L
+}
 

@@ -11,11 +11,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +45,7 @@ fun SettingsScreen(
     val powerManager = remember { context.getSystemService(PowerManager::class.java) }
     val ignoringOptimizations =
         powerManager?.isIgnoringBatteryOptimizations(context.packageName) == true
+    val showForgetConfirm = remember { mutableStateOf(false) }
 
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
@@ -84,8 +88,27 @@ fun SettingsScreen(
                 label = "Forget receiver",
                 enabled = state.settings.rememberedDeviceAddress != null,
                 filled = false,
-                onClick = onForgetDevice,
+                onClick = { showForgetConfirm.value = true },
                 contentDescription = "Forget remembered receiver",
+            )
+        }
+
+        if (showForgetConfirm.value) {
+            AlertDialog(
+                onDismissRequest = { showForgetConfirm.value = false },
+                title = { Text("Forget this receiver?") },
+                text = {
+                    Text("The app will stop auto-reconnecting and will need a manual scan to find your Sound Kit again.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showForgetConfirm.value = false
+                        onForgetDevice()
+                    }) { Text("Forget") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showForgetConfirm.value = false }) { Text("Cancel") }
+                },
             )
         }
 

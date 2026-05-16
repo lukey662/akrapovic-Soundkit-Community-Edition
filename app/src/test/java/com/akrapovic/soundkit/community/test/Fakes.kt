@@ -71,6 +71,7 @@ class FakeSettingsStore(
     var autoReconnectChanges = mutableListOf<Boolean>()
     var debugLoggingChanges = mutableListOf<Boolean>()
     var garageThemeChanges = mutableListOf<String>()
+    var riskNoticeAcceptCount = 0
 
     override suspend fun rememberDevice(device: SoundKitDevice) {
         rememberedDevices += device
@@ -101,6 +102,11 @@ class FakeSettingsStore(
     override suspend fun setGarageThemeId(themeId: String) {
         garageThemeChanges += themeId
         settings.value = settings.value.copy(garageThemeId = themeId)
+    }
+
+    override suspend fun acceptRiskNotice() {
+        riskNoticeAcceptCount += 1
+        settings.value = settings.value.copy(riskNoticeAcceptedAt = 1L)
     }
 }
 

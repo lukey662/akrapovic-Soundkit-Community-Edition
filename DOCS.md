@@ -52,9 +52,28 @@ Planned features, UX direction, and non-goals are tracked in `ROADMAP.md`.
 
 ## Android Auto Testing
 
-The Android Auto surface uses the Android for Cars App Library IoT category. It is local-only and delegates all BLE work to the same repository path as the phone UI, including state-gated toggle safety.
+> **Important**: This app does **not** appear in **projected Android Auto** (the phone-projected experience used in most cars). It targets **Android Automotive OS** (built-in head units) and the **Desktop Head Unit (DHU)** simulator instead. See "Why no projected Android Auto?" below.
 
-Use the Desktop Head Unit or a developer-enabled Android Auto environment for testing. Public distribution may require additional policy review.
+The Android Auto surface uses the Android for Cars App Library IoT category (`androidx.car.app.category.IOT`). It is local-only and delegates all BLE work to the same repository path as the phone UI, including state-gated toggle safety.
+
+The manifest must also declare `com.google.android.gms.car.application` pointing at `res/xml/automotive_app_desc.xml` (with `<uses name="template" />`). Without that descriptor, Android Auto often will not list the app in the car launcher even when `SoundKitCarAppService` is present. Sideloaded debug builds still require **Android Auto developer mode** on the phone or the **Desktop Head Unit (DHU)** for testing.
+
+### Why no projected Android Auto?
+
+Projected Android Auto (phone-to-head-unit) only allows apps in the published categories: navigation, parking, charging, media, messaging, video, weather, and POI. A valve-toggle controller does not fit any of these categories, so Google Play policy will not approve it for projected Android Auto distribution. Sideloaded debug builds also do not surface in projected Android Auto without enabling developer mode in the Android Auto settings.
+
+Android **Automotive OS** (the in-vehicle OS in newer Polestar/Volvo/etc.) does allow `IOT` apps, which is why we ship that surface — and why we use the DHU simulator for testing on the desktop.
+
+### Testing with the Desktop Head Unit (DHU)
+
+1. Install the Android Auto app on a phone, open it, then tap the version line in **Settings** ten times to enable developer mode.
+2. From the developer menu, enable **Unknown sources** and **Start head unit server**.
+3. On the desktop, run the Android SDK DHU binary, e.g. `~/Library/Android/sdk/extras/google/auto/desktop-head-unit`.
+4. Launch the app from the DHU launcher; verify Connect / Open / Close behave the same as the phone UI.
+
+### Public distribution
+
+Public release in projected Android Auto would require Google Play policy review under one of the allowed categories, which is currently a **non-goal** for this project (see `ROADMAP.md`). We continue to ship the IoT surface for Automotive OS users and for DHU testing.
 
 ## Release Notes
 

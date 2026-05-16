@@ -122,6 +122,12 @@ class SoundKitViewModel @Inject constructor(
         }
     }
 
+    fun acceptRiskNotice() {
+        viewModelScope.launch {
+            settingsRepository.acceptRiskNotice()
+        }
+    }
+
     fun forgetDevice() {
         viewModelScope.launch {
             settingsRepository.forgetDevice()
