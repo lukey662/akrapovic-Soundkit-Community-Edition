@@ -1,8 +1,16 @@
 # Sound Kit Community
 
-Open-source Android replacement scaffold for the abandoned Akrapovic Car SoundKit app (`si.sunesis.akrapovic.soundkit`).
+Open-source Android replacement scaffold for the abandoned Akrapovič Car SoundKit app (`si.sunesis.akrapovic.soundkit`).
 
 This app is designed for local Bluetooth Low Energy control only. It has no internet permission, no account system, no cloud backend, and no telemetry.
+
+## Why this project
+
+The **official** Car SoundKit Android app for the Sound Kit receiver is **no longer a practical option on current Android**. The original package (`si.sunesis.akrapovic.soundkit`) is **abandoned / unmaintained**: it targets an older permission and execution model, so on **Android 12 and newer** you typically hit **Bluetooth scan/connect permission requirements**, **foreground execution expectations**, and **Play policy constraints** that the original app was never updated to satisfy. In practice, many owners cannot rely on the official app for day-to-day use on a modern phone.
+
+**Sound Kit Community** is an **independent, open-source project**. It is **not** affiliated with, endorsed by, or supported by Akrapovič d.d. or the original publisher. It exists so enthusiasts can run a **maintained** BLE client with explicit safety guardrails and public documentation.
+
+Visual and interaction polish is **ongoing**; see `ROADMAP.md` for planned UX work alongside product features.
 
 ## Status
 
@@ -19,6 +27,17 @@ The Android app builds around a fail-closed BLE protocol layer. OPEN and CLOSE w
 See `APK_ANALYSIS.md` and `BLE_PROTOCOL.md`.
 
 Testing strategy and the physical receiver smoke checklist are documented in `TESTING.md`.
+
+## Documentation
+
+- `README.md` — overview, build, safety
+- `ROADMAP.md` — planned features (favorites, rules, automations, UI/UX)
+- `SPEC.md` — technical behavior
+- `DECISIONS.md` — architecture decisions
+- `DOCS.md` — developer workflow
+- `STYLE_GUIDE.md` — code and UI conventions
+- `BLE_PROTOCOL.md` / `APK_ANALYSIS.md` — protocol and reverse engineering
+- `TESTING.md` — test strategy and hardware checklist
 
 ## Features
 
@@ -38,10 +57,10 @@ Testing strategy and the physical receiver smoke checklist are documented in `TE
 
 ## Build
 
-Install Android Studio with Android SDK 35 and JDK 17, then run:
+Install Android Studio with Android SDK 35 and JDK 17, then from the repository root run:
 
 ```bash
-gradle :app:assembleDebug
+./gradlew :app:assembleDebug
 ```
 
 The debug APK is generated at:
@@ -83,4 +102,3 @@ si.sunesis.akrapovic.soundkit
 ```
 
 Do not use `si.sunesis.akrapovic.soundkitcustom` as the source of truth for the car receiver protocol.
-

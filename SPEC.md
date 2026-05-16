@@ -65,6 +65,10 @@ flowchart TD
 - No BLE writes to unverified characteristics.
 - Minimal persisted data: receiver name/address and user settings.
 
+## Future scope
+
+Planned features (favorites, rules, schedules, geofencing, broader UI polish) are described in `ROADMAP.md` and do not change the current security model unless explicitly revised.
+
 ## Testing
 
 - JVM unit tests cover protocol guardrails, permission policy, retry policy, repository state transitions, and ViewModel state reduction.

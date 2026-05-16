@@ -24,6 +24,10 @@ app/src/main/java/com/akrapovic/soundkit/community/
 
 Use `TESTING.md` as the source of truth for unit, regression, instrumented smoke, CI, and physical receiver validation.
 
+## Roadmap
+
+Planned features, UX direction, and non-goals are tracked in `ROADMAP.md`.
+
 ## Protocol Enablement Workflow
 
 1. Obtain and verify the original `si.sunesis.akrapovic.soundkit` APK.

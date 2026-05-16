@@ -33,6 +33,12 @@
 
 - Update `DECISIONS.md` for architecture or security decisions.
 - Update `SPEC.md` when behavior changes.
+- Update `ROADMAP.md` when planned features, UX direction, or non-goals change.
 - Update `BLE_PROTOCOL.md` when protocol evidence changes.
 - Update `README.md` for build, install, or user-facing workflow changes.
+
+## Visual language (Sound Kit Community)
+
+- Prefer the **fixed dark / amber HUD** palette in `ui/theme` over Material You dynamic color so the app reads as one product across devices.
+- When adding screens, match **panel, hairline, and eyebrow** patterns used on the scan surface unless an ADR changes the design system.
 
