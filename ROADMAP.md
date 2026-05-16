@@ -2,41 +2,40 @@
 
 Living plan for **Sound Kit Community**. Nothing here is a commitment or timeline; it records direction so contributors and users know what might come next. All work stays **local-first** (phone BLE only) unless an explicit decision says otherwise.
 
+*Last refreshed: May 2026 — aligned with verified BLE, consumer UI, and current `main`.*
+
 ## Principles
 
-- **Safety first** — No silent automation that could surprise a driver. Clear manual override, visible “why did the valve change?” affordances where automation exists.
-- **Fail-closed protocol** — Automation that sends valve commands must only run when the receiver state is known and `SoundKitProtocol` allows a state-gated toggle write.
+- **Safety first** — No silent automation that could surprise a driver. Clear manual override and visible “why did the valve change?” affordances where automation exists.
+- **State-gated writes** — Manual OPEN/CLOSE only sends the verified toggle when receiver state is known and differs from the target. Future automation must follow the same rule.
 - **Privacy** — Geofencing and location-backed rules need **opt-in**, plain-language disclosure, and minimal retention. No selling or sharing location data (there is no backend today).
 - **Accessibility** — Target **WCAG 2.1 AA** for contrast, semantics, touch targets (≥48dp), and screen reader labels as screens are touched.
 
 ## Done
 
-- **Physical receiver validation** — verified APK toggle protocol with pairing, notifications, and state-gated OPEN/CLOSE behavior confirmed against a real receiver.
-- **Per-family Light/Dark themes** with local brand marks and gradients.
-- **First-run "use at your own risk" gate** with persisted acceptance and prominent README disclaimer.
-- **Animated valve visual** on the Control screen (open / closed / unknown).
-- **Diagnostics export hygiene** — file-only share intent (no email subject/body autofill) and explicit Save-to-file via Storage Access Framework.
+| Area | What shipped |
+|------|----------------|
+| **BLE protocol** | APK-verified toggle (`0x01`), advertising signature scan, notification-driven valve state, state-gated OPEN/CLOSE, pairing flow. |
+| **Physical receiver** | Real-car validation: connect, pair, open/close accepted by receiver. |
+| **Consumer UI** | Calm Find / Control / More / Settings / Diagnostics; protocol hidden from primary journey. |
+| **Themes** | Brand-inspired families with Light/Dark variants, gradients, local brand marks; default **Studio Blue** (navy + electric blue). |
+| **Control polish** | Animated valve visual; disconnect / forget confirmation dialogs. |
+| **Onboarding & legal** | Blocking first-run “use at your own risk” gate (DataStore + README disclaimer). |
+| **Diagnostics export** | Copy, Save-to-file (SAF), file-only Share (no email subject/body autofill). |
+| **Launcher** | Adaptive valve-glyph icon (foreground, background, monochrome). |
+| **Android Auto / Automotive** | `SoundKitCarAppService` (IoT), `automotive_app_desc.xml`, `com.google.android.gms.car.application` meta-data, DHU testing documented in `DOCS.md`. |
 
-## Near term (foundation)
+## Near term
 
 | Area | Intent |
 |------|--------|
-| **Theme polish** | Continue refining gradients, spacing, and contrast from real-device screenshots; replace placeholder brand marks with locally-sourced SVGs as users provide them. |
-| **CI reliability** | Ensure Gradle wrapper JAR is present so GitHub Actions can run `./gradlew` without bootstrap failures. |
-| **Easy-win confirmations** | Disconnect and Forget Device confirmation dialogs to prevent in-car mistaps. |
+| **Permission onboarding** | Single first-run flow: risk acceptance (done) + Bluetooth permissions + notification / foreground-service explanation + battery optimization shortcut — today split across dialog and Settings. |
+| **Theme polish** | Tune blue Studio default from device feedback; optional user-supplied brand SVGs to replace placeholder marks. |
+| **Empty / error states** | Consistent recovery on every screen (retry scan, open settings, copy diagnostics). |
+| **CI reliability** | Gradle wrapper JAR present so GitHub Actions runs `./gradlew` without bootstrap failures. |
+| **Accessibility pass** | TalkBack order, focus order, contrast check on new blue default. |
 
-## UX / UI (cross-cutting, parallel)
-
-These improvements can advance **alongside** protocol work. Early passes do not require verified writes.
-
-- Keep the consumer-first companion UI calm and simple across **Find**, **Control**, **Diagnostics**, and **Settings** (see `STYLE_GUIDE.md`).
-- Maintain brand-inspired families with explicit Light/Dark variants. Gradients and marks should add identity without making primary controls harder to read.
-- **Empty, loading, and error** states on every screen with recovery actions (retry scan, open settings, copy diagnostics).
-- **First-run onboarding** — short flow for Bluetooth permissions, notifications (foreground service), and battery optimization guidance (already partially in settings; unify the story).
-- **Motion and haptics** — subtle, optional; never required to complete a task.
-- **Accessibility audit** — TalkBack order, content descriptions, focus visible states.
-
-## Product features
+## Later (product)
 
 ### Favorites and saved devices
 
@@ -46,47 +45,53 @@ These improvements can advance **alongside** protocol work. Early passes do not 
 ### Rules engine
 
 - Persistent **rules**: when [triggers] then [actions] (e.g. open / close valve), with **precedence** and conflict resolution.
-- Storage likely evolves from DataStore to **Room** or similar if rule complexity grows.
+- Storage may evolve from DataStore to **Room** if rule complexity grows.
 
 ### Time-based automation
 
 - **Schedules** — time windows, quiet hours vs “sport” hours, timezone-safe recurrence.
-- Use **WorkManager** or **AlarmManager** with careful respect for **Doze** and **exact alarm** policy; tie execution to **connected BLE** state and user-visible last-run log.
+- **WorkManager** or **AlarmManager** with Doze / exact-alarm policy; execution tied to **connected BLE** and a user-visible last-run log.
 
 ### Geofencing automation
 
-- **Geofence enter/exit** as triggers (Android **Geofencing API**).
-- Requires **location permissions** (and possibly background location for some scenarios — high scrutiny on Play; document and gate).
-- **Foreground service** may be needed for reliable BLE + geofence together; battery impact called out in UI.
+- **Geofence enter/exit** triggers (Android Geofencing API).
+- Opt-in location (and possibly background location — high Play scrutiny); battery impact called out in UI.
 
 ### Notifications and Quick Settings
 
-- Deep links to **pause all rules**, show **last automation cause**, quick manual OPEN/CLOSE when connected.
+- Deep links to **pause all rules**, **last automation cause**, quick manual OPEN/CLOSE when connected.
 
 ## Non-goals (for now)
 
 - **Cloud** accounts, remote control over the internet, or telemetry backends.
-- **Warranty** or official integration with Akrapovič systems.
-- **Projected Android Auto distribution.** Google Play policy only allows projected Android Auto apps in published categories (navigation, parking, charging, media, messaging, video, weather, POI). A valve-toggle controller fits none of them. We continue to ship the `IOT` Car App surface for Android **Automotive OS** users and DHU testing — see `DOCS.md` § Android Auto Testing.
+- **Official Akrapovič integration** or warranty support.
+- **Projected Android Auto (Play distribution).** Policy categories (navigation, media, messaging, etc.) do not fit a valve controller. We ship the **IoT** Car App for **Android Automotive OS** and **DHU** sideload testing — see `DOCS.md` § Android Auto Testing.
 
 ## Dependency sketch
 
 ```mermaid
 flowchart LR
-  subgraph core [Core path]
-    Proto[Verified_protocol]
+  subgraph done [Shipped]
+    Proto[Verified_BLE]
+    UX[Consumer_UI_and_themes]
+    Car[Automotive_IoT_surface]
+  end
+  subgraph next [Near term]
+    Onboard[Unified_onboarding]
+    A11y[Accessibility_pass]
+  end
+  subgraph later [Product]
     Fav[Favorites]
     Rules[Rules_engine]
     Time[Time_triggers]
     Geo[Geofence_triggers]
-    Proto --> Fav
-    Fav --> Rules
-    Rules --> Time
-    Rules --> Geo
   end
-  UX[UI_UX_polish]
-  UX -.->|"parallel"| Proto
-  UX -.->|"parallel"| Fav
+  Proto --> Fav
+  Fav --> Rules
+  Rules --> Time
+  Rules --> Geo
+  UX --> Onboard
+  UX --> A11y
 ```
 
 ## Contributing
