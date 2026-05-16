@@ -21,7 +21,10 @@ data class SoundKitUiState(
 enum class AppScreen {
     Scan,
     Control,
+    More,
     Diagnostics,
     Settings,
+    Roadmap,
+    GarageThemes,
 }
 

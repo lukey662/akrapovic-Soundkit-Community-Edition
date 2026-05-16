@@ -41,4 +41,5 @@
 
 - Prefer the **fixed dark / amber HUD** palette in `ui/theme` over Material You dynamic color so the app reads as one product across devices.
 - When adding screens, match **panel, hairline, and eyebrow** patterns used on the scan surface unless an ADR changes the design system.
+- Launcher artwork should use the same dark carbon / titanium / amber vocabulary, remain vector-based, and avoid official OEM or Akrapovič logo reproduction.
 

@@ -31,9 +31,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akrapovic.soundkit.community.ui.control.ConnectedDeviceScreen
 import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
+import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
+import com.akrapovic.soundkit.community.ui.more.MoreScreen
+import com.akrapovic.soundkit.community.ui.roadmap.RoadmapScreen
 import com.akrapovic.soundkit.community.ui.scan.ScanScreen
 import com.akrapovic.soundkit.community.ui.settings.SettingsScreen
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
+import com.akrapovic.soundkit.community.ui.theme.GarageThemePresets
 import com.akrapovic.soundkit.community.ui.theme.SoundKitTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,6 +50,7 @@ fun SoundKitApp(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var screen by remember { mutableStateOf(AppScreen.Scan) }
+    var selectedGarageThemeId by remember { mutableStateOf(GarageThemePresets.first().id) }
 
     SoundKitTheme {
         Scaffold(
@@ -56,7 +61,9 @@ fun SoundKitApp(
             bottomBar = {
                 AkraBottomNav(
                     selected = screen,
-                    onSelect = { screen = it },
+                    onSelect = { tab ->
+                        screen = tab
+                    },
                 )
             },
         ) { paddingValues ->
@@ -82,6 +89,10 @@ fun SoundKitApp(
                     onClose = viewModel::closeValve,
                     onDisconnect = viewModel::disconnect,
                 )
+                AppScreen.More -> MoreScreen(
+                    modifier = modifier,
+                    onNavigate = { destination -> screen = destination },
+                )
                 AppScreen.Diagnostics -> DiagnosticsScreen(
                     modifier = modifier,
                     entries = state.diagnostics,
@@ -92,6 +103,14 @@ fun SoundKitApp(
                     onAutoReconnectChanged = viewModel::setAutoReconnect,
                     onDebugLoggingChanged = viewModel::setDebugLogging,
                     onForgetDevice = viewModel::forgetDevice,
+                )
+                AppScreen.Roadmap -> RoadmapScreen(
+                    modifier = modifier,
+                )
+                AppScreen.GarageThemes -> GarageThemeScreen(
+                    modifier = modifier,
+                    selectedThemeId = selectedGarageThemeId,
+                    onThemeSelected = { selectedGarageThemeId = it },
                 )
             }
         }
@@ -181,6 +200,9 @@ private fun AkraBottomNav(
     selected: AppScreen,
     onSelect: (AppScreen) -> Unit,
 ) {
+    val primaryTabs = listOf(AppScreen.Scan, AppScreen.Control, AppScreen.More)
+    val selectedPrimary = if (selected in primaryTabs) selected else AppScreen.More
+
     Column(
         Modifier
             .fillMaxWidth()
@@ -199,8 +221,8 @@ private fun AkraBottomNav(
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            AppScreen.entries.forEach { tab ->
-                val isSelected = tab == selected
+            primaryTabs.forEach { tab ->
+                val isSelected = tab == selectedPrimary
                 Column(
                     Modifier
                         .weight(1f)
