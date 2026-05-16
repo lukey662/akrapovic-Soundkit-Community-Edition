@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sound Kit Community</string>
+    <string name="quick_tile_label">Valve Control</string>
+    <string name="notification_channel_name">Sound Kit connection</string>
+    <string name="notification_channel_description">Persistent BLE connection and valve control status</string>
+    <string name="notification_action_open">Open</string>
+    <string name="notification_action_close">Close</string>
+    <string name="notification_action_disconnect">Disconnect</string>
+</resources>
+
