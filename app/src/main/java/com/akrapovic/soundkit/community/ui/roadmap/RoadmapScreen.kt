@@ -476,6 +476,10 @@ private val shippedItems = listOf(
         "Rules engine (design)",
         "Evaluator and precedence spec only — execution and persistence come later.",
     ),
+    RoadmapItem(
+        "Beta automation",
+        "Rules, schedules, geofences, execution log, and notification pause — under Settings.",
+    ),
 )
 
 private val upNextItems = listOf(
@@ -487,20 +491,8 @@ private val upNextItems = listOf(
 
 private val laterItems = listOf(
     RoadmapItem(
-        "Rules execution",
-        "Persist and run when/then rules with a visible last-run log — after the design spike.",
-    ),
-    RoadmapItem(
-        "Time automation",
-        "Schedules and quiet hours tied to connected BLE and a visible last-run log.",
-    ),
-    RoadmapItem(
-        "Geofencing",
-        "Enter/exit triggers with explicit location consent and battery disclosure.",
-    ),
-    RoadmapItem(
-        "Automation in notifications",
-        "Pause all rules and show last automation cause once rules execute.",
+        "Automation polish",
+        "Map picker, sport/quiet profiles, and Room if rules outgrow JSON storage.",
     ),
 )
 

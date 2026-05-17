@@ -54,4 +54,19 @@ class NotificationCopyTest {
         assertFalse(presentation.closeValveEnabled)
         assertTrue(presentation.contentText.contains("Receiver not ready"))
     }
+
+    @Test
+    fun automationPausedShownInContent() {
+        val presentation = NotificationCopy.build(
+            connectionState = ConnectionState.Disconnected,
+            valveState = ValveState.Closed,
+            receiverStatusMessage = null,
+            defaultReceiver = null,
+            automationPaused = true,
+            hasAutomationRules = true,
+        )
+
+        assertTrue(presentation.contentText.contains("Automation paused"))
+        assertFalse(presentation.pauseAutomationEnabled)
+    }
 }

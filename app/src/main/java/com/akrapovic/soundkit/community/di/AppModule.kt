@@ -9,6 +9,12 @@ import com.akrapovic.soundkit.community.ble.BleScannerGateway
 import com.akrapovic.soundkit.community.ble.RetryPolicy
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.BleRepositoryImpl
+import com.akrapovic.soundkit.community.data.GeofenceZonesRepository
+import com.akrapovic.soundkit.community.data.GeofenceZonesStore
+import com.akrapovic.soundkit.community.data.RuleExecutionLogRepository
+import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
+import com.akrapovic.soundkit.community.data.RulesRepository
+import com.akrapovic.soundkit.community.data.RulesStore
 import com.akrapovic.soundkit.community.data.SettingsRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
 import dagger.Binds
@@ -37,6 +43,18 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSettingsStore(impl: SettingsRepository): SettingsStore
+
+    @Binds
+    @Singleton
+    abstract fun bindRulesStore(impl: RulesRepository): RulesStore
+
+    @Binds
+    @Singleton
+    abstract fun bindGeofenceZonesStore(impl: GeofenceZonesRepository): GeofenceZonesStore
+
+    @Binds
+    @Singleton
+    abstract fun bindRuleExecutionLogStore(impl: RuleExecutionLogRepository): RuleExecutionLogStore
 }
 
 @Module

@@ -41,6 +41,16 @@ Clearing app data resets onboarding. Existing installs see the full screen again
 - **Home (scan)** shows saved chips and marks default devices; connecting saves/updates the receiver and sets default when appropriate.
 - **`RememberedDeviceConnector`** (domain) decides whether to auto-connect on app launch (phone) or car session entry; separate from post-drop **auto reconnect** in `BleRepository`.
 
+## Automation (Beta)
+
+Entry: **More → Settings → Automation (Beta)**.
+
+- Create **rules** with schedule or geofence triggers and Open/Close/Toggle actions.
+- **Geofence zones** (up to 4) require location permission — used only for enter/exit, not uploaded.
+- **Pause all automation** from the Beta hub or the foreground notification.
+- Rules run only when **connected**, valve state is **known**, and the receiver is **not** in status `0x04`.
+- See **Activity log** in Beta for recent attempts.
+
 ## Notification and Quick Settings
 
 - `BleConnectionService` builds notifications from connection, valve, `receiverStatusMessage`, and default receiver display name.

@@ -38,7 +38,19 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.akrapovic.soundkit.community.ui.beta.AutomationLogScreen
+import com.akrapovic.soundkit.community.ui.beta.BetaHubScreen
+import com.akrapovic.soundkit.community.ui.beta.BetaViewModel
+import com.akrapovic.soundkit.community.ui.beta.GeofenceZonesScreen
+import com.akrapovic.soundkit.community.ui.beta.RuleEditorScreen
+import com.akrapovic.soundkit.community.ui.beta.RulesListScreen
 import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
 import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
 import com.akrapovic.soundkit.community.ui.home.HomeScreen
@@ -73,9 +85,33 @@ fun SoundKitApp(
     var primaryScreen by remember { mutableStateOf(AppScreen.Home) }
     // Sub-screens live under More. Non-null means we drilled in from More.
     var subScreen by remember { mutableStateOf<AppScreen?>(null) }
+    var betaReturnScreen by remember { mutableStateOf(AppScreen.Settings) }
 
     val screen = subScreen ?: primaryScreen
-    val onBack: () -> Unit = { subScreen = null }
+    var editingRuleId by remember { mutableStateOf<String?>(null) }
+    val betaViewModel: BetaViewModel = hiltViewModel()
+    val betaState by betaViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var locationPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED,
+        )
+    }
+    val locationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { result ->
+        locationPermissionGranted = result.values.all { it }
+    }
+
+    val onBack: () -> Unit = {
+        when (subScreen) {
+            AppScreen.RuleEditor -> subScreen = AppScreen.Rules
+            AppScreen.Rules, AppScreen.GeofenceZones, AppScreen.AutomationLog -> subScreen = AppScreen.Beta
+            AppScreen.Beta -> subScreen = betaReturnScreen
+            else -> subScreen = null
+        }
+    }
 
     // System back / gesture: pop sub-screen if one is open, otherwise OS handles it.
     BackHandler(enabled = subScreen != null, onBack = onBack)
@@ -156,6 +192,60 @@ fun SoundKitApp(
                     onRemoveReceiver = viewModel::removeReceiver,
                     onUpdateNickname = viewModel::updateNickname,
                     onForgetAll = viewModel::forgetDevice,
+                    onOpenBeta = {
+                        betaReturnScreen = AppScreen.Settings
+                        subScreen = AppScreen.Beta
+                    },
+                )
+                AppScreen.Beta -> BetaHubScreen(
+                    modifier = modifier,
+                    state = betaState,
+                    onAcceptDisclaimer = betaViewModel::acceptBetaDisclaimer,
+                    onAutomationPausedChanged = betaViewModel::setAutomationPaused,
+                    onNavigate = { subScreen = it },
+                )
+                AppScreen.Rules -> RulesListScreen(
+                    modifier = modifier,
+                    rules = betaState.rules,
+                    onAddRule = {
+                        editingRuleId = null
+                        subScreen = AppScreen.RuleEditor
+                    },
+                    onEditRule = { id ->
+                        editingRuleId = id
+                        subScreen = AppScreen.RuleEditor
+                    },
+                    onRuleEnabledChanged = betaViewModel::setRuleEnabled,
+                    onDeleteRule = betaViewModel::deleteRule,
+                )
+                AppScreen.RuleEditor -> RuleEditorScreen(
+                    modifier = modifier,
+                    ruleId = editingRuleId,
+                    existing = betaState.rules.firstOrNull { it.id == editingRuleId },
+                    zones = betaState.zones,
+                    onSave = { rule ->
+                        betaViewModel.saveRule(rule)
+                        subScreen = AppScreen.Rules
+                    },
+                    onNewId = betaViewModel::newRuleId,
+                )
+                AppScreen.GeofenceZones -> GeofenceZonesScreen(
+                    modifier = modifier,
+                    zones = betaState.zones,
+                    locationPermissionGranted = locationPermissionGranted,
+                    onSaveZone = betaViewModel::saveZone,
+                    onDeleteZone = betaViewModel::deleteZone,
+                    onNewZoneId = betaViewModel::newZoneId,
+                    onRequestLocationPermission = {
+                        locationLauncher.launch(
+                            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+                        )
+                    },
+                )
+                AppScreen.AutomationLog -> AutomationLogScreen(
+                    modifier = modifier,
+                    entries = betaState.logEntries,
+                    onClear = betaViewModel::clearLog,
                 )
                 AppScreen.Roadmap -> RoadmapScreen(
                     modifier = modifier,

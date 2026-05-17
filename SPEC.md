@@ -85,21 +85,25 @@ flowchart TD
 - Open/Close actions only when connected, valve state known, and not in not-ready status.
 - Quick Settings tile: toggle when allowed; opens app when disconnected; inactive + `not ready` subtitle on status `04`.
 
-## Rules engine (design spike — not executed)
+## Rules engine (Beta automation)
 
 | Piece | Status |
 |-------|--------|
-| `Rule`, `RuleTrigger` (Schedule, Geofence, Manual), `RuleAction` (Open, Close, Toggle) | Domain models in `domain/rules/` |
-| `RuleEvaluator.evaluate(rules, context)` | Pure Kotlin; unit tested |
-| Persistence / WorkManager / geofence APIs | Out of scope until ADR revised |
+| `Rule`, `RuleTrigger`, `RuleAction` | Domain + DataStore JSON persistence (max 16 rules) |
+| `RuleEvaluator` + `RuleExecutionEngine` | Evaluate + state-gated BLE via `BleRepository` |
+| `RuleExecutionLog` | Ring buffer (~30 entries) in DataStore |
+| `RuleEvaluationWorker` | Periodic 15 min + on connect when ready |
+| `GeofenceRegistrar` | Up to 4 zones; Play Services geofencing |
 
-**Conflict resolution:** manual override wins; manual pause blocks automation; otherwise highest `priority` among matching enabled rules. Future `RuleExecutionLog` will record last cause for UI (“why did the valve change?”).
+**UI:** Settings → Automation (Beta) — disclaimer, pause, rules, zones, log.
 
-**Safety:** automation must only issue writes when connected and valve state is known (same gate as manual OPEN/CLOSE).
+**Conflict resolution:** manual pause blocks automation; highest `priority` among matching enabled rules.
+
+**Notification:** Pause/Resume automation + last-run line when rules exist.
 
 ## Future scope
 
-Schedules, geofencing execution, and rule persistence are described in `ROADMAP.md` and require explicit ADR updates before BLE execution.
+Automation polish (map picker, profiles, Room) in `ROADMAP.md` Later.
 
 ## Testing
 

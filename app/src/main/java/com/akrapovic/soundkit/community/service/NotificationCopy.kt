@@ -1,6 +1,7 @@
 package com.akrapovic.soundkit.community.service
 
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.ValveState
 
@@ -11,6 +12,8 @@ data class NotificationPresentation(
     val openValveEnabled: Boolean,
     val closeValveEnabled: Boolean,
     val disconnectEnabled: Boolean,
+    val pauseAutomationEnabled: Boolean,
+    val resumeAutomationEnabled: Boolean,
 )
 
 object NotificationCopy {
@@ -19,6 +22,9 @@ object NotificationCopy {
         valveState: ValveState,
         receiverStatusMessage: String?,
         defaultReceiver: SavedReceiver?,
+        automationPaused: Boolean = false,
+        lastExecution: RuleExecutionEntry? = null,
+        hasAutomationRules: Boolean = false,
     ): NotificationPresentation {
         val displayName = defaultReceiver?.displayName()
         val title = when (connectionState) {
@@ -32,13 +38,21 @@ object NotificationCopy {
             valveState == ValveState.Closed -> "Valves closed"
             else -> "Checking valves"
         }
-        val contentText = listOf(statusText, valveText, receiverStatusMessage)
+        val automationText = when {
+            automationPaused -> "Automation paused"
+            lastExecution != null -> "Last: ${lastExecution.displaySummary()}"
+            else -> null
+        }
+        val contentText = listOf(statusText, valveText, receiverStatusMessage, automationText)
             .filterNotNull()
             .joinToString(" · ")
 
         val valveControlsEnabled = connectionState is ConnectionState.Connected &&
             valveState != ValveState.Unknown &&
             receiverStatusMessage == null
+
+        val showAutomationActions = hasAutomationRules &&
+            connectionState is ConnectionState.Connected
 
         return NotificationPresentation(
             title = title,
@@ -49,6 +63,8 @@ object NotificationCopy {
             openValveEnabled = valveControlsEnabled && valveState != ValveState.Open,
             closeValveEnabled = valveControlsEnabled && valveState != ValveState.Closed,
             disconnectEnabled = connectionState is ConnectionState.Connected,
+            pauseAutomationEnabled = showAutomationActions && !automationPaused,
+            resumeAutomationEnabled = showAutomationActions && automationPaused,
         )
     }
 

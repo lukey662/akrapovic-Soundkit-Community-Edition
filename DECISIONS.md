@@ -208,3 +208,23 @@ Start with DataStore JSON for rules prototypes; move to **Room** if rule count, 
 - Settings and scan surfaces manage favorites; notifications show nickname when connected.
 - Rules ADR/SPEC describe triggers and conflicts; implementation can land incrementally without blocking favorites ship.
 
+## 2026-05-17: Beta Automation Execution
+
+### Context
+
+Roadmap items for rules execution, schedules, geofencing, and notification automation UX needed shipping behind a clear experimental surface without polluting the primary Home journey.
+
+### Decision
+
+- **Settings → Automation (Beta)** hub with disclaimer gate, master pause, rules CRUD, geofence zones (max 4), and execution log.
+- **`RuleExecutionEngine`** evaluates persisted rules when connected + valve known + not-ready clear; debounce 60s per rule/action; uses existing `BleRepository` open/close paths.
+- **WorkManager** periodic evaluation (15 min minimum) plus evaluate on connection-ready.
+- **Geofencing** via Play Services `GeofencingClient`; `ACCESS_FINE_LOCATION` and optional background location only for Beta geofence setup — not required for core BLE scan (API 31+ uses `neverForLocation` scan flag).
+- **Notification** adds Pause/Resume automation actions and last-run summary line when rules exist.
+
+### Consequences
+
+- Automation is experimental; users must accept Beta disclaimer once.
+- Play policy for background location remains user responsibility when enabling geofences.
+- Room migration remains optional until rule/log volume warrants it.
+

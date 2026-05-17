@@ -27,5 +27,10 @@ enum class AppScreen {
     Settings,
     Roadmap,
     GarageThemes,
+    Beta,
+    Rules,
+    RuleEditor,
+    GeofenceZones,
+    AutomationLog,
 }
 

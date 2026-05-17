@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.akrapovic.soundkit.community.MainActivity
 import com.akrapovic.soundkit.community.R
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -39,12 +40,18 @@ class SoundKitNotificationFactory @Inject constructor(
         valveState: ValveState,
         receiverStatusMessage: String? = null,
         defaultReceiver: SavedReceiver? = null,
+        automationPaused: Boolean = false,
+        lastExecution: RuleExecutionEntry? = null,
+        hasAutomationRules: Boolean = false,
     ): Notification {
         val presentation = NotificationCopy.build(
             connectionState = connectionState,
             valveState = valveState,
             receiverStatusMessage = receiverStatusMessage,
             defaultReceiver = defaultReceiver,
+            automationPaused = automationPaused,
+            lastExecution = lastExecution,
+            hasAutomationRules = hasAutomationRules,
         )
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -72,6 +79,20 @@ class SoundKitNotificationFactory @Inject constructor(
         if (presentation.disconnectEnabled) {
             builder.addAction(
                 action(R.string.notification_action_disconnect, BleConnectionService.ACTION_DISCONNECT, 3),
+            )
+        }
+        if (presentation.pauseAutomationEnabled) {
+            builder.addAction(
+                action(R.string.notification_action_pause_automation, BleConnectionService.ACTION_PAUSE_AUTOMATION, 4),
+            )
+        }
+        if (presentation.resumeAutomationEnabled) {
+            builder.addAction(
+                action(
+                    R.string.notification_action_resume_automation,
+                    BleConnectionService.ACTION_RESUME_AUTOMATION,
+                    5,
+                ),
             )
         }
         return builder.build()

@@ -2,7 +2,7 @@
 
 Living plan for **Sound Kit Community**. Nothing here is a commitment or timeline; it records direction so contributors and users know what might come next. All work stays **local-first** (phone BLE only) unless an explicit decision says otherwise.
 
-*Last refreshed: May 2026 — favorites, notification/tile polish, and rules design spike shipped.*
+*Last refreshed: May 2026 — Beta automation (rules, schedules, geofences, notification controls) shipped.*
 
 ## Principles
 
@@ -36,6 +36,10 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 | **Smarter notifications** | `NotificationCopy` gating; nickname title; not-ready copy; valve actions disabled when unsafe. |
 | **Quick Settings polish** | `QsTilePresenter`; not-ready inactive state; open app when disconnected. |
 | **Rules engine (design)** | Domain models, `RuleEvaluator`, ADR/SPEC — no BLE execution or persistence yet. |
+| **Rules execution (Beta)** | Persisted rules, `RuleExecutionEngine`, activity log, state-gated BLE writes. |
+| **Time automation (Beta)** | Schedule triggers via WorkManager + evaluate on connect when ready. |
+| **Geofencing (Beta)** | Up to 4 zones, opt-in location, enter/exit triggers via Geofencing API. |
+| **Automation notifications (Beta)** | Pause/resume automation + last-run cause in foreground notification. |
 
 ## Near term
 
@@ -45,24 +49,8 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 
 ## Later (product)
 
-### Rules engine (execution)
-
-- Persist rules (DataStore JSON → Room if needed), run against connected BLE with visible last-run log.
-- Precedence and manual pause already specified in `DECISIONS.md` / `SPEC.md`.
-
-### Time-based automation
-
-- **Schedules** — time windows, quiet hours vs “sport” hours, timezone-safe recurrence.
-- **WorkManager** or **AlarmManager** with Doze / exact-alarm policy; execution tied to **connected BLE** and a user-visible last-run log.
-
-### Geofencing automation
-
-- **Geofence enter/exit** triggers (Android Geofencing API).
-- Opt-in location (and possibly background location — high Play scrutiny); battery impact called out in UI.
-
-### Notifications and Quick Settings (automation UX)
-
-- Deep links to **pause all rules** and **last automation cause** once rules execute.
+- **Automation polish** — richer schedule UI, map picker for zones, Room if rule/log volume grows, Quick Settings last-cause line.
+- **Quiet hours / sport profiles** — grouped rules and timezone-safe recurrence beyond simple windows.
 
 ## Non-goals (for now)
 

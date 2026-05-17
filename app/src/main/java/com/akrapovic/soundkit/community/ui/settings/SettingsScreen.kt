@@ -50,6 +50,7 @@ fun SettingsScreen(
     onRemoveReceiver: (String) -> Unit,
     onUpdateNickname: (String, String?) -> Unit,
     onForgetAll: () -> Unit,
+    onOpenBeta: () -> Unit,
 ) {
     val context = LocalContext.current
     val powerManager = remember { context.getSystemService(PowerManager::class.java) }
@@ -145,6 +146,20 @@ fun SettingsScreen(
                 dismissButton = {
                     TextButton(onClick = { removeTarget.value = null }) { Text("Cancel") }
                 },
+            )
+        }
+
+        AkraCard(accent = MaterialTheme.colorScheme.secondary, onClick = onOpenBeta, contentDescription = "Automation Beta") {
+            AkraStatusPill(text = "Beta", color = MaterialTheme.colorScheme.secondary)
+            Text(
+                text = "Automation (Beta)",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Schedules, geofences, and rules — experimental. Parked use only.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 

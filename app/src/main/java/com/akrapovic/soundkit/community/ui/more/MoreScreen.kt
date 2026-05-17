@@ -48,7 +48,7 @@ fun MoreScreen(
         )
         MoreCard(
             title = "Settings",
-            body = "Saved receiver, reconnect behavior, logs, and background connection.",
+            body = "Saved receivers, reconnect, and Automation (Beta) for schedules and geofences.",
             accent = MaterialTheme.colorScheme.primary,
             onClick = { onNavigate(AppScreen.Settings) },
         )

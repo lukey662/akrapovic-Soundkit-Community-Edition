@@ -31,6 +31,8 @@ interface SettingsStore {
     suspend fun setGarageThemeId(themeId: String)
     suspend fun acceptRiskNotice()
     suspend fun completeOnboarding()
+    suspend fun setAutomationPaused(paused: Boolean)
+    suspend fun acceptBetaDisclaimer()
 }
 
 @Singleton
@@ -47,6 +49,8 @@ class SettingsRepository @Inject constructor(
         val GarageThemeId = stringPreferencesKey("garage_theme_id")
         val RiskNoticeAcceptedAt = androidx.datastore.preferences.core.longPreferencesKey("risk_notice_accepted_at")
         val OnboardingCompletedAt = androidx.datastore.preferences.core.longPreferencesKey("onboarding_completed_at")
+        val AutomationPaused = booleanPreferencesKey("automation_paused")
+        val BetaDisclaimerAcceptedAt = androidx.datastore.preferences.core.longPreferencesKey("beta_disclaimer_accepted_at")
     }
 
     override val settings: Flow<SoundKitSettings> = context.settingsDataStore.data.map { preferences ->
@@ -59,6 +63,8 @@ class SettingsRepository @Inject constructor(
             garageThemeId = preferences[Keys.GarageThemeId] ?: "studio-dark",
             riskNoticeAcceptedAt = preferences[Keys.RiskNoticeAcceptedAt] ?: 0L,
             onboardingCompletedAt = preferences[Keys.OnboardingCompletedAt] ?: 0L,
+            automationPaused = preferences[Keys.AutomationPaused] ?: false,
+            betaDisclaimerAcceptedAt = preferences[Keys.BetaDisclaimerAcceptedAt] ?: 0L,
         )
     }
 
@@ -160,6 +166,18 @@ class SettingsRepository @Inject constructor(
     override suspend fun completeOnboarding() {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.OnboardingCompletedAt] = System.currentTimeMillis()
+        }
+    }
+
+    override suspend fun setAutomationPaused(paused: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.AutomationPaused] = paused
+        }
+    }
+
+    override suspend fun acceptBetaDisclaimer() {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.BetaDisclaimerAcceptedAt] = System.currentTimeMillis()
         }
     }
 

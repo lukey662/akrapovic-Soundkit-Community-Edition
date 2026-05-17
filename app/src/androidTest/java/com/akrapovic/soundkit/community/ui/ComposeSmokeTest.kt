@@ -201,11 +201,13 @@ class ComposeSmokeTest {
                     onRemoveReceiver = {},
                     onUpdateNickname = { _, _ -> },
                     onForgetAll = {},
+                    onOpenBeta = {},
                 )
             }
         }
 
         composeRule.onNodeWithText("Connect on launch").assertIsDisplayed()
+        composeRule.onNodeWithText("Automation (Beta)").assertIsDisplayed()
         composeRule.onNodeWithText("Auto reconnect").assertIsDisplayed()
         composeRule.onNodeWithText("Background connection").assertIsDisplayed()
         composeRule.onNodeWithText("Detailed logs").assertIsDisplayed()
@@ -235,6 +237,7 @@ class ComposeSmokeTest {
                     onRemoveReceiver = {},
                     onUpdateNickname = { _, _ -> },
                     onForgetAll = {},
+                    onOpenBeta = {},
                 )
             }
         }
@@ -434,5 +437,13 @@ private class FakeSettingsStoreForSmoke(
 
     override suspend fun completeOnboarding() {
         settings.value = settings.value.copy(onboardingCompletedAt = System.currentTimeMillis())
+    }
+
+    override suspend fun setAutomationPaused(paused: Boolean) {
+        settings.value = settings.value.copy(automationPaused = paused)
+    }
+
+    override suspend fun acceptBetaDisclaimer() {
+        settings.value = settings.value.copy(betaDisclaimerAcceptedAt = System.currentTimeMillis())
     }
 }

@@ -56,6 +56,38 @@ data class SavedReceiver(
     fun displayName(): String = nickname?.takeIf { it.isNotBlank() } ?: name
 }
 
+data class GeofenceZone(
+    val id: String,
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    val radiusMeters: Float,
+)
+
+enum class RuleExecutionOutcome {
+    Success,
+    Skipped,
+    Failed,
+}
+
+data class RuleExecutionEntry(
+    val timestampMillis: Long,
+    val ruleName: String,
+    val action: String,
+    val reason: String,
+    val outcome: RuleExecutionOutcome,
+    val detail: String? = null,
+) {
+    fun displaySummary(): String {
+        val status = when (outcome) {
+            RuleExecutionOutcome.Success -> "OK"
+            RuleExecutionOutcome.Skipped -> "Skipped"
+            RuleExecutionOutcome.Failed -> "Failed"
+        }
+        return "$ruleName → $action ($status)"
+    }
+}
+
 data class SoundKitSettings(
     val savedReceivers: List<SavedReceiver> = emptyList(),
     val connectOnLaunch: Boolean = true,
@@ -64,9 +96,12 @@ data class SoundKitSettings(
     val garageThemeId: String = "studio-dark",
     val riskNoticeAcceptedAt: Long = 0L,
     val onboardingCompletedAt: Long = 0L,
+    val automationPaused: Boolean = false,
+    val betaDisclaimerAcceptedAt: Long = 0L,
 ) {
     val riskNoticeAccepted: Boolean get() = riskNoticeAcceptedAt > 0L
     val onboardingCompleted: Boolean get() = onboardingCompletedAt > 0L
+    val betaDisclaimerAccepted: Boolean get() = betaDisclaimerAcceptedAt > 0L
 
     val defaultReceiver: SavedReceiver? get() = savedReceivers.firstOrNull { it.isDefault }
 

@@ -154,6 +154,14 @@ class FakeSettingsStore(
         onboardingCompleteCount += 1
         settings.value = settings.value.copy(onboardingCompletedAt = 1L)
     }
+
+    override suspend fun setAutomationPaused(paused: Boolean) {
+        settings.value = settings.value.copy(automationPaused = paused)
+    }
+
+    override suspend fun acceptBetaDisclaimer() {
+        settings.value = settings.value.copy(betaDisclaimerAcceptedAt = 1L)
+    }
 }
 
 class FakeBleRepository : BleRepository {

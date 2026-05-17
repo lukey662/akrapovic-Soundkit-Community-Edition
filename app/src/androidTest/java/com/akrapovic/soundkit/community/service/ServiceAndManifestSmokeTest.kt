@@ -54,6 +54,22 @@ class ServiceAndManifestSmokeTest {
     }
 
     @Test
+    fun notificationShowsPauseAutomationWhenRulesExist() {
+        val factory = SoundKitNotificationFactory(context)
+        val device = com.akrapovic.soundkit.community.testDeviceForSmoke()
+
+        factory.ensureChannel()
+        val notification = factory.build(
+            connectionState = ConnectionState.Connected(device),
+            valveState = ValveState.Closed,
+            hasAutomationRules = true,
+            automationPaused = false,
+        )
+
+        assertTrue(notification.actions.any { it.title.toString() == "Pause automation" })
+    }
+
+    @Test
     fun manifestDoesNotRequestInternetPermission() {
         val packageInfo = context.packageManager.getPackageInfo(
             context.packageName,
