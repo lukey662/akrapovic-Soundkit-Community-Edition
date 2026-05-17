@@ -181,3 +181,30 @@ Document the limitation in `DOCS.md` § Android Auto Testing and list "Projected
 
 **Sideload projected Android Auto** (developer mode + unknown sources) is in scope for personal use: car session auto-reconnect, toggle on `SoundKitCarScreen`, and notification/Quick Settings fallback documented in `TESTING.md`. This does not change the Play Store non-goal.
 
+## 2026-05-16: Saved Receivers And Rules Engine (Design Spike)
+
+### Context
+
+Users need multiple remembered BLE receivers, connect-on-launch, and a path toward automation without risking surprise valve writes. Notification and Quick Settings surfaces must respect receiver-not-ready (status `0x04`) the same way as the main UI.
+
+### Decision
+
+- Persist up to **8** saved receivers as JSON in DataStore (`SavedReceiversCodec`), migrating legacy `remembered_device_*` keys on first read. Exactly one default is enforced in the repository.
+- Share connect policy via **`RememberedDeviceConnector`** for phone launch, car bootstrap, and retry.
+- **Connect on launch** is separate from **auto reconnect** (post-drop behavior in `BleRepository`).
+- Extract pure **`NotificationCopy`** and **`QsTilePresenter`** mappers; gate valve actions when disconnected, valve unknown, or not-ready.
+- **Rules engine (spike only):** domain models + `RuleEvaluator` pure logic + unit tests. **No** production persistence, WorkManager, geofence permissions, or BLE execution in this epic.
+
+### Precedence (rules spike)
+
+Manual override > manual pause (no automation) > enabled rules by priority. Writes remain state-gated (connected + known valve) when execution is added later.
+
+### Storage evolution
+
+Start with DataStore JSON for rules prototypes; move to **Room** if rule count, queries, or execution logs exceed comfortable JSON size.
+
+### Consequences
+
+- Settings and scan surfaces manage favorites; notifications show nickname when connected.
+- Rules ADR/SPEC describe triggers and conflicts; implementation can land incrementally without blocking favorites ship.
+

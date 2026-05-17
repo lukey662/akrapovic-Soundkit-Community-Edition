@@ -28,8 +28,29 @@ class ServiceAndManifestSmokeTest {
         val notification = factory.build(ConnectionState.Disconnected, ValveState.Unknown)
 
         assertEquals("Sound Kit Community", notification.extras.getString("android.title"))
+        assertFalse(notification.actions.any { it.title.toString() == "Open" })
+        assertFalse(notification.actions.any { it.title.toString() == "Close" })
+    }
+
+    @Test
+    fun notificationFactoryConnectedEnablesValveActions() {
+        val factory = SoundKitNotificationFactory(context)
+        val device = com.akrapovic.soundkit.community.testDeviceForSmoke()
+
+        factory.ensureChannel()
+        val notification = factory.build(
+            connectionState = ConnectionState.Connected(device),
+            valveState = ValveState.Closed,
+            receiverStatusMessage = null,
+            defaultReceiver = com.akrapovic.soundkit.community.domain.SavedReceiver(
+                address = device.address,
+                name = device.name,
+                isDefault = true,
+            ),
+        )
+
         assertTrue(notification.actions.any { it.title.toString() == "Open" })
-        assertTrue(notification.actions.any { it.title.toString() == "Close" })
+        assertTrue(notification.actions.any { it.title.toString() == "Disconnect" })
     }
 
     @Test

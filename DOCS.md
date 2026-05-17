@@ -34,6 +34,19 @@ Until `onboardingCompletedAt` is set in DataStore, the app shows a single scroll
 
 Clearing app data resets onboarding. Existing installs see the full screen again until they tap **Get started**.
 
+## Saved receivers and connect on launch
+
+- Up to **8** receivers stored as JSON in DataStore (`saved_receivers_json`), with legacy `remembered_device_*` migrated on first read.
+- **Settings** lists saved receivers, default star, connect-on-launch toggle, and per-receiver remove.
+- **Home (scan)** shows saved chips and marks default devices; connecting saves/updates the receiver and sets default when appropriate.
+- **`RememberedDeviceConnector`** (domain) decides whether to auto-connect on app launch (phone) or car session entry; separate from post-drop **auto reconnect** in `BleRepository`.
+
+## Notification and Quick Settings
+
+- `BleConnectionService` builds notifications from connection, valve, `receiverStatusMessage`, and default receiver display name.
+- Open/Close notification actions are omitted when disconnected, valve state is unknown, or the receiver reports not-ready (status `0x04`).
+- Quick Settings tile uses `QsTilePresenter`; opens the app when disconnected; shows `not ready` when status blocks commands.
+
 ## UI System
 
 The app uses a consumer-first companion UI built from reusable Compose components in `ui/components`. Screens should prefer calm hierarchy, rounded elevated panels, concise headers, large touch targets, and theme-driven gradients instead of square debug-style cards or protocol-heavy panels. Garage themes are persisted in DataStore and applied app-wide through `SoundKitTheme`; each brand-inspired family has explicit Light and Dark variants plus a local `brand_*.xml` mark that can be replaced with assets the user has rights to use.

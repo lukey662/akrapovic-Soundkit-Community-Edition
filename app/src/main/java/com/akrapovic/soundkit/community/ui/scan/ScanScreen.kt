@@ -2,17 +2,23 @@ package com.akrapovic.soundkit.community.ui.scan
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.ui.SoundKitUiState
 import com.akrapovic.soundkit.community.ui.components.AkraActionButton
@@ -32,8 +38,11 @@ fun ScanScreen(
     onStartScan: () -> Unit,
     onStopScan: () -> Unit,
     onConnect: (SoundKitDevice) -> Unit,
+    onSetDefaultReceiver: (String) -> Unit = {},
     onRetryConnection: () -> Unit = {},
 ) {
+    val savedByAddress = state.settings.savedReceivers.associateBy { it.address }
+
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
             eyebrow = "Sound Kit",
@@ -60,6 +69,18 @@ fun ScanScreen(
                 primaryContentDescription = "Retry connection to remembered receiver",
                 onPrimary = onRetryConnection,
             )
+        }
+
+        if (state.settings.savedReceivers.isNotEmpty()) {
+            AkraCard(accent = MaterialTheme.colorScheme.primary) {
+                AkraStatusPill(text = "Saved")
+                state.settings.savedReceivers.forEach { receiver ->
+                    SavedReceiverChip(
+                        receiver = receiver,
+                        onSetDefault = { onSetDefaultReceiver(receiver.address) },
+                    )
+                }
+            }
         }
 
         AkraActionButton(
@@ -91,12 +112,53 @@ fun ScanScreen(
                     modifier = Modifier.semantics { heading() },
                 )
                 state.devices.forEach { device ->
-                    DeviceCard(device = device, onConnect = { onConnect(device) })
+                    DeviceCard(
+                        device = device,
+                        saved = savedByAddress[device.address],
+                        onConnect = { onConnect(device) },
+                        onSetDefault = { onSetDefaultReceiver(device.address) },
+                    )
                 }
             }
         }
 
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun SavedReceiverChip(
+    receiver: SavedReceiver,
+    onSetDefault: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            Text(
+                text = receiver.displayName(),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = receiver.address,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (receiver.isDefault) {
+            Text(
+                text = "★ Default",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        } else {
+            TextButton(onClick = onSetDefault) {
+                Text("Set default")
+            }
+        }
     }
 }
 
@@ -136,22 +198,42 @@ private fun PermissionRationaleCard(
 @Composable
 private fun DeviceCard(
     device: SoundKitDevice,
+    saved: SavedReceiver?,
     onConnect: () -> Unit,
+    onSetDefault: () -> Unit,
 ) {
     AkraCard(
         accent = if (device.isLikelySoundKit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         onClick = onConnect,
         contentDescription = "Connect to ${device.name} ${device.address}",
     ) {
-        Text(
-            text = device.name,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = device.name,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            when {
+                saved?.isDefault == true -> Text(
+                    text = "★",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.semantics { contentDescription = "Default saved receiver" },
+                )
+                saved != null -> TextButton(onClick = onSetDefault) {
+                    Text("★ Saved")
+                }
+            }
+        }
         Text(
             text = listOfNotNull(
                 if (device.isLikelySoundKit) "Sound Kit receiver" else "Bluetooth device",
                 device.rssi?.let { signalText(it) },
+                saved?.nickname?.let { "“$it”" },
             ).joinToString(" · "),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

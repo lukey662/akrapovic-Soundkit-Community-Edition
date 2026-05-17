@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.akrapovic.soundkit.community.data.BleRepository
+import com.akrapovic.soundkit.community.data.SettingsStore
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.flow.combine
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class BleConnectionService : LifecycleService() {
     @Inject lateinit var bleRepository: BleRepository
+    @Inject lateinit var settingsStore: SettingsStore
     @Inject lateinit var notificationFactory: SoundKitNotificationFactory
 
     override fun onCreate() {
@@ -26,8 +28,15 @@ class BleConnectionService : LifecycleService() {
             combine(
                 bleRepository.connectionState,
                 bleRepository.valveState,
-            ) { connectionState, valveState ->
-                notificationFactory.build(connectionState, valveState)
+                bleRepository.receiverStatusMessage,
+                settingsStore.settings,
+            ) { connectionState, valveState, receiverStatusMessage, settings ->
+                notificationFactory.build(
+                    connectionState = connectionState,
+                    valveState = valveState,
+                    receiverStatusMessage = receiverStatusMessage,
+                    defaultReceiver = settings.defaultReceiver,
+                )
             }.collect { notification ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     startForeground(

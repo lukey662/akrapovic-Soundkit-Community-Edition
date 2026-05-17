@@ -21,6 +21,7 @@ fun HomeScreen(
     onToggleValve: () -> Unit,
     onDisconnect: () -> Unit,
     onRetryConnection: () -> Unit = {},
+    onSetDefaultReceiver: (String) -> Unit = {},
 ) {
     if (state.showsControlSection()) {
         ConnectedDeviceScreen(
@@ -41,6 +42,7 @@ fun HomeScreen(
             onStopScan = onStopScan,
             onConnect = onConnect,
             onRetryConnection = onRetryConnection,
+            onSetDefaultReceiver = onSetDefaultReceiver,
         )
     }
 }

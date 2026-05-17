@@ -47,9 +47,18 @@ enum class DiagnosticsLevel {
     Error,
 }
 
+data class SavedReceiver(
+    val address: String,
+    val name: String,
+    val nickname: String? = null,
+    val isDefault: Boolean = false,
+) {
+    fun displayName(): String = nickname?.takeIf { it.isNotBlank() } ?: name
+}
+
 data class SoundKitSettings(
-    val rememberedDeviceName: String? = null,
-    val rememberedDeviceAddress: String? = null,
+    val savedReceivers: List<SavedReceiver> = emptyList(),
+    val connectOnLaunch: Boolean = true,
     val autoReconnect: Boolean = true,
     val debugLoggingEnabled: Boolean = true,
     val garageThemeId: String = "studio-dark",
@@ -58,5 +67,13 @@ data class SoundKitSettings(
 ) {
     val riskNoticeAccepted: Boolean get() = riskNoticeAcceptedAt > 0L
     val onboardingCompleted: Boolean get() = onboardingCompletedAt > 0L
+
+    val defaultReceiver: SavedReceiver? get() = savedReceivers.firstOrNull { it.isDefault }
+
+    /** @deprecated Use [defaultReceiver]; kept for migration and tests. */
+    val rememberedDeviceName: String? get() = defaultReceiver?.displayName()
+
+    /** @deprecated Use [defaultReceiver]; kept for migration and tests. */
+    val rememberedDeviceAddress: String? get() = defaultReceiver?.address
 }
 

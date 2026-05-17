@@ -14,6 +14,7 @@ import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
 import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
@@ -33,12 +34,12 @@ class SoundKitCarScreen(
     private val repository: BleRepository = entryPoint.bleRepository()
     private val settingsStore: SettingsStore = entryPoint.settingsStore()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private var hasRememberedDevice = false
+    private var hasDefaultReceiver = false
 
     init {
         scope.launch {
             val settings = settingsStore.settings.first()
-            hasRememberedDevice = CarRememberedDeviceConnector.rememberedDevice(settings) != null
+            hasDefaultReceiver = RememberedDeviceConnector.defaultDevice(settings) != null
             CarBleBootstrap.onCarEntry(carContext, repository, settings, scope)
         }
         scope.launch {
@@ -113,7 +114,7 @@ class SoundKitCarScreen(
             }
         }
 
-        if (!hasRememberedDevice && connectionState is ConnectionState.Disconnected) {
+        if (!hasDefaultReceiver && connectionState is ConnectionState.Disconnected) {
             paneBuilder.addAction(openPhoneAppAction())
         } else if (connectionState is ConnectionState.Error) {
             paneBuilder.addAction(openPhoneAppAction())
@@ -148,7 +149,7 @@ class SoundKitCarScreen(
     private fun ConnectionState.asCarText(): String {
         return when (this) {
             ConnectionState.Disconnected ->
-                "Disconnected. Reconnecting to your saved receiver, or open the phone app to scan."
+                "Disconnected. Reconnecting to your default receiver, or open the phone app to scan."
             ConnectionState.Scanning -> "Scanning for receivers on phone."
             is ConnectionState.Connecting -> "Connecting to ${device.name}…"
             is ConnectionState.Connected -> "Connected to ${device.name}"

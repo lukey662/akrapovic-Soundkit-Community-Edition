@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +62,12 @@ fun SoundKitApp(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val showOnboarding = !state.settings.onboardingCompleted
+
+    LaunchedEffect(blePermissionsGranted, showOnboarding) {
+        if (blePermissionsGranted && !showOnboarding) {
+            viewModel.tryConnectOnLaunch()
+        }
+    }
 
     // Primary tabs: Home | More (Home shows scan or control based on connection).
     var primaryScreen by remember { mutableStateOf(AppScreen.Home) }
@@ -123,6 +130,7 @@ fun SoundKitApp(
                     onToggleValve = viewModel::toggleValve,
                     onDisconnect = viewModel::disconnect,
                     onRetryConnection = viewModel::retryConnection,
+                    onSetDefaultReceiver = viewModel::setDefaultReceiver,
                 )
                 AppScreen.More -> MoreScreen(
                     modifier = modifier,
@@ -142,8 +150,12 @@ fun SoundKitApp(
                     modifier = modifier,
                     state = state,
                     onAutoReconnectChanged = viewModel::setAutoReconnect,
+                    onConnectOnLaunchChanged = viewModel::setConnectOnLaunch,
                     onDebugLoggingChanged = viewModel::setDebugLogging,
-                    onForgetDevice = viewModel::forgetDevice,
+                    onSetDefaultReceiver = viewModel::setDefaultReceiver,
+                    onRemoveReceiver = viewModel::removeReceiver,
+                    onUpdateNickname = viewModel::updateNickname,
+                    onForgetAll = viewModel::forgetDevice,
                 )
                 AppScreen.Roadmap -> RoadmapScreen(
                     modifier = modifier,

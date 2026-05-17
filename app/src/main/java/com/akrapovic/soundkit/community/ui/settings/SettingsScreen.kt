@@ -13,18 +13,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.ui.SoundKitUiState
 import com.akrapovic.soundkit.community.ui.components.AkraActionButton
 import com.akrapovic.soundkit.community.ui.components.AkraCard
@@ -38,26 +44,40 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     state: SoundKitUiState,
     onAutoReconnectChanged: (Boolean) -> Unit,
+    onConnectOnLaunchChanged: (Boolean) -> Unit,
     onDebugLoggingChanged: (Boolean) -> Unit,
-    onForgetDevice: () -> Unit,
+    onSetDefaultReceiver: (String) -> Unit,
+    onRemoveReceiver: (String) -> Unit,
+    onUpdateNickname: (String, String?) -> Unit,
+    onForgetAll: () -> Unit,
 ) {
     val context = LocalContext.current
     val powerManager = remember { context.getSystemService(PowerManager::class.java) }
     val ignoringOptimizations =
         powerManager?.isIgnoringBatteryOptimizations(context.packageName) == true
-    val showForgetConfirm = remember { mutableStateOf(false) }
+    val removeTarget = remember { mutableStateOf<SavedReceiver?>(null) }
+    val showForgetAllConfirm = remember { mutableStateOf(false) }
+    val savedReceivers = state.settings.savedReceivers
 
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
             eyebrow = "Settings",
             title = "Preferences",
-            subtitle = "A few simple controls for connection reliability and privacy.",
+            subtitle = "Connection reliability, saved receivers, and privacy.",
+        )
+
+        TogglePanel(
+            accent = MaterialTheme.colorScheme.primary,
+            title = "Connect on launch",
+            body = "Try your default saved receiver when the app opens (after onboarding).",
+            checked = state.settings.connectOnLaunch,
+            onCheckedChange = onConnectOnLaunchChanged,
         )
 
         TogglePanel(
             accent = MaterialTheme.colorScheme.primary,
             title = "Auto reconnect",
-            body = "Reconnect to your saved receiver if the Bluetooth link drops.",
+            body = "Reconnect to your default receiver if the Bluetooth link drops.",
             checked = state.settings.autoReconnect,
             onCheckedChange = onAutoReconnectChanged,
         )
@@ -71,43 +91,78 @@ fun SettingsScreen(
         )
 
         AkraCard(accent = AkraColors.Titanium) {
-            AkraStatusPill(text = "Saved receiver", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            AkraStatusPill(text = "Saved receivers", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                text = state.settings.rememberedDeviceName ?: "No receiver remembered",
+                text = if (savedReceivers.isEmpty()) {
+                    "No receivers saved yet"
+                } else {
+                    "${savedReceivers.size} saved · up to 8"
+                },
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                text = state.settings.rememberedDeviceAddress
-                    ?: "Connect to a receiver from Find your Sound Kit.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(4.dp))
-            AkraActionButton(
-                label = "Forget receiver",
-                enabled = state.settings.rememberedDeviceAddress != null,
-                filled = false,
-                onClick = { showForgetConfirm.value = true },
-                contentDescription = "Forget remembered receiver",
-            )
+            if (savedReceivers.isEmpty()) {
+                Text(
+                    text = "Connect from Home to save a receiver. The first connection becomes your default.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    savedReceivers.forEach { receiver ->
+                        SavedReceiverRow(
+                            receiver = receiver,
+                            onSetDefault = { onSetDefaultReceiver(receiver.address) },
+                            onEditNickname = { nickname -> onUpdateNickname(receiver.address, nickname) },
+                            onRemove = { removeTarget.value = receiver },
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                AkraActionButton(
+                    label = "Forget all receivers",
+                    enabled = true,
+                    filled = false,
+                    onClick = { showForgetAllConfirm.value = true },
+                    contentDescription = "Forget all saved receivers",
+                )
+            }
         }
 
-        if (showForgetConfirm.value) {
+        removeTarget.value?.let { receiver ->
             AlertDialog(
-                onDismissRequest = { showForgetConfirm.value = false },
-                title = { Text("Forget this receiver?") },
+                onDismissRequest = { removeTarget.value = null },
+                title = { Text("Remove ${receiver.displayName()}?") },
                 text = {
-                    Text("The app will stop auto-reconnecting and will need a manual scan to find your Sound Kit again.")
+                    Text("This receiver will be removed from your saved list. You can scan and connect again anytime.")
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        showForgetConfirm.value = false
-                        onForgetDevice()
-                    }) { Text("Forget") }
+                        onRemoveReceiver(receiver.address)
+                        removeTarget.value = null
+                    }) { Text("Remove") }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showForgetConfirm.value = false }) { Text("Cancel") }
+                    TextButton(onClick = { removeTarget.value = null }) { Text("Cancel") }
+                },
+            )
+        }
+
+        if (showForgetAllConfirm.value) {
+            AlertDialog(
+                onDismissRequest = { showForgetAllConfirm.value = false },
+                title = { Text("Forget all receivers?") },
+                text = {
+                    Text("Clears every saved receiver and stops auto-reconnect. You will need to scan again.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showForgetAllConfirm.value = false
+                        onForgetAll()
+                    }) { Text("Forget all") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showForgetAllConfirm.value = false }) { Text("Cancel") }
                 },
             )
         }
@@ -152,6 +207,79 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun SavedReceiverRow(
+    receiver: SavedReceiver,
+    onSetDefault: () -> Unit,
+    onEditNickname: (String?) -> Unit,
+    onRemove: () -> Unit,
+) {
+    val showNicknameDialog = remember { mutableStateOf(false) }
+    var nicknameDraft by remember(receiver.address) { mutableStateOf(receiver.nickname.orEmpty()) }
+
+    if (showNicknameDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showNicknameDialog.value = false },
+            title = { Text("Nickname") },
+            text = {
+                OutlinedTextField(
+                    value = nicknameDraft,
+                    onValueChange = { nicknameDraft = it },
+                    label = { Text("Nickname (optional)") },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onEditNickname(nicknameDraft.trim().takeIf { it.isNotEmpty() })
+                    showNicknameDialog.value = false
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNicknameDialog.value = false }) { Text("Cancel") }
+            },
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = receiver.displayName(),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = receiver.address,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        TextButton(onClick = { showNicknameDialog.value = true }) {
+            Text("Nickname")
+        }
+        TextButton(
+            onClick = onSetDefault,
+            enabled = !receiver.isDefault,
+            modifier = Modifier.semantics {
+                contentDescription = if (receiver.isDefault) {
+                    "Default receiver"
+                } else {
+                    "Set ${receiver.displayName()} as default"
+                }
+            },
+        ) {
+            Text(if (receiver.isDefault) "★ Default" else "Set default")
+        }
+        TextButton(onClick = onRemove) {
+            Text("Remove")
+        }
+    }
+}
+
+@Composable
 private fun TogglePanel(
     accent: Color,
     title: String,
@@ -160,8 +288,7 @@ private fun TogglePanel(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AkraCard(accent = if (checked) accent else AkraColors.Mist) {

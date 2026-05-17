@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.akrapovic.soundkit.community.MainActivity
 import com.akrapovic.soundkit.community.R
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -36,25 +37,44 @@ class SoundKitNotificationFactory @Inject constructor(
     fun build(
         connectionState: ConnectionState,
         valveState: ValveState,
+        receiverStatusMessage: String? = null,
+        defaultReceiver: SavedReceiver? = null,
     ): Notification {
+        val presentation = NotificationCopy.build(
+            connectionState = connectionState,
+            valveState = valveState,
+            receiverStatusMessage = receiverStatusMessage,
+            defaultReceiver = defaultReceiver,
+        )
         val contentIntent = PendingIntent.getActivity(
             context,
             0,
-            Intent(context, MainActivity::class.java),
+            Intent(context, MainActivity::class.java).apply {
+                putExtra(MainActivity.EXTRA_NAV_HOME, true)
+            },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        return NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Sound Kit Community")
-            .setContentText("${connectionState.asNotificationText()} · valve ${valveState.name.lowercase()}")
+            .setContentTitle(presentation.title)
+            .setContentText(presentation.contentText)
             .setContentIntent(contentIntent)
-            .setOngoing(connectionState is ConnectionState.Connected || connectionState is ConnectionState.Connecting)
+            .setOngoing(presentation.ongoing)
             .setOnlyAlertOnce(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .addAction(action(R.string.notification_action_open, BleConnectionService.ACTION_OPEN, 1))
-            .addAction(action(R.string.notification_action_close, BleConnectionService.ACTION_CLOSE, 2))
-            .addAction(action(R.string.notification_action_disconnect, BleConnectionService.ACTION_DISCONNECT, 3))
-            .build()
+
+        if (presentation.openValveEnabled) {
+            builder.addAction(action(R.string.notification_action_open, BleConnectionService.ACTION_OPEN, 1))
+        }
+        if (presentation.closeValveEnabled) {
+            builder.addAction(action(R.string.notification_action_close, BleConnectionService.ACTION_CLOSE, 2))
+        }
+        if (presentation.disconnectEnabled) {
+            builder.addAction(
+                action(R.string.notification_action_disconnect, BleConnectionService.ACTION_DISCONNECT, 3),
+            )
+        }
+        return builder.build()
     }
 
     private fun action(labelRes: Int, action: String, requestCode: Int): NotificationCompat.Action {
@@ -71,20 +91,8 @@ class SoundKitNotificationFactory @Inject constructor(
         ).build()
     }
 
-    private fun ConnectionState.asNotificationText(): String {
-        return when (this) {
-            ConnectionState.Disconnected -> "Disconnected"
-            ConnectionState.Scanning -> "Scanning"
-            is ConnectionState.Connecting -> "Connecting to ${device.name}"
-            is ConnectionState.Connected -> "Connected to ${device.name}"
-            is ConnectionState.Reconnecting -> "Reconnecting attempt $attempt"
-            is ConnectionState.Error -> "Error: $message"
-        }
-    }
-
     companion object {
         const val CHANNEL_ID = "soundkit_connection"
         const val NOTIFICATION_ID = 42
     }
 }
-

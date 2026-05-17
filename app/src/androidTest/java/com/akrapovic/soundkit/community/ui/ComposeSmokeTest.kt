@@ -18,6 +18,7 @@ import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.DiagnosticsEntry
 import com.akrapovic.soundkit.community.domain.DiagnosticsLevel
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
+import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.testDeviceForSmoke
@@ -194,15 +195,53 @@ class ComposeSmokeTest {
                 SettingsScreen(
                     state = SoundKitUiState(),
                     onAutoReconnectChanged = {},
+                    onConnectOnLaunchChanged = {},
                     onDebugLoggingChanged = {},
-                    onForgetDevice = {},
+                    onSetDefaultReceiver = {},
+                    onRemoveReceiver = {},
+                    onUpdateNickname = { _, _ -> },
+                    onForgetAll = {},
                 )
             }
         }
 
+        composeRule.onNodeWithText("Connect on launch").assertIsDisplayed()
         composeRule.onNodeWithText("Auto reconnect").assertIsDisplayed()
         composeRule.onNodeWithText("Background connection").assertIsDisplayed()
         composeRule.onNodeWithText("Detailed logs").assertIsDisplayed()
+    }
+
+    @Test
+    fun settingsScreenShowsSavedReceiversAndDefaultStar() {
+        val receiver = SavedReceiver(
+            address = "AA:BB:CC:DD:EE:FF",
+            name = "Sound Kit",
+            nickname = "Garage",
+            isDefault = true,
+        )
+        composeRule.setContent {
+            SoundKitTheme {
+                SettingsScreen(
+                    state = SoundKitUiState(
+                        settings = SoundKitSettings(
+                            savedReceivers = listOf(receiver),
+                            connectOnLaunch = true,
+                        ),
+                    ),
+                    onAutoReconnectChanged = {},
+                    onConnectOnLaunchChanged = {},
+                    onDebugLoggingChanged = {},
+                    onSetDefaultReceiver = {},
+                    onRemoveReceiver = {},
+                    onUpdateNickname = { _, _ -> },
+                    onForgetAll = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Garage").assertIsDisplayed()
+        composeRule.onNodeWithText("★ Default").assertIsDisplayed()
+        composeRule.onNodeWithText("Connect on launch").assertIsDisplayed()
     }
 
     @Test
@@ -362,6 +401,18 @@ private class FakeSettingsStoreForSmoke(
     override val settings = MutableStateFlow(initial)
 
     override suspend fun rememberDevice(device: SoundKitDevice) = Unit
+
+    override suspend fun saveReceiver(device: SoundKitDevice, setAsDefault: Boolean) = Unit
+
+    override suspend fun removeReceiver(address: String) = Unit
+
+    override suspend fun setDefaultReceiver(address: String) = Unit
+
+    override suspend fun updateNickname(address: String, nickname: String?) = Unit
+
+    override suspend fun setConnectOnLaunch(enabled: Boolean) {
+        settings.value = settings.value.copy(connectOnLaunch = enabled)
+    }
 
     override suspend fun forgetDevice() = Unit
 

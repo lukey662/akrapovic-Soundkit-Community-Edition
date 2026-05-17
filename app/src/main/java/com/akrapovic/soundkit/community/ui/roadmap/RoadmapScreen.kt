@@ -464,6 +464,18 @@ private val shippedItems = listOf(
         "Auto-reconnect on car entry, toggle on template, status-04 copy, notification/QS fallback.",
     ),
     RoadmapItem("Confirmations", "Disconnect and Forget receiver dialogs."),
+    RoadmapItem(
+        "Favorites",
+        "Up to eight saved receivers, default star, nicknames, and connect on launch.",
+    ),
+    RoadmapItem(
+        "Smarter notifications",
+        "Gated Open/Close, nickname titles, and honest not-ready copy on status 04.",
+    ),
+    RoadmapItem(
+        "Rules engine (design)",
+        "Evaluator and precedence spec only — execution and persistence come later.",
+    ),
 )
 
 private val upNextItems = listOf(
@@ -475,12 +487,8 @@ private val upNextItems = listOf(
 
 private val laterItems = listOf(
     RoadmapItem(
-        "Favorites",
-        "Pin receivers, nicknames, and an optional default device for faster reconnect.",
-    ),
-    RoadmapItem(
-        "Rules engine",
-        "Opt-in when/then rules with clear precedence — only after valve commands stay safe.",
+        "Rules execution",
+        "Persist and run when/then rules with a visible last-run log — after the design spike.",
     ),
     RoadmapItem(
         "Time automation",
@@ -491,8 +499,8 @@ private val laterItems = listOf(
         "Enter/exit triggers with explicit location consent and battery disclosure.",
     ),
     RoadmapItem(
-        "Smarter notifications",
-        "Pause rules, last automation cause, and quick manual control when connected.",
+        "Automation in notifications",
+        "Pause all rules and show last automation cause once rules execute.",
     ),
 )
 

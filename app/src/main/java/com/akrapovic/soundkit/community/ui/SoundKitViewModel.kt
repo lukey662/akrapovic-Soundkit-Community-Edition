@@ -10,10 +10,11 @@ import com.akrapovic.soundkit.community.diagnostics.CrashReporter
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
-import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +34,7 @@ class SoundKitViewModel @Inject constructor(
     private val commandInFlight = MutableStateFlow(false)
     private val lastError = MutableStateFlow<String?>(null)
     private val hasPendingCrash = MutableStateFlow(crashReporter.hasPendingCrash())
+    private val launchConnectAttempted = AtomicBoolean(false)
 
     private val bleState = combine(
         bleRepository.discoveredDevices,
@@ -87,6 +89,18 @@ class SoundKitViewModel @Inject constructor(
         initialValue = SoundKitUiState(protocolVerified = SoundKitProtocol.VERIFIED),
     )
 
+    fun tryConnectOnLaunch() {
+        if (!launchConnectAttempted.compareAndSet(false, true)) return
+        viewModelScope.launch {
+            val settings = settingsRepository.settings.first()
+            if (!settings.onboardingCompleted || !settings.connectOnLaunch) return@launch
+            val device = RememberedDeviceConnector.defaultDevice(settings) ?: return@launch
+            if (RememberedDeviceConnector.shouldAutoConnect(bleRepository.connectionState.value, settings)) {
+                bleRepository.connect(device)
+            }
+        }
+    }
+
     fun startScan() {
         lastError.value = null
         bleRepository.startScan()
@@ -99,6 +113,7 @@ class SoundKitViewModel @Inject constructor(
     fun connect(device: SoundKitDevice) {
         viewModelScope.launch {
             lastError.value = null
+            settingsRepository.saveReceiver(device, setAsDefault = true)
             bleRepository.connect(device)
         }
     }
@@ -131,6 +146,12 @@ class SoundKitViewModel @Inject constructor(
         }
     }
 
+    fun setConnectOnLaunch(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setConnectOnLaunch(enabled)
+        }
+    }
+
     fun setDebugLogging(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.setDebugLoggingEnabled(enabled)
@@ -159,12 +180,26 @@ class SoundKitViewModel @Inject constructor(
         viewModelScope.launch {
             lastError.value = null
             val settings = settingsRepository.settings.first()
-            val address = settings.rememberedDeviceAddress ?: return@launch
-            val device = SoundKitDevice(
-                name = settings.rememberedDeviceName ?: "Sound Kit",
-                address = address,
-            )
+            val device = RememberedDeviceConnector.defaultDevice(settings) ?: return@launch
             bleRepository.connect(device)
+        }
+    }
+
+    fun setDefaultReceiver(address: String) {
+        viewModelScope.launch {
+            settingsRepository.setDefaultReceiver(address)
+        }
+    }
+
+    fun removeReceiver(address: String) {
+        viewModelScope.launch {
+            settingsRepository.removeReceiver(address)
+        }
+    }
+
+    fun updateNickname(address: String, nickname: String?) {
+        viewModelScope.launch {
+            settingsRepository.updateNickname(address, nickname)
         }
     }
 
@@ -224,6 +259,5 @@ private data class CoreUiState(
     val valveState: ValveState,
     val receiverStatusMessage: String?,
     val isScanning: Boolean,
-    val settings: SoundKitSettings,
+    val settings: com.akrapovic.soundkit.community.domain.SoundKitSettings,
 )
-

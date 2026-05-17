@@ -6,6 +6,7 @@ import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.domain.ValveCommand
@@ -70,25 +71,63 @@ class FakeSettingsStore(
     val rememberedDevices = mutableListOf<SoundKitDevice>()
     var forgetCount = 0
     var autoReconnectChanges = mutableListOf<Boolean>()
+    var connectOnLaunchChanges = mutableListOf<Boolean>()
     var debugLoggingChanges = mutableListOf<Boolean>()
     var garageThemeChanges = mutableListOf<String>()
     var riskNoticeAcceptCount = 0
     var onboardingCompleteCount = 0
 
     override suspend fun rememberDevice(device: SoundKitDevice) {
+        saveReceiver(device, setAsDefault = true)
+    }
+
+    override suspend fun saveReceiver(device: SoundKitDevice, setAsDefault: Boolean) {
         rememberedDevices += device
-        settings.value = settings.value.copy(
-            rememberedDeviceName = device.name,
-            rememberedDeviceAddress = device.address,
+        val existing = settings.value.savedReceivers.filterNot { it.address == device.address }
+        val incoming = SavedReceiver(
+            address = device.address,
+            name = device.name,
+            isDefault = setAsDefault,
         )
+        val merged = existing + incoming
+        val updated = if (setAsDefault) {
+            merged.map { it.copy(isDefault = it.address == device.address) }
+        } else {
+            merged
+        }
+        settings.value = settings.value.copy(savedReceivers = updated)
+    }
+
+    override suspend fun removeReceiver(address: String) {
+        settings.value = settings.value.copy(
+            savedReceivers = settings.value.savedReceivers.filterNot { it.address == address },
+        )
+    }
+
+    override suspend fun setDefaultReceiver(address: String) {
+        settings.value = settings.value.copy(
+            savedReceivers = settings.value.savedReceivers.map {
+                it.copy(isDefault = it.address == address)
+            },
+        )
+    }
+
+    override suspend fun updateNickname(address: String, nickname: String?) {
+        settings.value = settings.value.copy(
+            savedReceivers = settings.value.savedReceivers.map {
+                if (it.address == address) it.copy(nickname = nickname) else it
+            },
+        )
+    }
+
+    override suspend fun setConnectOnLaunch(enabled: Boolean) {
+        connectOnLaunchChanges += enabled
+        settings.value = settings.value.copy(connectOnLaunch = enabled)
     }
 
     override suspend fun forgetDevice() {
         forgetCount += 1
-        settings.value = settings.value.copy(
-            rememberedDeviceName = null,
-            rememberedDeviceAddress = null,
-        )
+        settings.value = settings.value.copy(savedReceivers = emptyList())
     }
 
     override suspend fun setAutoReconnect(enabled: Boolean) {

@@ -6,6 +6,7 @@ import com.akrapovic.soundkit.community.diagnostics.CrashReporter
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportMetadata
 import com.akrapovic.soundkit.community.domain.CommandResult
+import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.test.FakeBleRepository
 import com.akrapovic.soundkit.community.test.FakeSettingsStore
 import com.akrapovic.soundkit.community.test.MainDispatcherRule
@@ -78,7 +79,7 @@ class SoundKitViewModelTest {
     }
 
     @Test
-    fun connectDelegatesSelectedDevice() = runTest(mainDispatcherRule.dispatcher) {
+    fun connectDelegatesSelectedDeviceAndSavesAsDefault() = runTest(mainDispatcherRule.dispatcher) {
         val viewModel = viewModel()
         val device = testDevice()
 
@@ -86,6 +87,44 @@ class SoundKitViewModelTest {
         runCurrent()
 
         assertEquals(listOf(device), bleRepository.connectedDevices)
+        assertEquals(device.address, settingsStore.settings.value.defaultReceiver?.address)
+    }
+
+    @Test
+    fun tryConnectOnLaunchConnectsOnceWhenEnabled() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        settingsStore.settings.value = settingsStore.settings.value.copy(
+            connectOnLaunch = true,
+            onboardingCompletedAt = 1L,
+            savedReceivers = listOf(
+                SavedReceiver(device.address, device.name, isDefault = true),
+            ),
+        )
+        val viewModel = viewModel()
+
+        viewModel.tryConnectOnLaunch()
+        viewModel.tryConnectOnLaunch()
+        runCurrent()
+
+        assertEquals(1, bleRepository.connectedDevices.size)
+    }
+
+    @Test
+    fun tryConnectOnLaunchSkippedWhenDisabled() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        settingsStore.settings.value = settingsStore.settings.value.copy(
+            connectOnLaunch = false,
+            onboardingCompletedAt = 1L,
+            savedReceivers = listOf(
+                SavedReceiver(device.address, device.name, isDefault = true),
+            ),
+        )
+        val viewModel = viewModel()
+
+        viewModel.tryConnectOnLaunch()
+        runCurrent()
+
+        assertTrue(bleRepository.connectedDevices.isEmpty())
     }
 
     @Test
@@ -135,12 +174,13 @@ class SoundKitViewModelTest {
     }
 
     @Test
-    fun retryConnectionUsesRememberedDevice() = runTest(mainDispatcherRule.dispatcher) {
+    fun retryConnectionUsesDefaultSavedReceiver() = runTest(mainDispatcherRule.dispatcher) {
         val viewModel = viewModel()
         val device = testDevice()
         settingsStore.settings.value = settingsStore.settings.value.copy(
-            rememberedDeviceName = device.name,
-            rememberedDeviceAddress = device.address,
+            savedReceivers = listOf(
+                SavedReceiver(device.address, device.name, isDefault = true),
+            ),
         )
         runCurrent()
 
@@ -149,6 +189,24 @@ class SoundKitViewModelTest {
 
         assertEquals(1, bleRepository.connectedDevices.size)
         assertEquals(device.address, bleRepository.connectedDevices.single().address)
+    }
+
+    @Test
+    fun setDefaultReceiverUpdatesStore() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = viewModel()
+        val a = testDevice(address = "aa")
+        val b = testDevice(address = "bb", name = "B")
+        settingsStore.settings.value = settingsStore.settings.value.copy(
+            savedReceivers = listOf(
+                SavedReceiver(a.address, a.name, isDefault = true),
+                SavedReceiver(b.address, b.name, isDefault = false),
+            ),
+        )
+
+        viewModel.setDefaultReceiver(b.address)
+        runCurrent()
+
+        assertEquals(b.address, settingsStore.settings.value.defaultReceiver?.address)
     }
 
     @Test

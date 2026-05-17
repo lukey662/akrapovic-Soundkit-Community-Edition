@@ -32,7 +32,10 @@ Covered areas:
 - Exponential reconnect backoff
 - Repository scan/connect/disconnect/reconnect behavior with fake BLE gateways
 - ViewModel state reduction and command error surfacing
-- Car entry auto-connect policy (`CarRememberedDeviceConnector`)
+- Saved receivers codec (JSON, migration, default uniqueness cap)
+- `RememberedDeviceConnector` connect-on-launch policy (phone and car)
+- `NotificationCopy` and `QsTilePresenter` action gating
+- `RuleEvaluator` precedence (design spike — no BLE execution)
 - Diagnostics report generation and local crash-log round trip
 
 These tests do not need Android BLE hardware.
@@ -53,7 +56,8 @@ Covered areas:
 - Scan screen empty state
 - Control screen waits for receiver status before enabling valve commands
 - Diagnostics screen renders Copy/Share export controls and duplicate-timestamp entries do not crash
-- Settings screen renders reconnect, local logging, and background connection controls
+- Settings screen: connect on launch, saved receiver list, default star
+- Notification: disconnected omits valve actions; connected enables Open/Disconnect
 - Garage themes apply app-wide and persist through DataStore-backed settings
 - Persistent notification can be built
 - Manifest does not request `INTERNET`
@@ -124,6 +128,15 @@ The original APK protocol is now statically verified, but physical receiver test
 Stop discovery if the receiver repeatedly disconnects, Android shows pairing errors, or the diagnostics report does not include a GATT profile block.
 
 If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel appears with `Copy crash`, `Share crash`, and `Dismiss crash log`. Crash logs remain local until the user explicitly shares them.
+
+### Favorites and connect on launch
+
+1. Clear app data → connect once → force-stop → relaunch with **Connect on launch** enabled in Settings.
+2. Confirm the app attempts to connect without scanning (default saved receiver).
+3. Save a second receiver (connect from scan) → set the other as default → relaunch → confirm connect targets the new default.
+4. With receiver connected and status known: notification Open/Close work while parked; Quick Settings tile toggles.
+5. With status `04`: notification and tile omit valve actions; copy shows not-ready.
+6. Rules automation: N/A (design spike only — no execution).
 
 ### Command Smoke Pass
 

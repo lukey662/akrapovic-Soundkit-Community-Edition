@@ -2,7 +2,7 @@
 
 Living plan for **Sound Kit Community**. Nothing here is a commitment or timeline; it records direction so contributors and users know what might come next. All work stays **local-first** (phone BLE only) unless an explicit decision says otherwise.
 
-*Last refreshed: May 2026 — unified onboarding, empty/error states, CI wrapper, theme polish, and accessibility pass shipped.*
+*Last refreshed: May 2026 — favorites, notification/tile polish, and rules design spike shipped.*
 
 ## Principles
 
@@ -32,6 +32,10 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 | **Android Auto / Automotive** | IoT Car App service, manifest descriptor, DHU testing. |
 | **Projected AA (sideload)** | Car auto-reconnect, toggle + status-04 on template, Open on phone, notification/QS fallback docs. |
 | **Confirmations** | Disconnect and Forget receiver confirmation dialogs. |
+| **Favorites** | Up to 8 saved receivers, nicknames, default star, connect on launch; shared `RememberedDeviceConnector`. |
+| **Smarter notifications** | `NotificationCopy` gating; nickname title; not-ready copy; valve actions disabled when unsafe. |
+| **Quick Settings polish** | `QsTilePresenter`; not-ready inactive state; open app when disconnected. |
+| **Rules engine (design)** | Domain models, `RuleEvaluator`, ADR/SPEC — no BLE execution or persistence yet. |
 
 ## Near term
 
@@ -41,15 +45,10 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 
 ## Later (product)
 
-### Favorites and saved devices
+### Rules engine (execution)
 
-- Pin or star receivers, **nicknames**, sort order.
-- Optional **default device** and “connect on launch” (with clear disconnect and permission boundaries).
-
-### Rules engine
-
-- Persistent **rules**: when [triggers] then [actions] (e.g. open / close valve), with **precedence** and conflict resolution.
-- Storage may evolve from DataStore to **Room** if rule complexity grows.
+- Persist rules (DataStore JSON → Room if needed), run against connected BLE with visible last-run log.
+- Precedence and manual pause already specified in `DECISIONS.md` / `SPEC.md`.
 
 ### Time-based automation
 
@@ -61,9 +60,9 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 - **Geofence enter/exit** triggers (Android Geofencing API).
 - Opt-in location (and possibly background location — high Play scrutiny); battery impact called out in UI.
 
-### Notifications and Quick Settings
+### Notifications and Quick Settings (automation UX)
 
-- Deep links to **pause all rules**, **last automation cause**, quick manual OPEN/CLOSE when connected.
+- Deep links to **pause all rules** and **last automation cause** once rules execute.
 
 ## Non-goals (for now)
 
