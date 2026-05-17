@@ -80,8 +80,8 @@ val GarageThemeFamilies = listOf(
             cardGradientStart = Color(0xFFFFFFFF),
             cardGradientEnd = Color(0xFFE0EFFF),
             onBase = Color(0xFF0D1B2A),
-            onSurface = Color(0xFF0D1B2A),
-            muted = Color(0xFF4A6A8A),
+            onSurface = Color(0xFF0A1520),
+            muted = Color(0xFF3A5670),
         ),
     ),
     GarageThemeFamily(
@@ -134,6 +134,10 @@ val GarageThemeFamilies = listOf(
             tint = Color(0xFFF0F0F0),
             accent = Color(0xFFCC0000),
             secondaryAccent = Color(0xFF0A0A0A),
+        ).copy(
+            onSurface = Color(0xFF111111),
+            muted = Color(0xFF4A4A4A),
+            cardGradientEnd = Color(0xFFE8E8E8),
         ),
     ),
     GarageThemeFamily(

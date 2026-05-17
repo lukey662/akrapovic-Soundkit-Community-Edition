@@ -26,6 +26,13 @@ object SoundKitProtocol {
 
     private val togglePayload = byteArrayOf(0x01)
 
+    const val RECEIVER_NOT_READY_MESSAGE: String =
+        "Receiver isn't ready to change valves. Use while parked with ignition on (if required by your kit). Check the official app once, then try again."
+
+    fun isReceiverNotReadyStatus(value: ByteArray): Boolean {
+        return value.firstOrNull()?.toInt()?.and(0xFF) == 0x04
+    }
+
     fun isLikelySoundKitDevice(name: String?): Boolean {
         val normalized = name.orEmpty().lowercase(Locale.ROOT)
         return deviceNameHints.any(normalized::contains)
@@ -65,7 +72,12 @@ object SoundKitProtocol {
         return when (status.toInt() and 0xFF) {
             0x02, 0x07 -> Result.success(ValveState.Closed)
             0x03, 0x06 -> Result.success(ValveState.Open)
-            0x04 -> Result.failure(ReceiverStatusException("Receiver reported a valve control error."))
+            0x04 -> Result.failure(
+                ReceiverStatusException(
+                    message = RECEIVER_NOT_READY_MESSAGE,
+                    isNotReady = true,
+                ),
+            )
             else -> Result.success(ValveState.Unknown)
         }
     }
@@ -83,5 +95,8 @@ object SoundKitProtocol {
 }
 
 class ProtocolNotVerifiedException(message: String) : IllegalStateException(message)
-class ReceiverStatusException(message: String) : IllegalStateException(message)
+class ReceiverStatusException(
+    message: String,
+    val isNotReady: Boolean = false,
+) : IllegalStateException(message)
 

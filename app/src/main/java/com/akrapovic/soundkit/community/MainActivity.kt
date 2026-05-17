@@ -1,7 +1,9 @@
 package com.akrapovic.soundkit.community
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,42 +29,61 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val permissions = remember { PermissionPolicy.requiredRuntimePermissions() }
-            var permissionsGranted by remember { mutableStateOf(hasAllPermissions(permissions)) }
-            val launcher = rememberLauncherForActivityResult(
+            val blePermissions = remember { PermissionPolicy.requiredBlePermissions() }
+            val notificationPermissions = remember {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    listOf(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    emptyList()
+                }
+            }
+            var blePermissionsGranted by remember { mutableStateOf(hasAllPermissions(blePermissions)) }
+            var notificationsGranted by remember { mutableStateOf(hasAllPermissions(notificationPermissions)) }
+
+            val bleLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestMultiplePermissions(),
             ) { result ->
-                permissionsGranted = permissions.all { permission ->
-                    result[permission] == true || ContextCompat.checkSelfPermission(
-                        this,
-                        permission,
-                    ) == PackageManager.PERMISSION_GRANTED
+                blePermissionsGranted = blePermissions.all { permission ->
+                    result[permission] == true || hasPermission(permission)
+                }
+            }
+            val notificationLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestMultiplePermissions(),
+            ) { result ->
+                notificationsGranted = notificationPermissions.all { permission ->
+                    result[permission] == true || hasPermission(permission)
                 }
             }
             val viewModel: SoundKitViewModel = hiltViewModel()
 
             LaunchedEffect(Unit) {
-                permissionsGranted = hasAllPermissions(permissions)
+                blePermissionsGranted = hasAllPermissions(blePermissions)
+                notificationsGranted = hasAllPermissions(notificationPermissions)
             }
-            LaunchedEffect(permissionsGranted) {
-                if (permissionsGranted) {
+            LaunchedEffect(blePermissionsGranted) {
+                if (blePermissionsGranted) {
                     BleConnectionService.start(this@MainActivity)
                 }
             }
 
             SoundKitApp(
                 viewModel = viewModel,
-                permissions = permissions,
-                permissionsGranted = permissionsGranted,
-                onRequestPermissions = { launcher.launch(permissions.toTypedArray()) },
+                blePermissions = blePermissions,
+                blePermissionsGranted = blePermissionsGranted,
+                notificationsGranted = notificationsGranted,
+                onRequestBlePermissions = { bleLauncher.launch(blePermissions.toTypedArray()) },
+                onRequestNotificationPermission = {
+                    notificationLauncher.launch(notificationPermissions.toTypedArray())
+                },
             )
         }
     }
 
     private fun Context.hasAllPermissions(permissions: List<String>): Boolean {
-        return permissions.all { permission ->
-            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
-        }
+        return permissions.all { hasPermission(it) }
+    }
+
+    private fun Context.hasPermission(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
     }
 }
-

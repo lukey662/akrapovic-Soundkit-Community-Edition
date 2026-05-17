@@ -18,8 +18,21 @@ app/src/main/java/com/akrapovic/soundkit/community/
 1. Install Android Studio and JDK 17.
 2. Install Android SDK 35.
 3. Open the repository in Android Studio.
-4. Build the debug variant.
+4. Build with `./gradlew :app:assembleDebug` (uses the committed Gradle wrapper).
 5. Install on a physical Android device with BLE support.
+
+## First-run onboarding
+
+Until `onboardingCompletedAt` is set in DataStore, the app shows a single scrollable setup screen (not the main tabs) with a breadcrumb progress strip and four inline sections:
+
+1. **Risk** — short summary plus expandable full disclaimer; checkbox to accept.
+2. **Bluetooth** — inline **Grant** when needed (API 31+ uses `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`; older APIs use location).
+3. **Notifications** — inline grant on API 33+ when needed.
+4. **Battery** — optional **Open battery settings** (same intent as Settings).
+
+**Get started** (bottom bar) finishes setup when risk is accepted and required permissions are granted.
+
+Clearing app data resets onboarding. Existing installs see the full screen again until they tap **Get started**.
 
 ## UI System
 
@@ -29,7 +42,7 @@ The app uses a consumer-first companion UI built from reusable Compose component
 
 Use `TESTING.md` as the source of truth for unit, regression, instrumented smoke, CI, and physical receiver validation.
 
-Local `:app:assembleDebug` runs `:app:testDebugUnitTest` first. GitHub Actions runs unit tests, Android 35 emulator smoke tests, then publishes the debug APK only after both test layers pass.
+Local `:app:assembleDebug` runs `:app:testDebugUnitTest` first. GitHub Actions verifies `./gradlew --version`, runs unit tests, Android 35 emulator smoke tests (`OnboardingFlowTest`, `AkraStatePanelTest`, `ComposeSmokeTest`), then publishes the debug APK only after both test layers pass.
 
 ## Diagnostics Export And Crash Logs
 

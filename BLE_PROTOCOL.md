@@ -139,7 +139,7 @@ Implementation rule:
 
 - Treat valve state as `Unknown` after connection until a status notification is received.
 - Update valve state from status bytes `02`, `03`, `06`, and `07`.
-- Treat status byte `04` as a recoverable receiver error and disconnect or block valve commands.
+- Treat status byte `04` as a receiver-not-ready condition: show actionable copy, keep the BLE link up, and do **not** auto-reconnect in a loop. The original APK disconnects on `04`; this app stays connected so the user can retry when the car is ready.
 - Do not infer actual valve state from a successful write alone.
 
 ## Retry And Timing

@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -200,22 +202,43 @@ private fun VariantButton(
 private fun ThemeSwatch(theme: GarageTheme) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp)),
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.28f), RoundedCornerShape(16.dp)),
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        SwatchBlock(theme.base)
-        SwatchBlock(theme.surface)
-        SwatchBlock(theme.accent)
-        SwatchBlock(theme.secondaryAccent)
-        SwatchBlock(theme.highlight)
+        SwatchBlock(Modifier.weight(1f), theme.base, label = "Base")
+        SwatchBlock(Modifier.weight(1f), theme.surface, label = "Surface")
+        SwatchBlock(Modifier.weight(1f), theme.accent, label = "Accent")
+        SwatchBlock(Modifier.weight(1f), theme.secondaryAccent, label = "Secondary")
+        SwatchBlock(Modifier.weight(1f), theme.highlight, label = "Highlight")
     }
 }
 
 @Composable
-private fun SwatchBlock(color: Color) {
-    Box(
-        modifier = Modifier
-            .size(width = 10.dp, height = 36.dp)
-            .background(color),
-    )
+private fun RowScope.SwatchBlock(
+    modifier: Modifier,
+    color: Color,
+    label: String,
+) {
+    Column(
+        modifier = modifier
+            .height(52.dp)
+            .background(color)
+            .semantics { contentDescription = "$label color swatch" },
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (color.luminance() > 0.55f) Color(0xFF111111) else Color(0xFFF5F5F5),
+            modifier = Modifier.padding(4.dp),
+            maxLines = 1,
+        )
+    }
+}
+
+private fun Color.luminance(): Float {
+    return (0.299f * red + 0.587f * green + 0.114f * blue)
 }
 

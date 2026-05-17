@@ -25,6 +25,7 @@ import com.akrapovic.soundkit.community.ui.control.ConnectedDeviceScreen
 import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
 import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
 import com.akrapovic.soundkit.community.ui.more.MoreScreen
+import com.akrapovic.soundkit.community.ui.onboarding.OnboardingFlow
 import com.akrapovic.soundkit.community.ui.roadmap.RoadmapScreen
 import com.akrapovic.soundkit.community.ui.scan.ScanScreen
 import com.akrapovic.soundkit.community.ui.settings.SettingsScreen
@@ -60,7 +61,7 @@ class ComposeSmokeTest {
     }
 
     @Test
-    fun scanScreenShowsEmptyState() {
+    fun scanScreenShowsEmptyStateWithScanAction() {
         composeRule.setContent {
             SoundKitTheme {
                 ScanScreen(
@@ -76,7 +77,30 @@ class ComposeSmokeTest {
         }
 
         composeRule.onNodeWithText("No receiver selected").assertIsDisplayed()
-        composeRule.onNodeWithText("Scan for receiver").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Scan for Sound Kit receiver").assertIsDisplayed()
+    }
+
+    @Test
+    fun scanScreenShowsConnectionErrorRetry() {
+        composeRule.setContent {
+            SoundKitTheme {
+                ScanScreen(
+                    state = SoundKitUiState(
+                        connectionState = ConnectionState.Error("Link lost", recoverable = true),
+                    ),
+                    permissions = emptyList(),
+                    permissionsGranted = true,
+                    onRequestPermissions = {},
+                    onStartScan = {},
+                    onStopScan = {},
+                    onConnect = {},
+                    onRetryConnection = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Could not connect").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Retry connection to remembered receiver").assertIsDisplayed()
     }
 
     @Test
@@ -90,14 +114,13 @@ class ComposeSmokeTest {
                         valveState = ValveState.Unknown,
                         protocolVerified = true,
                     ),
-                    onOpen = {},
-                    onClose = {},
+                    onToggleValve = {},
                     onDisconnect = {},
                 )
             }
         }
 
-        composeRule.onNodeWithText("Waiting for receiver status").assertIsDisplayed()
+        composeRule.onNodeWithText("Waiting for status").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Valve controls waiting for receiver status").assertIsNotEnabled()
     }
 
@@ -129,6 +152,21 @@ class ComposeSmokeTest {
         composeRule.onNodeWithText("Copy").assertIsDisplayed()
         composeRule.onNodeWithText("Save").assertIsDisplayed()
         composeRule.onNodeWithText("Share").assertIsDisplayed()
+    }
+
+    @Test
+    fun diagnosticsScreenShowsEmptyStateHint() {
+        composeRule.setContent {
+            SoundKitTheme {
+                DiagnosticsScreen(
+                    entries = emptyList(),
+                    onBuildReport = { "report" },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("No diagnostics yet").assertIsDisplayed()
+        composeRule.onNodeWithText("Copy").assertIsNotEnabled()
     }
 
     @Test
@@ -168,27 +206,57 @@ class ComposeSmokeTest {
     }
 
     @Test
-    fun appShellShowsTidiedPrimaryNavigation() {
+    fun appShellShowsHomeWhenOnboardingComplete() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val crashReporter = CrashReporter(context)
         composeRule.setContent {
             SoundKitApp(
                 viewModel = SoundKitViewModel(
                     bleRepository = FakeBleRepositoryForSmoke(),
-                    settingsRepository = FakeSettingsStoreForSmoke(),
+                    settingsRepository = FakeSettingsStoreForSmoke(
+                        initial = SoundKitSettings(onboardingCompletedAt = 1L),
+                    ),
                     diagnosticsRepository = DiagnosticsRepository(),
                     diagnosticsReportBuilder = DiagnosticsReportBuilder(context, crashReporter),
                     crashReporter = crashReporter,
                 ),
-                permissions = emptyList(),
-                permissionsGranted = true,
-                onRequestPermissions = {},
+                blePermissions = emptyList(),
+                blePermissionsGranted = true,
+                notificationsGranted = true,
+                onRequestBlePermissions = {},
+                onRequestNotificationPermission = {},
             )
         }
 
-        composeRule.onNodeWithText("Find").assertIsDisplayed()
-        composeRule.onNodeWithText("Control").assertIsDisplayed()
+        composeRule.onNodeWithText("Home").assertIsDisplayed()
         composeRule.onNodeWithText("More").assertIsDisplayed()
+    }
+
+    @Test
+    fun onboardingFlowShownWhenNotComplete() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val crashReporter = CrashReporter(context)
+        composeRule.setContent {
+            SoundKitApp(
+                viewModel = SoundKitViewModel(
+                    bleRepository = FakeBleRepositoryForSmoke(),
+                    settingsRepository = FakeSettingsStoreForSmoke(
+                        initial = SoundKitSettings(onboardingCompletedAt = 0L),
+                    ),
+                    diagnosticsRepository = DiagnosticsRepository(),
+                    diagnosticsReportBuilder = DiagnosticsReportBuilder(context, crashReporter),
+                    crashReporter = crashReporter,
+                ),
+                blePermissions = emptyList(),
+                blePermissionsGranted = true,
+                notificationsGranted = true,
+                onRequestBlePermissions = {},
+                onRequestNotificationPermission = {},
+            )
+        }
+
+        composeRule.onNodeWithText("Set up Sound Kit").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Onboarding progress").assertIsDisplayed()
     }
 
     @Test
@@ -213,34 +281,8 @@ class ComposeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("Done").assertIsDisplayed()
-        composeRule.onNodeWithText("Next").assertIsDisplayed()
-        composeRule.onNodeWithText("Later").assertIsDisplayed()
-    }
-
-    @Test
-    fun riskNoticeDialogIsShownOnFirstLaunchOnly() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val crashReporter = CrashReporter(context)
-        composeRule.setContent {
-            SoundKitApp(
-                viewModel = SoundKitViewModel(
-                    bleRepository = FakeBleRepositoryForSmoke(),
-                    settingsRepository = FakeSettingsStoreForSmoke(
-                        initial = SoundKitSettings(riskNoticeAcceptedAt = 0L),
-                    ),
-                    diagnosticsRepository = DiagnosticsRepository(),
-                    diagnosticsReportBuilder = DiagnosticsReportBuilder(context, crashReporter),
-                    crashReporter = crashReporter,
-                ),
-                permissions = emptyList(),
-                permissionsGranted = true,
-                onRequestPermissions = {},
-            )
-        }
-
-        composeRule.onNodeWithText("Use at your own risk").assertIsDisplayed()
-        composeRule.onNodeWithText("I understand and accept").assertIsDisplayed()
+        composeRule.onNodeWithText("On the horizon").assertIsDisplayed()
+        composeRule.onNodeWithText("Shipped").assertIsDisplayed()
     }
 
     @Test
@@ -256,8 +298,26 @@ class ComposeSmokeTest {
 
         composeRule.onNodeWithText("Studio").assertIsDisplayed()
         composeRule.onNodeWithText("Audi RS").assertIsDisplayed()
-        composeRule.onNodeWithText("Light").assertIsDisplayed()
-        composeRule.onNodeWithText("Dark").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Accent color swatch").assertIsDisplayed()
+    }
+
+    @Test
+    fun onboardingFlowRiskStepVisibleInIsolation() {
+        composeRule.setContent {
+            SoundKitTheme {
+                OnboardingFlow(
+                    blePermissionsGranted = false,
+                    notificationsGranted = false,
+                    onAcceptRisk = {},
+                    onRequestBlePermissions = {},
+                    onRequestNotificationPermission = {},
+                    onComplete = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Set up Sound Kit").assertIsDisplayed()
+        composeRule.onNodeWithText("Get started").assertIsDisplayed()
     }
 }
 
@@ -265,6 +325,7 @@ private class FakeBleRepositoryForSmoke : BleRepository {
     override val discoveredDevices = MutableStateFlow<List<SoundKitDevice>>(emptyList())
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val valveState = MutableStateFlow(ValveState.Unknown)
+    override val receiverStatusMessage = MutableStateFlow<String?>(null)
     override val isScanning = MutableStateFlow(false)
 
     override fun startScan() {
@@ -293,7 +354,10 @@ private class FakeBleRepositoryForSmoke : BleRepository {
 }
 
 private class FakeSettingsStoreForSmoke(
-    initial: SoundKitSettings = SoundKitSettings(riskNoticeAcceptedAt = 1L),
+    initial: SoundKitSettings = SoundKitSettings(
+        riskNoticeAcceptedAt = 1L,
+        onboardingCompletedAt = 1L,
+    ),
 ) : SettingsStore {
     override val settings = MutableStateFlow(initial)
 
@@ -316,5 +380,8 @@ private class FakeSettingsStoreForSmoke(
     override suspend fun acceptRiskNotice() {
         settings.value = settings.value.copy(riskNoticeAcceptedAt = System.currentTimeMillis())
     }
-}
 
+    override suspend fun completeOnboarding() {
+        settings.value = settings.value.copy(onboardingCompletedAt = System.currentTimeMillis())
+    }
+}

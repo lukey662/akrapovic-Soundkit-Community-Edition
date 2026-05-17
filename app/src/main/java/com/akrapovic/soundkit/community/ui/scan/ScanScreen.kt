@@ -8,14 +8,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.ui.SoundKitUiState
 import com.akrapovic.soundkit.community.ui.components.AkraActionButton
 import com.akrapovic.soundkit.community.ui.components.AkraCard
 import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
+import com.akrapovic.soundkit.community.ui.components.AkraStatePanel
 import com.akrapovic.soundkit.community.ui.components.AkraStatusPill
 
 @Composable
@@ -28,12 +32,14 @@ fun ScanScreen(
     onStartScan: () -> Unit,
     onStopScan: () -> Unit,
     onConnect: (SoundKitDevice) -> Unit,
+    onRetryConnection: () -> Unit = {},
 ) {
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
             eyebrow = "Sound Kit",
             title = "Find your Sound Kit",
             subtitle = "Connect over Bluetooth. No account, no cloud, no tracking.",
+            titleModifier = Modifier.semantics { heading() },
         )
 
         if (!permissionsGranted) {
@@ -44,6 +50,18 @@ fun ScanScreen(
             return@AkraScreen
         }
 
+        val connectionError = state.connectionState as? ConnectionState.Error
+        if (connectionError != null) {
+            AkraStatePanel(
+                eyebrow = "Connection",
+                title = "Could not connect",
+                body = connectionError.message,
+                primaryLabel = "Try again",
+                primaryContentDescription = "Retry connection to remembered receiver",
+                onPrimary = onRetryConnection,
+            )
+        }
+
         AkraActionButton(
             label = if (state.isScanning) "Stop scan" else "Scan for receiver",
             contentDescription = if (state.isScanning) "Stop scanning" else "Scan for Sound Kit receiver",
@@ -52,13 +70,25 @@ fun ScanScreen(
         )
 
         if (state.devices.isEmpty()) {
-            EmptyScanCard(isScanning = state.isScanning)
+            AkraStatePanel(
+                eyebrow = if (state.isScanning) "Searching" else "Ready",
+                title = if (state.isScanning) "Scanning nearby BLE devices..." else "No receiver selected",
+                body = if (state.isScanning) {
+                    "Keep the phone near the car while we look."
+                } else {
+                    "Turn the car on, then scan while parked."
+                },
+                primaryLabel = if (state.isScanning) null else "Scan for receiver",
+                primaryContentDescription = "Scan for Sound Kit receiver",
+                onPrimary = if (state.isScanning) null else onStartScan,
+            )
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = "Nearby",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() },
                 )
                 state.devices.forEach { device ->
                     DeviceCard(device = device, onConnect = { onConnect(device) })
@@ -81,6 +111,7 @@ private fun PermissionRationaleCard(
             text = "Bluetooth permission required",
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() },
         )
         Text(
             text = "Allow Bluetooth so the app can find your receiver nearby. Everything stays on this phone.",
@@ -96,32 +127,8 @@ private fun PermissionRationaleCard(
         }
         AkraActionButton(
             label = "Grant permissions",
-            contentDescription = "Grant Bluetooth and notification permissions",
+            contentDescription = "Grant Bluetooth permissions",
             onClick = onRequestPermissions,
-        )
-    }
-}
-
-@Composable
-private fun EmptyScanCard(isScanning: Boolean) {
-    AkraCard(accent = MaterialTheme.colorScheme.onSurfaceVariant) {
-        AkraStatusPill(
-            text = if (isScanning) "Searching" else "Ready",
-            color = if (isScanning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = if (isScanning) "Scanning nearby BLE devices..." else "No receiver selected",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = if (isScanning) {
-                "Keep the phone near the car while we look."
-            } else {
-                "Turn the car on, then scan while parked."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

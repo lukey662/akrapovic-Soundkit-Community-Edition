@@ -40,6 +40,7 @@ import com.akrapovic.soundkit.community.domain.DiagnosticsEntry
 import com.akrapovic.soundkit.community.domain.DiagnosticsLevel
 import com.akrapovic.soundkit.community.ui.components.AkraCardShape
 import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
+import com.akrapovic.soundkit.community.ui.components.AkraStatePanel
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
 import java.io.File
 import java.text.SimpleDateFormat
@@ -165,7 +166,11 @@ fun DiagnosticsScreen(
 
         if (entries.isEmpty()) {
             item {
-                EmptyStatePanel()
+                AkraStatePanel(
+                    eyebrow = "Ready",
+                    title = "No diagnostics yet",
+                    body = "Connect to a receiver from Home first. Copy, Save, and Share stay disabled until there is something to export.",
+                )
             }
         } else {
             items(entries.asReversed(), key = { it.id }) { entry ->
@@ -294,43 +299,6 @@ private fun CrashPanel(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun EmptyStatePanel() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 72.dp)
-            .clip(AkraCardShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, AkraColors.Titanium, AkraCardShape),
-    ) {
-        Box(
-            Modifier
-                .width(3.dp)
-                .fillMaxHeight()
-                .background(AkraColors.Mist),
-        )
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Eyebrow("Ready")
-            Text(
-                text = "No diagnostics yet",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "Start a scan or connect to a receiver to see BLE events here.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

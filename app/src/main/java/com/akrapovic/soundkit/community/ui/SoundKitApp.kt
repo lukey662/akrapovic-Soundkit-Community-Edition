@@ -38,13 +38,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.akrapovic.soundkit.community.ui.control.ConnectedDeviceScreen
 import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
 import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
+import com.akrapovic.soundkit.community.ui.home.HomeScreen
 import com.akrapovic.soundkit.community.ui.more.MoreScreen
-import com.akrapovic.soundkit.community.ui.onboarding.RiskNoticeDialog
+import com.akrapovic.soundkit.community.ui.onboarding.OnboardingFlow
 import com.akrapovic.soundkit.community.ui.roadmap.RoadmapScreen
-import com.akrapovic.soundkit.community.ui.scan.ScanScreen
 import com.akrapovic.soundkit.community.ui.settings.SettingsScreen
 import com.akrapovic.soundkit.community.ui.theme.GarageThemePresets
 import com.akrapovic.soundkit.community.ui.theme.LocalAkraTheme
@@ -54,14 +53,17 @@ import com.akrapovic.soundkit.community.ui.theme.SoundKitTheme
 @Composable
 fun SoundKitApp(
     viewModel: SoundKitViewModel,
-    permissions: List<String>,
-    permissionsGranted: Boolean,
-    onRequestPermissions: () -> Unit,
+    blePermissions: List<String>,
+    blePermissionsGranted: Boolean,
+    notificationsGranted: Boolean,
+    onRequestBlePermissions: () -> Unit,
+    onRequestNotificationPermission: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val showOnboarding = !state.settings.onboardingCompleted
 
-    // Primary tabs: Scan | Control | More (no back-stack entry, tab-switch resets sub-screen).
-    var primaryScreen by remember { mutableStateOf(AppScreen.Scan) }
+    // Primary tabs: Home | More (Home shows scan or control based on connection).
+    var primaryScreen by remember { mutableStateOf(AppScreen.Home) }
     // Sub-screens live under More. Non-null means we drilled in from More.
     var subScreen by remember { mutableStateOf<AppScreen?>(null) }
 
@@ -75,6 +77,16 @@ fun SoundKitApp(
         ?: GarageThemePresets.first()
 
     SoundKitTheme(garageTheme = activeTheme) {
+        if (showOnboarding) {
+            OnboardingFlow(
+                blePermissionsGranted = blePermissionsGranted,
+                notificationsGranted = notificationsGranted,
+                onAcceptRisk = viewModel::acceptRiskNotice,
+                onRequestBlePermissions = onRequestBlePermissions,
+                onRequestNotificationPermission = onRequestNotificationPermission,
+                onComplete = viewModel::completeOnboarding,
+            )
+        } else {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
@@ -95,26 +107,22 @@ fun SoundKitApp(
         ) { paddingValues ->
             val modifier = Modifier.padding(paddingValues)
             when (screen) {
-                AppScreen.Scan -> ScanScreen(
+                AppScreen.Home -> HomeScreen(
                     modifier = modifier,
                     state = state,
-                    permissions = permissions,
-                    permissionsGranted = permissionsGranted,
-                    onRequestPermissions = onRequestPermissions,
+                    permissions = blePermissions,
+                    permissionsGranted = blePermissionsGranted,
+                    onRequestPermissions = onRequestBlePermissions,
                     onStartScan = viewModel::startScan,
                     onStopScan = viewModel::stopScan,
                     onConnect = {
                         viewModel.connect(it)
-                        primaryScreen = AppScreen.Control
+                        primaryScreen = AppScreen.Home
                         subScreen = null
                     },
-                )
-                AppScreen.Control -> ConnectedDeviceScreen(
-                    modifier = modifier,
-                    state = state,
-                    onOpen = viewModel::openValve,
-                    onClose = viewModel::closeValve,
+                    onToggleValve = viewModel::toggleValve,
                     onDisconnect = viewModel::disconnect,
+                    onRetryConnection = viewModel::retryConnection,
                 )
                 AppScreen.More -> MoreScreen(
                     modifier = modifier,
@@ -146,10 +154,7 @@ fun SoundKitApp(
                     onThemeSelected = viewModel::setGarageTheme,
                 )
             }
-
-            if (!state.settings.riskNoticeAccepted) {
-                RiskNoticeDialog(onAccept = viewModel::acceptRiskNotice)
-            }
+        }
         }
     }
 }
@@ -256,7 +261,7 @@ private fun AkraBottomNav(
     selected: AppScreen,
     onSelect: (AppScreen) -> Unit,
 ) {
-    val primaryTabs = listOf(AppScreen.Scan, AppScreen.Control, AppScreen.More)
+    val primaryTabs = listOf(AppScreen.Home, AppScreen.More)
     val accent = LocalAkraTheme.current.accent
 
     Column(
@@ -303,8 +308,7 @@ private fun AkraBottomNav(
 
 private fun AppScreen.label(): String {
     return when (this) {
-        AppScreen.Scan -> "Find"
-        AppScreen.Control -> "Control"
+        AppScreen.Home -> "Home"
         AppScreen.More -> "More"
         else -> name
     }

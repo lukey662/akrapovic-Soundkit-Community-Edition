@@ -18,6 +18,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -33,18 +34,29 @@ class SoundKitViewModel @Inject constructor(
     private val lastError = MutableStateFlow<String?>(null)
     private val hasPendingCrash = MutableStateFlow(crashReporter.hasPendingCrash())
 
-    private val coreState = combine(
+    private val bleState = combine(
         bleRepository.discoveredDevices,
         bleRepository.connectionState,
         bleRepository.valveState,
+        bleRepository.receiverStatusMessage,
         bleRepository.isScanning,
-        settingsRepository.settings,
-    ) { devices, connectionState, valveState, isScanning, settings ->
-        CoreUiState(
+    ) { devices, connectionState, valveState, receiverStatusMessage, isScanning ->
+        BleUiState(
             devices = devices,
             connectionState = connectionState,
             valveState = valveState,
+            receiverStatusMessage = receiverStatusMessage,
             isScanning = isScanning,
+        )
+    }
+
+    private val coreState = combine(bleState, settingsRepository.settings) { ble, settings ->
+        CoreUiState(
+            devices = ble.devices,
+            connectionState = ble.connectionState,
+            valveState = ble.valveState,
+            receiverStatusMessage = ble.receiverStatusMessage,
+            isScanning = ble.isScanning,
             settings = settings,
         )
     }
@@ -65,6 +77,7 @@ class SoundKitViewModel @Inject constructor(
             diagnostics = diagnostics,
             commandInFlight = inFlight,
             lastError = error,
+            receiverStatusMessage = core.receiverStatusMessage,
             protocolVerified = SoundKitProtocol.VERIFIED,
             hasPendingCrash = pendingCrash,
         )
@@ -104,6 +117,14 @@ class SoundKitViewModel @Inject constructor(
         sendCommand { bleRepository.closeValve() }
     }
 
+    fun toggleValve() {
+        when (uiState.value.valveState) {
+            ValveState.Open -> closeValve()
+            ValveState.Closed -> openValve()
+            ValveState.Unknown -> Unit
+        }
+    }
+
     fun setAutoReconnect(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.setAutoReconnect(enabled)
@@ -125,6 +146,25 @@ class SoundKitViewModel @Inject constructor(
     fun acceptRiskNotice() {
         viewModelScope.launch {
             settingsRepository.acceptRiskNotice()
+        }
+    }
+
+    fun completeOnboarding() {
+        viewModelScope.launch {
+            settingsRepository.completeOnboarding()
+        }
+    }
+
+    fun retryConnection() {
+        viewModelScope.launch {
+            lastError.value = null
+            val settings = settingsRepository.settings.first()
+            val address = settings.rememberedDeviceAddress ?: return@launch
+            val device = SoundKitDevice(
+                name = settings.rememberedDeviceName ?: "Sound Kit",
+                address = address,
+            )
+            bleRepository.connect(device)
         }
     }
 
@@ -170,10 +210,19 @@ class SoundKitViewModel @Inject constructor(
     }
 }
 
+private data class BleUiState(
+    val devices: List<SoundKitDevice>,
+    val connectionState: ConnectionState,
+    val valveState: ValveState,
+    val receiverStatusMessage: String?,
+    val isScanning: Boolean,
+)
+
 private data class CoreUiState(
     val devices: List<SoundKitDevice>,
     val connectionState: ConnectionState,
     val valveState: ValveState,
+    val receiverStatusMessage: String?,
     val isScanning: Boolean,
     val settings: SoundKitSettings,
 )

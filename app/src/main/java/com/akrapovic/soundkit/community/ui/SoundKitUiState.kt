@@ -15,13 +15,13 @@ data class SoundKitUiState(
     val diagnostics: List<DiagnosticsEntry> = emptyList(),
     val commandInFlight: Boolean = false,
     val lastError: String? = null,
+    val receiverStatusMessage: String? = null,
     val protocolVerified: Boolean = false,
     val hasPendingCrash: Boolean = false,
 )
 
 enum class AppScreen {
-    Scan,
-    Control,
+    Home,
     More,
     Diagnostics,
     Settings,

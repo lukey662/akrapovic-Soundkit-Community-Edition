@@ -165,6 +165,20 @@ class BleRepositoryImplTest {
     }
 
     @Test
+    fun receiverNotReadyWhileConnectedDoesNotScheduleReconnect() = runTest(mainDispatcherRule.dispatcher) {
+        val repository = repository()
+        val device = testDevice()
+
+        repository.connect(device)
+        connection.connectionState.value = ConnectionState.Connected(device)
+        connection.receiverStatusMessage.value = "Receiver isn't ready"
+        advanceTimeBy(2_000)
+        runCurrent()
+
+        assertTrue(connection.reconnectMarks.isEmpty())
+    }
+
+    @Test
     fun openValveFailureIsReturnedAndLogged() = runTest(mainDispatcherRule.dispatcher) {
         val repository = repository()
         connection.writeResult = CommandResult.Failure("protocol not verified", recoverable = false)

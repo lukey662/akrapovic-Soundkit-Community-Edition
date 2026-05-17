@@ -122,6 +122,36 @@ class SoundKitViewModelTest {
     }
 
     @Test
+    fun completeOnboardingPersistsThroughSettingsStore() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = viewModel()
+
+        assertFalse(settingsStore.settings.value.onboardingCompleted)
+
+        viewModel.completeOnboarding()
+        runCurrent()
+
+        assertEquals(1, settingsStore.onboardingCompleteCount)
+        assertTrue(settingsStore.settings.value.onboardingCompleted)
+    }
+
+    @Test
+    fun retryConnectionUsesRememberedDevice() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = viewModel()
+        val device = testDevice()
+        settingsStore.settings.value = settingsStore.settings.value.copy(
+            rememberedDeviceName = device.name,
+            rememberedDeviceAddress = device.address,
+        )
+        runCurrent()
+
+        viewModel.retryConnection()
+        runCurrent()
+
+        assertEquals(1, bleRepository.connectedDevices.size)
+        assertEquals(device.address, bleRepository.connectedDevices.single().address)
+    }
+
+    @Test
     fun acceptRiskNoticePersistsThroughSettingsStore() = runTest(mainDispatcherRule.dispatcher) {
         val viewModel = viewModel()
 

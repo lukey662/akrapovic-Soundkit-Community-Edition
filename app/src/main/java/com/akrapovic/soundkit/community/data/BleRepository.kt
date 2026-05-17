@@ -25,6 +25,7 @@ interface BleRepository {
     val discoveredDevices: StateFlow<List<SoundKitDevice>>
     val connectionState: StateFlow<ConnectionState>
     val valveState: StateFlow<ValveState>
+    val receiverStatusMessage: StateFlow<String?>
     val isScanning: StateFlow<Boolean>
 
     fun startScan()
@@ -50,6 +51,7 @@ class BleRepositoryImpl @Inject constructor(
     private var autoReconnectEnabled: Boolean = true
     private var hadStableConnection: Boolean = false
     private var suppressNextAutoReconnect: Boolean = false
+    private var reconnectAttempt: Int = 0
 
     private val _discoveredDevices = MutableStateFlow<List<SoundKitDevice>>(emptyList())
     override val discoveredDevices: StateFlow<List<SoundKitDevice>> = _discoveredDevices.asStateFlow()
@@ -59,6 +61,7 @@ class BleRepositoryImpl @Inject constructor(
 
     override val connectionState: StateFlow<ConnectionState> = connectionManager.connectionState
     override val valveState: StateFlow<ValveState> = connectionManager.valveState
+    override val receiverStatusMessage: StateFlow<String?> = connectionManager.receiverStatusMessage
 
     init {
         scope.launch {
@@ -72,6 +75,7 @@ class BleRepositoryImpl @Inject constructor(
                     is ConnectionState.Connected -> {
                         suppressNextAutoReconnect = false
                         hadStableConnection = true
+                        reconnectAttempt = 0
                     }
                     is ConnectionState.Error -> {
                         val device = lastRequestedDevice
@@ -81,7 +85,7 @@ class BleRepositoryImpl @Inject constructor(
                             diagnosticsRepository.debug("Suppressing auto reconnect during deliberate connection transition")
                         } else if (state.recoverable && autoReconnectEnabled && device != null) {
                             hadStableConnection = false
-                            scheduleReconnect(device, startAttempt = 1)
+                            scheduleReconnect(device)
                         }
                     }
                     ConnectionState.Disconnected -> {
@@ -92,7 +96,7 @@ class BleRepositoryImpl @Inject constructor(
                             diagnosticsRepository.debug("Suppressing auto reconnect after deliberate disconnect")
                         } else if (hadStableConnection && autoReconnectEnabled && device != null) {
                             hadStableConnection = false
-                            scheduleReconnect(device, startAttempt = 1)
+                            scheduleReconnect(device)
                         }
                     }
                     else -> Unit
@@ -142,12 +146,13 @@ class BleRepositoryImpl @Inject constructor(
         connectionManager.connect(device).onFailure { error ->
             suppressNextAutoReconnect = false
             diagnosticsRepository.error("Initial connection failed: ${error.message}", error)
-            scheduleReconnect(device, startAttempt = 1)
+            scheduleReconnect(device)
         }
     }
 
     override suspend fun disconnect() {
         reconnectJob?.cancel()
+        reconnectAttempt = 0
         suppressNextAutoReconnect = true
         hadStableConnection = false
         lastRequestedDevice = null
@@ -162,11 +167,12 @@ class BleRepositoryImpl @Inject constructor(
         return connectionManager.writeCommand(ValveCommand.Close).also { logCommandResult("CLOSE", it) }
     }
 
-    private fun scheduleReconnect(device: SoundKitDevice, startAttempt: Int) {
+    private fun scheduleReconnect(device: SoundKitDevice) {
         reconnectJob?.cancel()
         reconnectJob = scope.launch {
-            var attempt = startAttempt
             while (lastRequestedDevice?.address == device.address) {
+                reconnectAttempt += 1
+                val attempt = reconnectAttempt
                 val delayMs = retryPolicy.delayForAttempt(attempt)
                 diagnosticsRepository.warning("Scheduling reconnect attempt $attempt in ${delayMs}ms")
                 delay(delayMs)
@@ -177,7 +183,6 @@ class BleRepositoryImpl @Inject constructor(
                     return@launch
                 }
                 diagnosticsRepository.error("Reconnect attempt $attempt failed: ${result.exceptionOrNull()?.message}")
-                attempt += 1
             }
         }
     }

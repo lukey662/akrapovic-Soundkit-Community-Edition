@@ -23,13 +23,11 @@ jobs:
       - name: Install Android packages
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "system-images;android-35;google_apis;x86_64"
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.10.2"
+      - name: Verify Gradle wrapper
+        run: ./gradlew --version
 
       - name: Run unit tests
-        run: gradle :app:testDebugUnitTest
+        run: ./gradlew :app:testDebugUnitTest
 
       - name: Upload unit test reports
         if: always()
@@ -44,7 +42,7 @@ jobs:
           api-level: 35
           target: google_apis
           arch: x86_64
-          script: gradle :app:connectedDebugAndroidTest
+          script: ./gradlew :app:connectedDebugAndroidTest
 
       - name: Upload instrumented test reports
         if: always()
@@ -54,11 +52,10 @@ jobs:
           path: app/build/reports/androidTests/connected
 
       - name: Build debug APK
-        run: gradle :app:assembleDebug
+        run: ./gradlew :app:assembleDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: soundkit-community-debug-apk
           path: app/build/outputs/apk/debug/*.apk
-

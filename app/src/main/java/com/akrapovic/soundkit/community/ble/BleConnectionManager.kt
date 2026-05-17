@@ -36,6 +36,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 interface BleConnectionGateway {
     val connectionState: StateFlow<ConnectionState>
     val valveState: StateFlow<ValveState>
+    val receiverStatusMessage: StateFlow<String?>
 
     fun markReconnecting(device: SoundKitDevice, attempt: Int, nextDelayMs: Long)
     suspend fun connect(device: SoundKitDevice): Result<Unit>
@@ -64,6 +65,9 @@ class BleConnectionManager @Inject constructor(
 
     private val _valveState = MutableStateFlow(ValveState.Unknown)
     override val valveState: StateFlow<ValveState> = _valveState
+
+    private val _receiverStatusMessage = MutableStateFlow<String?>(null)
+    override val receiverStatusMessage: StateFlow<String?> = _receiverStatusMessage
 
     override fun markReconnecting(device: SoundKitDevice, attempt: Int, nextDelayMs: Long) {
         _connectionState.value = ConnectionState.Reconnecting(device, attempt, nextDelayMs)
@@ -153,6 +157,7 @@ class BleConnectionManager @Inject constructor(
         gatt = null
         connectedDevice = null
         _valveState.value = ValveState.Unknown
+        _receiverStatusMessage.value = null
         _connectionState.value = ConnectionState.Disconnected
         diagnosticsRepository.info("BLE connection closed")
     }
@@ -284,8 +289,10 @@ class BleConnectionManager @Inject constructor(
     }
 
     private fun handleStatusNotification(value: ByteArray) {
+        val hasPendingCommand = pendingCommand != null || pendingWrite != null
         SoundKitProtocol.statusByteToValveState(value)
             .onSuccess { state ->
+                _receiverStatusMessage.value = null
                 if (state != ValveState.Unknown) {
                     _valveState.value = state
                     diagnosticsRepository.info("Receiver valve state is ${state.name.lowercase()}")
@@ -295,11 +302,23 @@ class BleConnectionManager @Inject constructor(
                 completePendingCommandIfMatched(state)
             }
             .onFailure { error ->
-                diagnosticsRepository.error(error.message.orEmpty())
-                pendingWrite?.complete(CommandResult.Failure(error.message.orEmpty(), recoverable = true))
-                pendingWrite = null
-                pendingCommand = null
-                _connectionState.value = ConnectionState.Error(error.message.orEmpty(), recoverable = true)
+                val message = error.message.orEmpty()
+                val isNotReady = error is ReceiverStatusException && error.isNotReady
+                if (isNotReady && !hasPendingCommand) {
+                    diagnosticsRepository.warning(message)
+                    _valveState.value = ValveState.Unknown
+                    _receiverStatusMessage.value = message
+                    return
+                }
+                if (hasPendingCommand) {
+                    diagnosticsRepository.warning(message)
+                    pendingWrite?.complete(CommandResult.Failure(message, recoverable = false))
+                    pendingWrite = null
+                    pendingCommand = null
+                    return
+                }
+                diagnosticsRepository.error(message)
+                _connectionState.value = ConnectionState.Error(message, recoverable = true)
             }
     }
 

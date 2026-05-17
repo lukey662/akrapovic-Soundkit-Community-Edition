@@ -2,7 +2,7 @@
 
 Living plan for **Sound Kit Community**. Nothing here is a commitment or timeline; it records direction so contributors and users know what might come next. All work stays **local-first** (phone BLE only) unless an explicit decision says otherwise.
 
-*Last refreshed: May 2026 — aligned with verified BLE, consumer UI, and current `main`.*
+*Last refreshed: May 2026 — unified onboarding, empty/error states, CI wrapper, theme polish, and accessibility pass shipped.*
 
 ## Principles
 
@@ -16,24 +16,27 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 | Area | What shipped |
 |------|----------------|
 | **BLE protocol** | APK-verified toggle (`0x01`), advertising signature scan, notification-driven valve state, state-gated OPEN/CLOSE, pairing flow. |
+| **BLE stability (status `04`)** | Idle `0x04` stays connected with “receiver not ready” copy; no auto-reconnect storm; honest reconnect attempt counter. |
 | **Physical receiver** | Real-car validation: connect, pair, open/close accepted by receiver. |
-| **Consumer UI** | Calm Find / Control / More / Settings / Diagnostics; protocol hidden from primary journey. |
+| **Unified Home** | Single primary tab: scan when disconnected, valve control when connected (no separate Find / Control tabs). |
+| **Valve control card** | Combined valve visual + one Open/Close action button on the control surface. |
+| **Consumer UI** | Calm Home / More / Settings / Diagnostics; protocol hidden from primary journey. |
 | **Themes** | Brand-inspired families with Light/Dark variants, gradients, local brand marks; default **Studio Blue** (navy + electric blue). |
-| **Control polish** | Animated valve visual; disconnect / forget confirmation dialogs. |
-| **Onboarding & legal** | Blocking first-run “use at your own risk” gate (DataStore + README disclaimer). |
+| **Onboarding & legal** | Unified first-run flow: risk, Bluetooth, notifications, battery (skippable); `onboardingCompletedAt` in DataStore. |
+| **Empty / error states** | Shared `AkraStatePanel` on scan, control reconnect, diagnostics; retry connection from Home. |
+| **Theme polish** | Stronger Studio/Audi light contrast; larger labeled color swatches on Appearance. |
+| **CI reliability** | Committed `gradle-wrapper.jar`; GitHub Actions runs `./gradlew`. |
+| **Accessibility pass** | Headings, content descriptions on onboarding and primary actions; smoke/instrumented coverage. |
 | **Diagnostics export** | Copy, Save-to-file (SAF), file-only Share (no email subject/body autofill). |
 | **Launcher** | Adaptive valve-glyph icon (foreground, background, monochrome). |
 | **Android Auto / Automotive** | `SoundKitCarAppService` (IoT), `automotive_app_desc.xml`, `com.google.android.gms.car.application` meta-data, DHU testing documented in `DOCS.md`. |
+| **Confirmations** | Disconnect and Forget receiver confirmation dialogs. |
 
 ## Near term
 
 | Area | Intent |
 |------|--------|
-| **Permission onboarding** | Single first-run flow: risk acceptance (done) + Bluetooth permissions + notification / foreground-service explanation + battery optimization shortcut — today split across dialog and Settings. |
-| **Theme polish** | Tune blue Studio default from device feedback; optional user-supplied brand SVGs to replace placeholder marks. |
-| **Empty / error states** | Consistent recovery on every screen (retry scan, open settings, copy diagnostics). |
-| **CI reliability** | Gradle wrapper JAR present so GitHub Actions runs `./gradlew` without bootstrap failures. |
-| **Accessibility pass** | TalkBack order, focus order, contrast check on new blue default. |
+| **Maintenance** | Device feedback on themes, BLE edge cases, and Play policy as Android versions shift. |
 
 ## Later (product)
 
@@ -73,12 +76,11 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 flowchart LR
   subgraph done [Shipped]
     Proto[Verified_BLE]
+    Status04[Status_04_handling]
+    Home[Unified_Home]
     UX[Consumer_UI_and_themes]
-    Car[Automotive_IoT_surface]
-  end
-  subgraph next [Near term]
     Onboard[Unified_onboarding]
-    A11y[Accessibility_pass]
+    Car[Automotive_IoT_surface]
   end
   subgraph later [Product]
     Fav[Favorites]
@@ -91,7 +93,6 @@ flowchart LR
   Rules --> Time
   Rules --> Geo
   UX --> Onboard
-  UX --> A11y
 ```
 
 ## Contributing

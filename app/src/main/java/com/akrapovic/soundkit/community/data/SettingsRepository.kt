@@ -24,6 +24,7 @@ interface SettingsStore {
     suspend fun setDebugLoggingEnabled(enabled: Boolean)
     suspend fun setGarageThemeId(themeId: String)
     suspend fun acceptRiskNotice()
+    suspend fun completeOnboarding()
 }
 
 @Singleton
@@ -37,6 +38,7 @@ class SettingsRepository @Inject constructor(
         val DebugLoggingEnabled = booleanPreferencesKey("debug_logging_enabled")
         val GarageThemeId = stringPreferencesKey("garage_theme_id")
         val RiskNoticeAcceptedAt = androidx.datastore.preferences.core.longPreferencesKey("risk_notice_accepted_at")
+        val OnboardingCompletedAt = androidx.datastore.preferences.core.longPreferencesKey("onboarding_completed_at")
     }
 
     override val settings: Flow<SoundKitSettings> = context.settingsDataStore.data.map { preferences ->
@@ -47,6 +49,7 @@ class SettingsRepository @Inject constructor(
             debugLoggingEnabled = preferences[Keys.DebugLoggingEnabled] ?: true,
             garageThemeId = preferences[Keys.GarageThemeId] ?: "studio-dark",
             riskNoticeAcceptedAt = preferences[Keys.RiskNoticeAcceptedAt] ?: 0L,
+            onboardingCompletedAt = preferences[Keys.OnboardingCompletedAt] ?: 0L,
         )
     }
 
@@ -85,6 +88,12 @@ class SettingsRepository @Inject constructor(
     override suspend fun acceptRiskNotice() {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.RiskNoticeAcceptedAt] = System.currentTimeMillis()
+        }
+    }
+
+    override suspend fun completeOnboarding() {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.OnboardingCompletedAt] = System.currentTimeMillis()
         }
     }
 }

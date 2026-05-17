@@ -29,6 +29,7 @@ class FakeBleScannerGateway : BleScannerGateway {
 class FakeBleConnectionGateway : BleConnectionGateway {
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val valveState = MutableStateFlow(ValveState.Unknown)
+    override val receiverStatusMessage = MutableStateFlow<String?>(null)
 
     val connectedDevices = mutableListOf<SoundKitDevice>()
     val writtenCommands = mutableListOf<ValveCommand>()
@@ -72,6 +73,7 @@ class FakeSettingsStore(
     var debugLoggingChanges = mutableListOf<Boolean>()
     var garageThemeChanges = mutableListOf<String>()
     var riskNoticeAcceptCount = 0
+    var onboardingCompleteCount = 0
 
     override suspend fun rememberDevice(device: SoundKitDevice) {
         rememberedDevices += device
@@ -108,12 +110,18 @@ class FakeSettingsStore(
         riskNoticeAcceptCount += 1
         settings.value = settings.value.copy(riskNoticeAcceptedAt = 1L)
     }
+
+    override suspend fun completeOnboarding() {
+        onboardingCompleteCount += 1
+        settings.value = settings.value.copy(onboardingCompletedAt = 1L)
+    }
 }
 
 class FakeBleRepository : BleRepository {
     override val discoveredDevices = MutableStateFlow<List<SoundKitDevice>>(emptyList())
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val valveState = MutableStateFlow(ValveState.Unknown)
+    override val receiverStatusMessage = MutableStateFlow<String?>(null)
     override val isScanning = MutableStateFlow(false)
 
     var startScanCount = 0

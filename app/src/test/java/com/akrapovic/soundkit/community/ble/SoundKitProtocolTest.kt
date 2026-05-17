@@ -55,7 +55,11 @@ class SoundKitProtocolTest {
         assertEquals(ValveState.Open, SoundKitProtocol.statusByteToValveState(byteArrayOf(0x03)).getOrThrow())
         assertEquals(ValveState.Open, SoundKitProtocol.statusByteToValveState(byteArrayOf(0x06)).getOrThrow())
         assertEquals(ValveState.Closed, SoundKitProtocol.statusByteToValveState(byteArrayOf(0x07)).getOrThrow())
-        assertTrue(SoundKitProtocol.statusByteToValveState(byteArrayOf(0x04)).isFailure)
+        val notReady = SoundKitProtocol.statusByteToValveState(byteArrayOf(0x04))
+        assertTrue(notReady.isFailure)
+        assertTrue(notReady.exceptionOrNull() is ReceiverStatusException)
+        assertTrue((notReady.exceptionOrNull() as ReceiverStatusException).isNotReady)
+        assertTrue(SoundKitProtocol.isReceiverNotReadyStatus(byteArrayOf(0x04)))
     }
 }
 

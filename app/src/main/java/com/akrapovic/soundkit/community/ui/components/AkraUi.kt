@@ -69,6 +69,7 @@ fun AkraHeroHeader(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
+    titleModifier: Modifier = Modifier,
 ) {
     val theme = LocalAkraTheme.current
     Column(
@@ -88,6 +89,7 @@ fun AkraHeroHeader(
             text = title,
             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.SemiBold),
             color = theme.onSurface,
+            modifier = titleModifier,
         )
         Text(
             text = subtitle,

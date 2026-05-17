@@ -54,7 +54,9 @@ data class SoundKitSettings(
     val debugLoggingEnabled: Boolean = true,
     val garageThemeId: String = "studio-dark",
     val riskNoticeAcceptedAt: Long = 0L,
+    val onboardingCompletedAt: Long = 0L,
 ) {
     val riskNoticeAccepted: Boolean get() = riskNoticeAcceptedAt > 0L
+    val onboardingCompleted: Boolean get() = onboardingCompletedAt > 0L
 }
 
