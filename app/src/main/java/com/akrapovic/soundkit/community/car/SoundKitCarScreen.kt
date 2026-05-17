@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.car
 
+import android.content.Intent
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
@@ -8,8 +9,10 @@ import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
+import com.akrapovic.soundkit.community.MainActivity
 import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.data.BleRepository
+import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.EntryPointAccessors
@@ -17,33 +20,51 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class SoundKitCarScreen(
     carContext: CarContext,
 ) : Screen(carContext) {
-    private val repository: BleRepository = EntryPointAccessors.fromApplication(
+    private val entryPoint = EntryPointAccessors.fromApplication(
         carContext.applicationContext,
         CarDependenciesEntryPoint::class.java,
-    ).bleRepository()
+    )
+    private val repository: BleRepository = entryPoint.bleRepository()
+    private val settingsStore: SettingsStore = entryPoint.settingsStore()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var hasRememberedDevice = false
 
     init {
         scope.launch {
-            combine(repository.connectionState, repository.valveState) { _, _ -> Unit }
+            val settings = settingsStore.settings.first()
+            hasRememberedDevice = CarRememberedDeviceConnector.rememberedDevice(settings) != null
+            CarBleBootstrap.onCarEntry(carContext, repository, settings, scope)
+        }
+        scope.launch {
+            combine(
+                repository.connectionState,
+                repository.valveState,
+                repository.receiverStatusMessage,
+            ) { _, _, _ -> Unit }
                 .collect { invalidate() }
         }
     }
 
     override fun onGetTemplate(): Template {
-        val connectionState = repository.connectionState.value
         if (!SoundKitProtocol.VERIFIED) {
             return MessageTemplate.Builder("Controls are unavailable in this build.")
                 .setTitle("Sound Kit")
                 .setHeaderAction(Action.APP_ICON)
                 .build()
         }
+
+        val connectionState = repository.connectionState.value
         val valveState = repository.valveState.value
+        val receiverStatusMessage = repository.receiverStatusMessage.value
+        val controlsEnabled = connectionState is ConnectionState.Connected &&
+            valveState != ValveState.Unknown &&
+            receiverStatusMessage == null
 
         val paneBuilder = Pane.Builder()
             .addRow(
@@ -55,26 +76,47 @@ class SoundKitCarScreen(
             .addRow(
                 Row.Builder()
                     .setTitle("Valves")
-                    .addText(valveState.asCarText())
+                    .addText(valveState.asCarText(receiverStatusMessage))
                     .build(),
             )
 
-        if (connectionState is ConnectionState.Connected) {
-            when (valveState) {
-                ValveState.Closed -> paneBuilder.addAction(
+        if (receiverStatusMessage != null) {
+            paneBuilder.addRow(
+                Row.Builder()
+                    .setTitle("Status")
+                    .addText(receiverStatusMessage)
+                    .build(),
+            )
+        }
+
+        when {
+            controlsEnabled -> {
+                val toggleLabel = when (valveState) {
+                    ValveState.Open -> "Close valves"
+                    ValveState.Closed -> "Open valves"
+                    ValveState.Unknown -> "Toggle valves"
+                }
+                paneBuilder.addAction(
                     Action.Builder()
-                        .setTitle("Open")
-                        .setOnClickListener { scope.launch { repository.openValve() } }
+                        .setTitle(toggleLabel)
+                        .setOnClickListener { scope.launch { toggleValve(valveState) } }
                         .build(),
                 )
-                ValveState.Open -> paneBuilder.addAction(
-                    Action.Builder()
-                        .setTitle("Close")
-                        .setOnClickListener { scope.launch { repository.closeValve() } }
-                        .build(),
-                )
-                ValveState.Unknown -> Unit
             }
+            connectionState is ConnectionState.Connected && valveState == ValveState.Unknown -> {
+                paneBuilder.addRow(
+                    Row.Builder()
+                        .setTitle("Controls")
+                        .addText("Waiting for receiver status. Use while parked.")
+                        .build(),
+                )
+            }
+        }
+
+        if (!hasRememberedDevice && connectionState is ConnectionState.Disconnected) {
+            paneBuilder.addAction(openPhoneAppAction())
+        } else if (connectionState is ConnectionState.Error) {
+            paneBuilder.addAction(openPhoneAppAction())
         }
 
         return PaneTemplate.Builder(paneBuilder.build())
@@ -83,18 +125,40 @@ class SoundKitCarScreen(
             .build()
     }
 
-    private fun ConnectionState.asCarText(): String {
-        return when (this) {
-            ConnectionState.Disconnected -> "Disconnected. Open the phone app to scan and connect."
-            ConnectionState.Scanning -> "Scanning"
-            is ConnectionState.Connecting -> "Connecting to ${device.name}"
-            is ConnectionState.Connected -> "Connected to ${device.name}"
-            is ConnectionState.Reconnecting -> "Reconnecting, attempt $attempt"
-            is ConnectionState.Error -> message
+    private fun openPhoneAppAction(): Action {
+        return Action.Builder()
+            .setTitle("Open on phone")
+            .setOnClickListener {
+                val intent = Intent(carContext, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                carContext.startActivity(intent)
+            }
+            .build()
+    }
+
+    private suspend fun toggleValve(valveState: ValveState) {
+        when (valveState) {
+            ValveState.Open -> repository.closeValve()
+            ValveState.Closed -> repository.openValve()
+            ValveState.Unknown -> Unit
         }
     }
 
-    private fun ValveState.asCarText(): String {
+    private fun ConnectionState.asCarText(): String {
+        return when (this) {
+            ConnectionState.Disconnected ->
+                "Disconnected. Reconnecting to your saved receiver, or open the phone app to scan."
+            ConnectionState.Scanning -> "Scanning for receivers on phone."
+            is ConnectionState.Connecting -> "Connecting to ${device.name}…"
+            is ConnectionState.Connected -> "Connected to ${device.name}"
+            is ConnectionState.Reconnecting -> "Reconnecting to ${device.name} (attempt $attempt)…"
+            is ConnectionState.Error -> "Connection failed: $message. Open the phone app to retry."
+        }
+    }
+
+    private fun ValveState.asCarText(receiverNotReady: String?): String {
+        if (receiverNotReady != null) return "Not ready"
         return when (this) {
             ValveState.Open -> "Open"
             ValveState.Closed -> "Closed"
@@ -102,4 +166,3 @@ class SoundKitCarScreen(
         }
     }
 }
-

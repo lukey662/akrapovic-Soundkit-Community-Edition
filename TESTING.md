@@ -32,6 +32,7 @@ Covered areas:
 - Exponential reconnect backoff
 - Repository scan/connect/disconnect/reconnect behavior with fake BLE gateways
 - ViewModel state reduction and command error surfacing
+- Car entry auto-connect policy (`CarRememberedDeviceConnector`)
 - Diagnostics report generation and local crash-log round trip
 
 These tests do not need Android BLE hardware.
@@ -58,6 +59,35 @@ Covered areas:
 - Manifest does not request `INTERNET`
 - Manifest declares a non-exported diagnostics `FileProvider`
 - Android Auto service declares the local-only IoT category
+
+## Projected Android Auto Validation (sideload)
+
+Use this checklist for **projected Android Auto** (phone USB or wireless to a standard head unit). This is separate from **Google Play** distribution, which remains a non-goal for valve-control apps.
+
+Record results in your test notes as **Pass / Fail / Not tested**.
+
+| Step | Action | Pass criteria |
+|------|--------|---------------|
+| 1 | Install debug APK; complete first-run onboarding; connect to receiver once on phone | Remembered receiver stored |
+| 2 | Android Auto app → Settings → tap version line **10 times** → enable **Developer mode** | Developer menu visible |
+| 3 | Enable **Unknown sources** (and **Start head unit server** for DHU) | Settings stick after restart |
+| 4 | **DHU (Mac):** run Desktop Head Unit; launch **Sound Kit** from launcher | Pane shows receiver + valve rows |
+| 5 | **Real car:** plug in or wireless AA; open AA launcher → find **Sound Kit** | App listed (sideload + dev mode) |
+| 6 | Open Sound Kit on head unit while **parked** | Template loads without crash |
+| 7 | With remembered receiver: confirm auto-reconnect or **Connecting…** row | No need to open phone app first |
+| 8 | When connected + status known: tap **Open valves** / **Close valves** (toggle label) | Receiver accepts command |
+| 9 | If receiver sends status `04`: car shows **Not ready**; toggle hidden | Matches phone behavior |
+| 10 | If app never appears in AA launcher: use **fallback controls** (below) | Notification + Quick Settings still work |
+
+### Fallback when Sound Kit is not in the AA launcher
+
+If step 5 fails, you can still control valves while parked without the car template:
+
+1. Connect on the phone (Home tab) before or after plugging into the car.
+2. Use the **foreground notification** actions: Open, Close, Disconnect.
+3. Add the **Sound Kit** Quick Settings tile (Edit tiles) for one-tap toggle while connected.
+
+Document whether the launcher failure is on your head unit model and Android Auto version.
 
 ## CI
 
@@ -124,8 +154,9 @@ Steps:
 13. Confirm the foreground service keeps the connection alive.
 14. Test notification CLOSE and OPEN actions.
 15. Test the Quick Settings tile.
-16. Test Android Auto developer surface if available.
-17. Export diagnostics and save it with the APK version, phone model, Android version, and receiver observations.
+16. Run the **Projected Android Auto Validation** checklist above (DHU and/or real car).
+17. If AA launcher fails, confirm notification Open/Close and Quick Settings tile work while parked.
+18. Export diagnostics and save it with the APK version, phone model, Android version, and receiver observations.
 
 Stop testing if:
 

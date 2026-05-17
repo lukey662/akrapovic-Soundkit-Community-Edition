@@ -177,3 +177,7 @@ Document the limitation in `DOCS.md` § Android Auto Testing and list "Projected
 - No effort is sunk into trying to fit valve control into an unrelated Play category.
 - If Google ever publishes a category that fits, this decision can be revisited.
 
+### Update (May 2026)
+
+**Sideload projected Android Auto** (developer mode + unknown sources) is in scope for personal use: car session auto-reconnect, toggle on `SoundKitCarScreen`, and notification/Quick Settings fallback documented in `TESTING.md`. This does not change the Play Store non-goal.
+

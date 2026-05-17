@@ -65,28 +65,42 @@ Planned features, UX direction, and non-goals are tracked in `ROADMAP.md`.
 
 ## Android Auto Testing
 
-> **Important**: This app does **not** appear in **projected Android Auto** (the phone-projected experience used in most cars). It targets **Android Automotive OS** (built-in head units) and the **Desktop Head Unit (DHU)** simulator instead. See "Why no projected Android Auto?" below.
+The car surface uses the Android for Cars App Library **IoT** category (`androidx.car.app.category.IOT`). It is local-only and delegates all BLE work to the same repository path as the phone UI, including state-gated toggle safety.
 
-The Android Auto surface uses the Android for Cars App Library IoT category (`androidx.car.app.category.IOT`). It is local-only and delegates all BLE work to the same repository path as the phone UI, including state-gated toggle safety.
+When the car session opens, the app starts the BLE foreground service and **auto-connects to the remembered receiver** if disconnected. The car template shows receiver/valve status, a single **Open valves** / **Close valves** toggle when safe, receiver-not-ready (`04`) messaging, and **Open on phone** when no receiver is saved.
 
-The manifest must also declare `com.google.android.gms.car.application` pointing at `res/xml/automotive_app_desc.xml` (with `<uses name="template" />`). Without that descriptor, Android Auto often will not list the app in the car launcher even when `SoundKitCarAppService` is present. Sideloaded debug builds still require **Android Auto developer mode** on the phone or the **Desktop Head Unit (DHU)** for testing.
+The manifest must declare `com.google.android.gms.car.application` pointing at `res/xml/automotive_app_desc.xml` (with `<uses name="template" />`).
 
-### Why no projected Android Auto?
+### Projected Android Auto (phone → car, sideload)
 
-Projected Android Auto (phone-to-head-unit) only allows apps in the published categories: navigation, parking, charging, media, messaging, video, weather, and POI. A valve-toggle controller does not fit any of these categories, so Google Play policy will not approve it for projected Android Auto distribution. Sideloaded debug builds also do not surface in projected Android Auto without enabling developer mode in the Android Auto settings.
+For **personal / debug** use on a standard head unit (USB or wireless Android Auto):
 
-Android **Automotive OS** (the in-vehicle OS in newer Polestar/Volvo/etc.) does allow `IOT` apps, which is why we ship that surface — and why we use the DHU simulator for testing on the desktop.
+1. Connect to your receiver once on the phone so it is remembered.
+2. Android Auto app → Settings → tap the version line **10 times** → **Developer mode**.
+3. Enable **Unknown sources** (required for sideloaded Car apps).
+4. Plug into the car or use wireless AA; open the AA launcher and launch **Sound Kit**.
 
-### Testing with the Desktop Head Unit (DHU)
+Use the full checklist in `TESTING.md` § Projected Android Auto Validation.
 
-1. Install the Android Auto app on a phone, open it, then tap the version line in **Settings** ten times to enable developer mode.
-2. From the developer menu, enable **Unknown sources** and **Start head unit server**.
-3. On the desktop, run the Android SDK DHU binary, e.g. `~/Library/Android/sdk/extras/google/auto/desktop-head-unit`.
-4. Launch the app from the DHU launcher; verify Connect / Open / Close behave the same as the phone UI.
+**Play Store listing** for projected Android Auto is still a **non-goal** (valve control does not fit Google's published categories). Sideload + developer mode is the supported path for projected testing.
 
-### Public distribution
+### Fallback without the AA launcher
 
-Public release in projected Android Auto would require Google Play policy review under one of the allowed categories, which is currently a **non-goal** for this project (see `ROADMAP.md`). We continue to ship the IoT surface for Automotive OS users and for DHU testing.
+If Sound Kit never appears in the car launcher, control valves while parked via:
+
+- The **foreground notification** (Open / Close / Disconnect), and
+- The **Quick Settings** tile (add from tile editor).
+
+### Desktop Head Unit (DHU)
+
+1. Enable developer mode and **Unknown sources** on the phone (same as above).
+2. Enable **Start head unit server** in the Android Auto developer menu.
+3. Run the SDK DHU binary, e.g. `~/Library/Android/sdk/extras/google/auto/desktop-head-unit`.
+4. Launch **Sound Kit** from the DHU launcher; verify toggle and status match the phone.
+
+### Android Automotive OS
+
+Built-in head units (Polestar, Volvo, etc.) can host IoT Car apps without phone projection. The same `SoundKitCarScreen` template applies.
 
 ## Release Notes
 

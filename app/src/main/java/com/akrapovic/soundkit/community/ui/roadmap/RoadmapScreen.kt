@@ -458,7 +458,11 @@ private val shippedItems = listOf(
     RoadmapItem("Accessibility pass", "Semantics and instrumented tests on Home and onboarding."),
     RoadmapItem("Diagnostics export", "Copy, Save-to-file, and file-only Share."),
     RoadmapItem("Launcher icon", "Adaptive valve-glyph icon set."),
-    RoadmapItem("Android Auto", "IoT car surface plus automotive_app_desc for DHU testing."),
+    RoadmapItem("Android Auto base", "IoT Car App service, manifest descriptor, and DHU testing path."),
+    RoadmapItem(
+        "Projected AA sideload",
+        "Auto-reconnect on car entry, toggle on template, status-04 copy, notification/QS fallback.",
+    ),
     RoadmapItem("Confirmations", "Disconnect and Forget receiver dialogs."),
 )
 
@@ -496,7 +500,7 @@ private val nonGoalItems = listOf(
     RoadmapItem("Cloud control", "No accounts, remote valve control, or telemetry backends."),
     RoadmapItem("Official integration", "Not affiliated with or supported by Akrapovič d.d."),
     RoadmapItem(
-        "Projected Android Auto",
-        "Play policy does not fit a valve controller; Automotive OS / DHU only.",
+        "Play Store projected AA",
+        "Public Play listing in projected Android Auto — policy does not fit a valve controller.",
     ),
 )

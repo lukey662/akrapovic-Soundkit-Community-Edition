@@ -29,14 +29,15 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 | **Accessibility pass** | Headings, content descriptions on onboarding and primary actions; smoke/instrumented coverage. |
 | **Diagnostics export** | Copy, Save-to-file (SAF), file-only Share (no email subject/body autofill). |
 | **Launcher** | Adaptive valve-glyph icon (foreground, background, monochrome). |
-| **Android Auto / Automotive** | `SoundKitCarAppService` (IoT), `automotive_app_desc.xml`, `com.google.android.gms.car.application` meta-data, DHU testing documented in `DOCS.md`. |
+| **Android Auto / Automotive** | IoT Car App service, manifest descriptor, DHU testing. |
+| **Projected AA (sideload)** | Car auto-reconnect, toggle + status-04 on template, Open on phone, notification/QS fallback docs. |
 | **Confirmations** | Disconnect and Forget receiver confirmation dialogs. |
 
 ## Near term
 
 | Area | Intent |
 |------|--------|
-| **Maintenance** | Device feedback on themes, BLE edge cases, and Play policy as Android versions shift. |
+| **Maintenance** | Device feedback on themes, BLE edge cases, projected AA validation on more head units, Play policy as Android versions shift. |
 
 ## Later (product)
 
@@ -68,7 +69,7 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 
 - **Cloud** accounts, remote control over the internet, or telemetry backends.
 - **Official Akrapovič integration** or warranty support.
-- **Projected Android Auto (Play distribution).** Policy categories (navigation, media, messaging, etc.) do not fit a valve controller. We ship the **IoT** Car App for **Android Automotive OS** and **DHU** sideload testing — see `DOCS.md` § Android Auto Testing.
+- **Play Store listing in projected Android Auto.** Policy categories (navigation, media, messaging, etc.) do not fit a valve controller. **Sideload + developer mode** for projected AA and **IoT** for Automotive OS / DHU remain in scope — see `DOCS.md` § Android Auto Testing.
 
 ## Dependency sketch
 
