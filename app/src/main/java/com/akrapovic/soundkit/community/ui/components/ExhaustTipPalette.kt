@@ -61,6 +61,9 @@ object ExhaustTipPalette {
     val hatchColor: Color = Color.White.copy(alpha = 0.06f)
     val specularColor: Color = AkraColors.Pearl.copy(alpha = 0.35f)
     val shadowColor: Color = Color.Black.copy(alpha = 0.45f)
+    val carbonEdge: Color = Color(0xFF1A1A1E)
+    val titaniumStroke: Color = Color(0xFFA8ADB4)
+    val plateEdge: Color = Color(0xFF55585E)
     val plateColor: Brush get() = Brush.linearGradient(
         colors = listOf(
             AkraColors.Silver.copy(alpha = 0.95f),

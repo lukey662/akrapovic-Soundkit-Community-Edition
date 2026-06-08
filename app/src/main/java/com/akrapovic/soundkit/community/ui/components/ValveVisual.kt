@@ -1,7 +1,6 @@
 package com.akrapovic.soundkit.community.ui.components
 
 import android.provider.Settings
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -22,28 +21,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.domain.ValveState
-import com.akrapovic.soundkit.community.ui.theme.AkraColors
 import com.akrapovic.soundkit.community.ui.theme.LocalAkraTheme
-import kotlin.math.min
 
 /**
- * Wide Akrapovic-style exhaust tip cross-section: carbon sleeve, titanium lip,
- * deep bore, and butterfly valve plates. Decorative — adjacent text is a11y truth.
+ * Minimal Home valve hero: titanium ring, dark bore, flat disc at 80% fill when closed.
+ * Open = disc clears, ring brightens. Decorative — adjacent text is the a11y truth.
  */
 @Composable
 fun ValveVisual(
@@ -62,57 +51,42 @@ fun ValveVisual(
         ) == 0f
     }
 
-    val unknownBreath = rememberInfiniteTransition(label = "valveUnknownBreath")
-    val breathGap by unknownBreath.animateFloat(
-        initialValue = 0.14f,
-        targetValue = 0.20f,
+    val unknownBreath = rememberInfiniteTransition(label = "valveBreath")
+    val breathOpen by unknownBreath.animateFloat(
+        initialValue = 0.72f,
+        targetValue = 0.88f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1800, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "valveBreathGap",
+        label = "valveBreathOpen",
     )
 
-    val baseGap = when {
-        state == ValveState.Unknown && !reduceMotion -> breathGap
-        else -> ValveGapMath.targetGap(state)
+    val targetOpen = when {
+        state == ValveState.Unknown && !reduceMotion -> breathOpen
+        state == ValveState.Open -> 1f
+        else -> 0f
     }
 
-    val animatedGap by animateFloatAsState(
-        targetValue = baseGap,
+    val openAmount by animateFloatAsState(
+        targetValue = targetOpen,
         animationSpec = if (reduceMotion) {
             tween(durationMillis = 0)
         } else {
-            spring(dampingRatio = 0.78f, stiffness = 420f)
+            spring(dampingRatio = 0.82f, stiffness = 340f)
         },
-        label = "valveGap",
+        label = "valveOpenAmount",
     )
 
-    val infinite = rememberInfiniteTransition(label = "valvePulse")
-    val pulseAlpha by infinite.animateFloat(
-        initialValue = if (state == ValveState.Open && !reduceMotion) 0.14f else 0f,
-        targetValue = if (state == ValveState.Open && !reduceMotion) 0.32f else 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "valvePulseAlpha",
-    )
-
+    val infinite = rememberInfiniteTransition(label = "valveBusy")
     val busyAlpha by infinite.animateFloat(
         initialValue = if (commandInFlight && !reduceMotion) 0.55f else 1f,
-        targetValue = if (commandInFlight && !reduceMotion) 1f else 1f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 700, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "valveBusyAlpha",
-    )
-
-    val heatAccent by animateColorAsState(
-        targetValue = if (state == ValveState.Open) accent else Color.Transparent,
-        animationSpec = tween(durationMillis = if (reduceMotion) 0 else 380),
-        label = "valveHeat",
     )
 
     var lastRippleTrigger by remember { mutableIntStateOf(0) }
@@ -128,77 +102,82 @@ fun ValveVisual(
         }
     }
     val rippleProgress = rippleAnimatable.value
-
-    val contentAlpha = when (state) {
-        ValveState.Unknown -> 0.78f
-        else -> 1f
-    } * busyAlpha
-
-    val plateRotation = ValveGapMath.plateRotation(animatedGap)
+    val contentAlpha = (if (state == ValveState.Unknown) 0.78f else 1f) * busyAlpha
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val padX = size.width * 0.04f
             val padY = size.height * 0.11f
-            val sleeveW = size.width - padX * 2f
-            val sleeveH = size.height - padY * 2f
-            val sleeveTopLeft = Offset(padX, padY)
-            val sleeveSize = Size(sleeveW, sleeveH)
+            val outerRx = (size.width - padX * 2f) / 2f
+            val outerRy = (size.height - padY * 2f) / 2f
             val center = Offset(size.width / 2f, size.height / 2f)
-            val sleeveRx = sleeveW / 2f
-            val sleeveRy = sleeveH / 2f
 
-            val lipInsetX = sleeveW * 0.08f
-            val lipInsetY = sleeveH * 0.10f
-            val boreRx = sleeveRx - lipInsetX
-            val boreRy = sleeveRy - lipInsetY
+            val boreRx = outerRx * 0.89f
+            val boreRy = outerRy * 0.89f
+            val discRx = boreRx * 0.80f
+            val discRy = boreRy * 0.80f
+            val lipRx = outerRx - 6.dp.toPx().coerceAtMost(outerRx * 0.06f)
+            val lipRy = outerRy - 6.dp.toPx().coerceAtMost(outerRy * 0.06f)
 
-            drawExhaustTipShadow(center, sleeveRx, sleeveRy, contentAlpha)
-            drawCarbonSleeve(sleeveTopLeft, sleeveSize, contentAlpha)
-            drawTitaniumLip(sleeveTopLeft, sleeveSize, lipInsetX, lipInsetY, contentAlpha)
+            val ringAlpha = (0.45f + openAmount * 0.50f) * contentAlpha
+            val discScale = 1f - openAmount
 
-            val borePath = ovalPath(center, boreRx, boreRy)
-            clipPath(borePath) {
+            // Carbon outer rim
+            drawOval(
+                color = ExhaustTipPalette.shadowColor.copy(alpha = 0.35f * contentAlpha),
+                topLeft = Offset(center.x - outerRx * 1.02f, center.y - outerRy * 1.02f),
+                size = Size(outerRx * 2.04f, outerRy * 2.04f),
+            )
+            drawOval(
+                color = ExhaustTipPalette.carbonEdge.copy(alpha = contentAlpha),
+                topLeft = Offset(center.x - outerRx, center.y - outerRy),
+                size = Size(outerRx * 2f, outerRy * 2f),
+                style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round),
+            )
+
+            // Titanium lip — brighter when open
+            drawOval(
+                color = ExhaustTipPalette.titaniumStroke.copy(alpha = ringAlpha),
+                topLeft = Offset(center.x - lipRx, center.y - lipRy),
+                size = Size(lipRx * 2f, lipRy * 2f),
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+            )
+
+            // Bore
+            drawOval(
+                brush = ExhaustTipPalette.boreInterior(center, boreRx, boreRy, closed = openAmount < 0.5f),
+                topLeft = Offset(center.x - boreRx, center.y - boreRy),
+                size = Size(boreRx * 2f, boreRy * 2f),
+                alpha = contentAlpha,
+            )
+
+            // Flat disc — 80% fill, shrinks away when open
+            if (discScale > 0.01f) {
                 drawOval(
-                    brush = ExhaustTipPalette.boreInterior(
-                        center = center,
-                        radiusX = boreRx,
-                        radiusY = boreRy,
-                        closed = state == ValveState.Closed,
+                    brush = ExhaustTipPalette.plateColor,
+                    topLeft = Offset(
+                        center.x - discRx * discScale,
+                        center.y - discRy * discScale,
                     ),
-                    topLeft = Offset(center.x - boreRx, center.y - boreRy),
-                    size = Size(boreRx * 2f, boreRy * 2f),
+                    size = Size(discRx * 2f * discScale, discRy * 2f * discScale),
                     alpha = contentAlpha,
                 )
-
-                if (state == ValveState.Open && heatAccent != Color.Transparent && pulseAlpha > 0f) {
-                    drawOval(
-                        brush = ExhaustTipPalette.heatGlow(
-                            center = center,
-                            radiusX = boreRx,
-                            radiusY = boreRy,
-                            accent = heatAccent,
-                            alpha = pulseAlpha * contentAlpha,
-                        ),
-                        topLeft = Offset(center.x - boreRx, center.y - boreRy),
-                        size = Size(boreRx * 2f, boreRy * 2f),
-                    )
-                }
-
-                drawButterflyPlates(
-                    center = center,
-                    boreRx = boreRx,
-                    boreRy = boreRy,
-                    rotation = plateRotation,
-                    alpha = contentAlpha,
+                drawOval(
+                    color = ExhaustTipPalette.plateEdge.copy(alpha = 0.55f * contentAlpha),
+                    topLeft = Offset(
+                        center.x - discRx * discScale,
+                        center.y - discRy * discScale,
+                    ),
+                    size = Size(discRx * 2f * discScale, discRy * 2f * discScale),
+                    style = Stroke(width = 1.dp.toPx()),
                 )
             }
 
             if (commandInFlight && !reduceMotion) {
                 drawOval(
                     color = accent.copy(alpha = 0.35f * busyAlpha),
-                    topLeft = Offset(center.x - sleeveRx, center.y - sleeveRy),
-                    size = Size(sleeveRx * 2f, sleeveRy * 2f),
+                    topLeft = Offset(center.x - outerRx, center.y - outerRy),
+                    size = Size(outerRx * 2f, outerRy * 2f),
                     style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
                 )
             }
@@ -214,149 +193,5 @@ fun ValveVisual(
                 )
             }
         }
-    }
-}
-
-private fun DrawScope.drawExhaustTipShadow(
-    center: Offset,
-    radiusX: Float,
-    radiusY: Float,
-    alpha: Float,
-) {
-    drawOval(
-        color = ExhaustTipPalette.shadowColor.copy(alpha = ExhaustTipPalette.shadowColor.alpha * alpha),
-        topLeft = Offset(center.x - radiusX * 1.02f, center.y - radiusY * 0.92f),
-        size = Size(radiusX * 2.04f, radiusY * 2.08f),
-    )
-}
-
-private fun DrawScope.drawCarbonSleeve(
-    topLeft: Offset,
-    size: Size,
-    alpha: Float,
-) {
-    drawOval(
-        brush = ExhaustTipPalette.carbonSleeve(topLeft, size),
-        topLeft = topLeft,
-        size = size,
-        alpha = alpha,
-    )
-    val hatch = ExhaustTipPalette.hatchColor.copy(alpha = ExhaustTipPalette.hatchColor.alpha * alpha)
-    val step = 14.dp.toPx()
-    var x = topLeft.x - size.height
-    while (x < topLeft.x + size.width + size.height) {
-        drawLine(
-            color = hatch,
-            start = Offset(x, topLeft.y),
-            end = Offset(x + size.height, topLeft.y + size.height),
-            strokeWidth = 1.dp.toPx(),
-        )
-        x += step
-    }
-}
-
-private fun DrawScope.drawTitaniumLip(
-    sleeveTopLeft: Offset,
-    sleeveSize: Size,
-    lipInsetX: Float,
-    lipInsetY: Float,
-    alpha: Float,
-) {
-    val lipTopLeft = Offset(
-        sleeveTopLeft.x + lipInsetX * 0.55f,
-        sleeveTopLeft.y + lipInsetY * 0.55f,
-    )
-    val lipSize = Size(
-        sleeveSize.width - lipInsetX * 1.1f,
-        sleeveSize.height - lipInsetY * 1.1f,
-    )
-    drawOval(
-        brush = ExhaustTipPalette.titaniumLip(lipTopLeft, lipSize),
-        topLeft = lipTopLeft,
-        size = lipSize,
-        alpha = alpha,
-    )
-    drawOval(
-        color = ExhaustTipPalette.specularColor.copy(alpha = ExhaustTipPalette.specularColor.alpha * alpha),
-        topLeft = lipTopLeft,
-        size = lipSize,
-        style = Stroke(width = 2.dp.toPx()),
-    )
-    drawArc(
-        color = AkraColors.Pearl.copy(alpha = 0.22f * alpha),
-        startAngle = 210f,
-        sweepAngle = 80f,
-        useCenter = false,
-        topLeft = lipTopLeft,
-        size = lipSize,
-        style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round),
-    )
-}
-
-private fun DrawScope.drawButterflyPlates(
-    center: Offset,
-    boreRx: Float,
-    boreRy: Float,
-    rotation: Float,
-    alpha: Float,
-) {
-    val plateHeight = boreRy * 0.52f
-    val plateWidth = boreRx * 1.85f
-    val corner = min(plateHeight, boreRx) * 0.18f
-
-    val topPlate = platePath(
-        left = center.x - plateWidth / 2f,
-        top = center.y - boreRy,
-        width = plateWidth,
-        height = plateHeight,
-        corner = corner,
-    )
-    val bottomPlate = platePath(
-        left = center.x - plateWidth / 2f,
-        top = center.y + boreRy - plateHeight,
-        width = plateWidth,
-        height = plateHeight,
-        corner = corner,
-    )
-
-    rotate(degrees = -rotation, pivot = center) {
-        drawPath(topPlate, brush = ExhaustTipPalette.plateColor, alpha = alpha)
-    }
-    rotate(degrees = rotation, pivot = center) {
-        drawPath(bottomPlate, brush = ExhaustTipPalette.plateColor, alpha = alpha)
-    }
-
-    drawLine(
-        color = AkraColors.Graphite.copy(alpha = 0.8f * alpha),
-        start = Offset(center.x - boreRx * 0.75f, center.y),
-        end = Offset(center.x + boreRx * 0.75f, center.y),
-        strokeWidth = 1.5.dp.toPx(),
-        cap = StrokeCap.Round,
-    )
-}
-
-private fun platePath(
-    left: Float,
-    top: Float,
-    width: Float,
-    height: Float,
-    corner: Float,
-): Path {
-    return Path().apply {
-        addRoundRect(
-            RoundRect(
-                left = left,
-                top = top,
-                right = left + width,
-                bottom = top + height,
-                cornerRadius = CornerRadius(corner, corner),
-            ),
-        )
-    }
-}
-
-private fun ovalPath(center: Offset, radiusX: Float, radiusY: Float): Path {
-    return Path().apply {
-        addOval(Rect(center.x - radiusX, center.y - radiusY, center.x + radiusX, center.y + radiusY))
     }
 }

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Kit — 5 Simple Valve Animations</title>
+  <style>
+    :root {
+      --bg: #050506;
+      --card: #0c0c0e;
+      --border: #1a1a1e;
+      --text: #f5f5f7;
+      --muted: #86868b;
+      --gold: #c9a24a;
+      --ti: #a8abb2;
+      --glow: #ff6a1a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      padding: 32px 20px 100px;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { max-width: 720px; margin: 0 auto 28px; text-align: center; }
+    h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.02em; }
+    .intro { color: var(--muted); font-size: 15px; line-height: 1.5; margin: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .card:hover { border-color: #333; transform: translateY(-2px); }
+    .card.selected { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+    .card-head { padding: 14px 16px 10px; border-bottom: 1px solid #141416; }
+    .num { font-size: 11px; color: var(--gold); font-weight: 700; letter-spacing: 0.08em; }
+    .title { font-size: 15px; font-weight: 600; margin-top: 2px; }
+    .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .stage {
+      background: #000;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .stage svg { width: 260px; height: auto; }
+    .pill {
+      position: absolute; top: 10px; right: 10px;
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 3px 8px; border-radius: 99px;
+      background: rgba(255,255,255,0.06); color: var(--muted);
+    }
+    .pill.open { background: rgba(201,162,74,0.15); color: var(--gold); }
+    .foot { padding: 12px 16px 14px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+    .bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(8,8,10,0.92); border-top: 1px solid var(--border);
+      padding: 14px 20px; font-size: 13px;
+      display: flex; justify-content: space-between; align-items: center;
+      backdrop-filter: blur(12px);
+    }
+    .pick { color: var(--gold); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>5 Simple Valve Animations</h1>
+    <p class="intro">Minimal single-tip concepts — click any card to toggle open/closed. Pick a number and we’ll build it in the app with Compose.</p>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="bar">
+    <div><span style="color:var(--muted)">Selected:</span> <span class="pick" id="pick">None</span></div>
+    <div style="color:var(--muted)">Tap to animate</div>
+  </div>
+
+<script>
+const CX = 130, CY = 100;
+const RX = 108, RY = 68;       // outer oval
+const IRX = 96, IRY = 58;      // inner bore
+const DISC_RX = 77, DISC_RY = 46; // 80% of bore
+
+const options = [
+  {
+    id: 1,
+    title: "Flat Disc Squash",
+    meta: "Best default · flat 80% disc",
+    desc: "Thin carbon ring + titanium lip. Disc stays flat (no tilt), squashes edge-on when open. Clean, reads at any size.",
+    svg: (open) => `
+      <svg viewBox="0 0 260 200" fill="none">
+        <ellipse cx="${CX}" cy="${CY}" rx="${RX}" ry="${RY}" fill="#111" stroke="#222" stroke-width="2"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${RX-6}" ry="${RY-6}" fill="none" stroke="${open ? '#c9a24a' : '#888'}" stroke-width="3" opacity="0.7"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${IRX}" ry="${IRY}" fill="#080808"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${IRX}" ry="${IRY}" fill="url(#glow)" opacity="${open ? 0.7 : 0.2}"/>
+        <line x1="${CX-90}" y1="${CY}" x2="${CX+90}" y2="${CY}" stroke="#333" stroke-width="3"/>
+        <g style="transform-origin:${CX}px ${CY}px; transition:transform 0.45s cubic-bezier(.34,1.2,.64,1); transform:scaleY(${open ? 0.12 : 1})">
+          <ellipse cx="${CX}" cy="${CY}" rx="${DISC_RX}" ry="${DISC_RY}" fill="#b0b4bb" stroke="#555" stroke-width="1"/>
+          <ellipse cx="${CX}" cy="${CY}" rx="14" ry="9" fill="#666"/>
+        </g>
+        <defs>
+          <radialGradient id="glow"><stop offset="0%" stop-color="#ff6a1a"/><stop offset="100%" stop-color="transparent"/></radialGradient>
+        </defs>
+      </svg>`
+  },
+  {
+    id: 2,
+    title: "Butterfly Split",
+    meta: "Classic two-plate",
+    desc: "Two flat halves rotate outward from the centre shaft. Simple mechanical read, familiar butterfly valve.",
+    svg: (open) => `
+      <svg viewBox="0 0 260 200" fill="none">
+        <ellipse cx="${CX}" cy="${CY}" rx="${RX}" ry="${RY}" fill="#111" stroke="#222" stroke-width="2"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${IRX}" ry="${IRY}" fill="#080808"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${IRX}" ry="${IRY}" fill="url(#g2)" opacity="${open ? 0.65 : 0.15}"/>
+        <line x1="${CX-88}" y1="${CY}" x2="${CX+88}" y2="${CY}" stroke="#444" stroke-width="4"/>
+        <g style="transform-origin:${CX}px ${CY}px; transition:transform 0.5s cubic-bezier(.34,1.1,.64,1); transform:rotate(${open ? -32 : 0}deg)">
+          <path d="M${CX-DISC_RX} ${CY} A${DISC_RX} ${DISC_RY} 0 0 1 ${CX+DISC_RX} ${CY} L${CX} ${CY} Z" fill="#adb1b8"/>
+        </g>
+        <g style="transform-origin:${CX}px ${CY}px; transition:transform 0.5s cubic-bezier(.34,1.1,.64,1); transform:rotate(${open ? 32 : 0}deg)">
+          <path d="M${CX-DISC_RX} ${CY} A${DISC_RX} ${DISC_RY} 0 0 0 ${CX+DISC_RX} ${CY} L${CX} ${CY} Z" fill="#959aa2"/>
+        </g>
+        <defs><radialGradient id="g2"><stop offset="0%" stop-color="#ff5500"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+      </svg>`
+  },
+  {
+    id: 3,
+    title: "Slide Gate",
+    meta: "Single plate drops",
+    desc: "One flat gate slides down out of the bore. Very clear open/closed state — good for UI clarity.",
+    svg: (open) => `
+      <svg viewBox="0 0 260 200" fill="none">
+        <ellipse cx="${CX}" cy="${CY}" rx="${RX}" ry="${RY}" fill="#111" stroke="#333" stroke-width="2"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${IRX}" ry="${IRY}" fill="#060606"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${IRX-4}" ry="${IRY-4}" fill="url(#g3)" opacity="${open ? 0.75 : 0.1}"/>
+        <g style="transition:transform 0.5s cubic-bezier(.34,1.2,.64,1); transform:translateY(${open ? 70 : 0}px)">
+          <ellipse cx="${CX}" cy="${CY}" rx="${DISC_RX}" ry="${DISC_RY}" fill="#a8acb3" stroke="#555" stroke-width="1"/>
+          <rect x="${CX-4}" y="${CY-8}" width="8" height="16" rx="2" fill="#555"/>
+        </g>
+        <defs><radialGradient id="g3"><stop offset="0%" stop-color="#ff7722"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+      </svg>`
+  },
+  {
+    id: 4,
+    title: "Iris Petals",
+    meta: "6 segments",
+    desc: "Six simple petals collapse to the centre when closed, fan open when active. Smooth, modern motion.",
+    svg: (open) => {
+      const petals = 6;
+      let paths = '';
+      for (let i = 0; i < petals; i++) {
+        const a0 = (i / petals) * Math.PI * 2 - Math.PI / 2;
+        const a1 = ((i + 0.85) / petals) * Math.PI * 2 - Math.PI / 2;
+        const r0 = open ? IRX * 0.55 : DISC_RX;
+        const r1 = open ? IRX * 0.92 : DISC_RY * 1.05;
+        const x0 = CX + Math.cos(a0) * r0, y0 = CY + Math.sin(a0) * r0 * (IRY / IRX);
+        const x1 = CX + Math.cos(a1) * r1, y1 = CY + Math.sin(a1) * r1 * (IRY / IRX);
+        paths += `<path d="M${CX} ${CY} L${x0} ${y0} A${r1} ${r1 * (IRY/IRX)} 0 0 1 ${x1} ${y1} Z" fill="#a0a4ab" stroke="#333" stroke-width="0.5" style="transition:all 0.5s cubic-bezier(.34,1.1,.64,1)"/>`;
+      }
+      return `
+      <svg viewBox="0 0 260 200" fill="none">
+        <ellipse cx="${CX}" cy="${CY}" rx="${RX}" ry="${RY}" fill="#0e0e10" stroke="#222" stroke-width="2"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${IRX}" ry="${IRY}" fill="#050505"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${IRX*0.5}" ry="${IRY*0.5}" fill="url(#g4)" opacity="${open ? 0.8 : 0.15}"/>
+        ${paths}
+        <defs><radialGradient id="g4"><stop offset="0%" stop-color="#ff6600"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+      </svg>`;
+    }
+  },
+  {
+    id: 5,
+    title: "Ring + Disc",
+    meta: "Ultra minimal",
+    desc: "Just a titanium ring and a flat disc. Closed = disc fills the bore. Open = disc gone, ring brightens. Nothing else.",
+    svg: (open) => `
+      <svg viewBox="0 0 260 200" fill="none">
+        <ellipse cx="${CX}" cy="${CY}" rx="${RX}" ry="${RY}" fill="none" stroke="#1a1a1e" stroke-width="10"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${RX-8}" ry="${RY-8}" fill="none" stroke="#a8adb4" stroke-width="2"
+          opacity="${open ? 0.95 : 0.45}" style="transition:opacity 0.45s ease"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${IRX}" ry="${IRY}" fill="#040404"/>
+        <ellipse cx="${CX}" cy="${CY}" rx="${open ? 0 : DISC_RX}" ry="${open ? 0 : DISC_RY}"
+          fill="#949aa2" stroke="#555" stroke-width="1" style="transition:all 0.45s cubic-bezier(.34,1.1,.64,1)"/>
+      </svg>`
+  }
+];
+
+const grid = document.getElementById('grid');
+const pickEl = document.getElementById('pick');
+
+options.forEach(opt => {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.innerHTML = `
+    <div class="card-head">
+      <div class="num">OPTION ${opt.id}</div>
+      <div class="title">${opt.title}</div>
+      <div class="meta">${opt.meta}</div>
+    </div>
+    <div class="stage">
+      <div class="svg-wrap">${opt.svg(false)}</div>
+      <span class="pill">closed</span>
+    </div>
+    <div class="foot">${opt.desc}</div>
+  `;
+  const stage = el.querySelector('.stage');
+  const wrap = el.querySelector('.svg-wrap');
+  const pill = el.querySelector('.pill');
+  let open = false;
+
+  el.addEventListener('click', () => {
+    open = !open;
+    wrap.innerHTML = opt.svg(open);
+    pill.textContent = open ? 'open' : 'closed';
+    pill.classList.toggle('open', open);
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    pickEl.textContent = `#${opt.id} — ${opt.title}`;
+  });
+
+  grid.appendChild(el);
+});
+</script>
+</body>
+</html>

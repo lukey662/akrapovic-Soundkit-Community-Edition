@@ -61,6 +61,10 @@ Entry: **Settings** (full controls) or **Home** shortcut → Drive mode screen.
 
 The app uses a consumer-first companion UI built from reusable Compose components in `ui/components`. Screens should prefer calm hierarchy, rounded elevated panels, concise headers, large touch targets, and theme-driven gradients instead of square debug-style cards or protocol-heavy panels. Garage themes are persisted in DataStore and applied app-wide through `SoundKitTheme`; each brand-inspired family has explicit Light and Dark variants plus a local `brand_*.xml` mark that can be replaced with assets the user has rights to use.
 
+### Valve hero rendering
+
+`ValveVisual` (the Home hero) is a **minimal ring-and-disc** animation: carbon rim stroke, titanium lip, dark bore, flat disc at 80% fill when closed; disc clears and lip brightens when open. No glow or air effects. Prototype: `design/valve-simple-animations.html` (Option 5). Optional Blender experiments live under `design/blender/` but are not used in-app.
+
 ## Testing
 
 Use `TESTING.md` as the source of truth for unit, regression, instrumented smoke, CI, and physical receiver validation.

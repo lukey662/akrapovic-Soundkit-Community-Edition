@@ -247,3 +247,22 @@ Beta rules, geofencing, and WorkManager polling added complexity and background 
 - Manual valve toggle on Home wins for the current connect session.
 - Geofence/schedule experiments archived; `RuleEvaluator` domain code may remain for unit tests only.
 - Version **0.3.0**.
+
+## 2026-06-08: Minimal Ring-and-Disc Valve Hero
+
+### Context
+
+Several iterations tried to reach a premium exhaust-tip look: procedural Canvas layers, Blender sprite sequences, and HTML prototypes. Photoreal and complex vector approaches read as over-engineered or failed to meet the bar; the team preferred a **very simple** Home hero that reads instantly at ~168dp.
+
+### Decision
+
+Ship a minimal procedural **`ValveVisual`**: carbon outer rim stroke, titanium lip stroke, dark bore, and a **flat disc at 80% fill** when closed. When open, the disc animates away (scale to zero) and the lip brightens. No heat glow, air effects, butterfly plates, or sprite assets in the app.
+
+- Design prototypes live in `design/valve-simple-animations.html` (Option 5: Ring + Disc).
+- Optional Blender pipeline remains in `design/blender/` for future experiments but is **not** wired into the app.
+
+### Consequences
+
+- Fast, crisp, and maintainable in Compose; works on all devices without large assets.
+- Does not attempt photoreal titanium/carbon; adjacent status text carries precision for a11y.
+- Public `ValveVisual` API unchanged; command-in-flight ring and success ripple preserved.
