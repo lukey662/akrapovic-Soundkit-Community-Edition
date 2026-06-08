@@ -74,7 +74,7 @@ Record results in your test notes as **Pass / Fail / Not tested**.
 | Step | Action | Pass criteria |
 |------|--------|---------------|
 | 1 | Install debug APK; complete first-run onboarding; connect to receiver once on phone | Remembered receiver stored |
-| 2 | Android Auto app → Settings → tap version line **10 times** → enable **Developer mode** | Developer menu visible |
+| 2 | Settings → Connected devices → Connection preferences → **Android Auto** (Pixel) or search Settings; tap **Version** 10× → **Developer mode** | Developer menu visible |
 | 3 | Enable **Unknown sources** (and **Start head unit server** for DHU) | Settings stick after restart |
 | 4 | **DHU (Mac):** run Desktop Head Unit; launch **Sound Kit** from launcher | Pane shows receiver + valve rows |
 | 5 | **Real car:** plug in or wireless AA; open AA launcher → find **Sound Kit** | App listed (sideload + dev mode) |

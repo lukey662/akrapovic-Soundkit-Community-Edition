@@ -98,11 +98,12 @@ Android Auto support is implemented as a local-only **IoT** Car App template sur
 Android Auto screen -> phone CarAppService -> phone BLE service -> Sound Kit receiver
 ```
 
-Google’s IoT category supports **projected Android Auto** (phone USB/wireless) and **Android Automotive OS** built-in head units. Because this is a sideloaded valve controller, it will **not** appear in the car launcher until you configure the **Android Auto app on the phone**:
+Google’s IoT category supports **projected Android Auto** (phone USB/wireless) and **Android Automotive OS** built-in head units. Because this is a sideloaded valve controller, it will **not** appear in the car launcher until you configure **Android Auto in system Settings** on the phone (there is usually no standalone launcher icon on modern Android):
 
-1. Developer mode (tap version line 10× in AA settings)
-2. **Unknown sources** in AA developer settings
-3. **Customize launcher** → enable Sound Kit (on newer AA builds)
+1. **Pixel:** Settings → Connected devices → Connection preferences → **Android Auto** (or search Settings for “Android Auto”)
+2. Developer mode (tap **Version** 10× in Android Auto settings)
+3. **Unknown sources** in AA developer settings
+4. **Customize launcher** → enable Sound Kit (on newer AA builds)
 
 See **More → Android Auto** in the app and `DOCS.md` § Android Auto Testing for the full checklist. Diagnostics exports include a **CAR APP READINESS** section.
 

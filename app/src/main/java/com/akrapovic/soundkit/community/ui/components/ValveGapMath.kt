@@ -2,16 +2,23 @@ package com.akrapovic.soundkit.community.ui.components
 
 import com.akrapovic.soundkit.community.domain.ValveState
 
-/** Gap fraction (0 = closed, ~0.42 = open) and blade rotation helpers for [ValveVisual]. */
+/** Gap fraction and butterfly plate mapping for [ValveVisual]. */
 internal object ValveGapMath {
+    private const val CLOSED_GAP = 0.04f
+    private const val OPEN_GAP = 0.42f
+    private const val MAX_PLATE_ROTATION = 22f
+
     fun targetGap(state: ValveState): Float = when (state) {
-        ValveState.Open -> 0.42f
-        ValveState.Closed -> 0.04f
+        ValveState.Open -> OPEN_GAP
+        ValveState.Closed -> CLOSED_GAP
         ValveState.Unknown -> 0.18f
     }
 
-    /** Each blade rotates this many degrees at full open gap. */
-    fun bladeRotationDegrees(gapFraction: Float): Float = gapFraction * 38f
+    /** Normalized 0 (sealed) → 1 (fully open) from raw gap fraction. */
+    fun plateSeparation(gapFraction: Float): Float {
+        return ((gapFraction - CLOSED_GAP) / (OPEN_GAP - CLOSED_GAP)).coerceIn(0f, 1f)
+    }
 
-    fun gapDegrees(gapFraction: Float): Float = (gapFraction * 180f).coerceIn(0f, 170f)
+    /** Degrees each plate rotates from centre (top +, bottom -). */
+    fun plateRotation(gapFraction: Float): Float = plateSeparation(gapFraction) * MAX_PLATE_ROTATION
 }

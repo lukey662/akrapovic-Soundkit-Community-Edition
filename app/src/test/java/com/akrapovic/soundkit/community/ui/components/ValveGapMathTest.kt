@@ -13,8 +13,15 @@ class ValveGapMathTest {
     }
 
     @Test
-    fun bladeRotationScalesWithGap() {
-        assertEquals(0f, ValveGapMath.bladeRotationDegrees(0f), 0.001f)
-        assertEquals(15.96f, ValveGapMath.bladeRotationDegrees(0.42f), 0.01f)
+    fun plateSeparationScalesFromClosedToOpen() {
+        assertEquals(0f, ValveGapMath.plateSeparation(0.04f), 0.001f)
+        assertEquals(1f, ValveGapMath.plateSeparation(0.42f), 0.001f)
+        assertEquals(0.5f, ValveGapMath.plateSeparation(0.23f), 0.02f)
+    }
+
+    @Test
+    fun plateRotationMaxAtFullOpen() {
+        assertEquals(0f, ValveGapMath.plateRotation(0.04f), 0.001f)
+        assertEquals(22f, ValveGapMath.plateRotation(0.42f), 0.001f)
     }
 }

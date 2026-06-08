@@ -20,7 +20,7 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
             title = "Android Auto",
-            subtitle = "Show Sound Kit on your car display (sideload + dev mode).",
+            subtitle = "Android Auto lives in system Settings on modern phones — not a launcher app.",
             compact = true,
             titleModifier = Modifier.semantics { heading() },
         )
@@ -33,21 +33,27 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
             )
             SetupStep(
                 number = 2,
-                title = "Enable AA Developer mode",
-                body = "Open the Android Auto app → Settings → tap the version line at the bottom 10 times.",
+                title = "Open Android Auto settings",
+                body = "Pixel: Settings → Connected devices → Connection preferences → Android Auto. " +
+                    "Or search Settings for “Android Auto”. Samsung: Settings → Connected devices → Android Auto.",
             )
             SetupStep(
                 number = 3,
-                title = "Allow unknown sources",
-                body = "Android Auto ⋮ menu → Developer settings → turn on Unknown sources.",
+                title = "Enable Developer mode",
+                body = "In Android Auto settings, scroll to Version and tap it 10 times. Then open ⋮ → Developer settings.",
             )
             SetupStep(
                 number = 4,
-                title = "Customize launcher",
-                body = "Android Auto → Display → Customize launcher → enable Sound Kit if it appears in the list.",
+                title = "Allow unknown sources",
+                body = "In Developer settings, turn on Unknown sources (required for sideloaded Car apps).",
             )
             SetupStep(
                 number = 5,
+                title = "Customize launcher",
+                body = "Back in Android Auto settings → Customize launcher → enable Sound Kit if listed.",
+            )
+            SetupStep(
+                number = 6,
                 title = "Reconnect to the car",
                 body = "USB or wireless Android Auto, then open Sound Kit from the car launcher while parked.",
             )

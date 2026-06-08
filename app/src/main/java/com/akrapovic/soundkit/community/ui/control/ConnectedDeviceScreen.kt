@@ -110,12 +110,15 @@ fun ConnectedDeviceScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .semantics { contentDescription = action.contentDescription },
+                    .fillMaxWidth()
+                    .semantics { contentDescription = state.valveState.visualDescription() },
                 contentAlignment = Alignment.Center,
             ) {
                 ValveVisual(
                     state = state.valveState,
-                    modifier = Modifier.size(220.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(168.dp),
                     commandInFlight = state.commandInFlight,
                     successRippleTrigger = successRippleTrigger.intValue,
                 )
@@ -270,6 +273,12 @@ private fun ValveState.helperText(receiverNotReady: String?): String {
         ValveState.Closed -> "Quiet mode — valves are closed."
         ValveState.Unknown -> "Waiting for the receiver."
     }
+}
+
+private fun ValveState.visualDescription(): String = when (this) {
+    ValveState.Open -> "Exhaust tip visual, valves open"
+    ValveState.Closed -> "Exhaust tip visual, valves closed"
+    ValveState.Unknown -> "Exhaust tip visual, valve status unknown"
 }
 
 private fun ConnectionState.shortText(): String = when (this) {

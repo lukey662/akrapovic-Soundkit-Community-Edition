@@ -14,7 +14,7 @@ object CarAppDiagnostics {
             appendLine("carAppServiceRegistered=${isCarAppServiceRegistered(context)}")
             appendLine("protocolVerified=${SoundKitProtocol.VERIFIED}")
             appendLine("defaultReceiverSaved=$hasDefaultReceiver")
-            appendLine("androidAutoNote=Sideload requires AA Developer mode, Unknown sources, and Customize launcher")
+            appendLine("androidAutoNote=Settings>Connected devices>Android Auto; enable Developer mode and Unknown sources")
         }
     }
 

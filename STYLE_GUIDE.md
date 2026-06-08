@@ -56,6 +56,6 @@
 - Prefer theme color roles (`MaterialTheme.colorScheme.onSurface`, `onSurfaceVariant`, etc.) over fixed white/gray text.
 - **Avoid**: screen + card double gradients, 10dp shadows on every block, uppercase eyebrow labels on every screen, decorative pill bottom nav.
 - Optional accent gradients belong on Home hero glow or theme preview strips — not default card treatment.
-- **`ValveVisual`** uses layered vector drawables (`valve_ring`, `valve_blade_*`, `valve_core_*`) shared with the launcher icon geometry. Spring motion for open/close; glow and flow lines when open; respect reduced motion.
+- **`ValveVisual`** is a wide exhaust-tip cross-section (carbon oval sleeve, titanium lip, bore, butterfly plates). Uses fixed [`ExhaustTipPalette`](app/src/main/java/com/akrapovic/soundkit/community/ui/components/ExhaustTipPalette.kt) metal colours; theme accent only for open heat glow. Hero layout: `fillMaxWidth()` × ~168dp height on Home.
 - Launcher artwork should use the same dark carbon / titanium / amber vocabulary and remain vector-based.
 

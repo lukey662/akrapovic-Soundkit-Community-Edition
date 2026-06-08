@@ -99,7 +99,7 @@ The manifest must declare `com.google.android.gms.car.application` pointing at `
 For **personal / debug** use on a standard head unit (USB or wireless Android Auto):
 
 1. Connect to your receiver once on the phone so it is remembered.
-2. Android Auto app → Settings → tap the version line **10 times** → **Developer mode**.
+2. **Pixel / modern Android:** Settings → Connected devices → Connection preferences → **Android Auto** (or search Settings). Tap **Version** 10× → **Developer mode**.
 3. Enable **Unknown sources** (required for sideloaded Car apps).
 4. Plug into the car or use wireless AA; open the AA launcher and launch **Sound Kit**.
 
