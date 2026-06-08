@@ -12,8 +12,8 @@ data class NotificationPresentation(
     val openValveEnabled: Boolean,
     val closeValveEnabled: Boolean,
     val disconnectEnabled: Boolean,
-    val pauseAutomationEnabled: Boolean,
-    val resumeAutomationEnabled: Boolean,
+    val pauseDriveModeEnabled: Boolean,
+    val resumeDriveModeEnabled: Boolean,
 )
 
 object NotificationCopy {
@@ -22,9 +22,9 @@ object NotificationCopy {
         valveState: ValveState,
         receiverStatusMessage: String?,
         defaultReceiver: SavedReceiver?,
-        automationPaused: Boolean = false,
+        driveModeEnabled: Boolean = true,
+        driveModePaused: Boolean = false,
         lastExecution: RuleExecutionEntry? = null,
-        hasAutomationRules: Boolean = false,
     ): NotificationPresentation {
         val displayName = defaultReceiver?.displayName()
         val title = when (connectionState) {
@@ -38,12 +38,13 @@ object NotificationCopy {
             valveState == ValveState.Closed -> "Valves closed"
             else -> "Checking valves"
         }
-        val automationText = when {
-            automationPaused -> "Automation paused"
-            lastExecution != null -> "Last: ${lastExecution.displaySummary()}"
+        val driveModeText = when {
+            !driveModeEnabled -> "Drive mode off"
+            driveModePaused -> "Drive mode paused"
+            lastExecution?.ruleName == "Drive mode" -> "Last: Drive mode → ${lastExecution.action}"
             else -> null
         }
-        val contentText = listOf(statusText, valveText, receiverStatusMessage, automationText)
+        val contentText = listOf(statusText, valveText, receiverStatusMessage, driveModeText)
             .filterNotNull()
             .joinToString(" · ")
 
@@ -51,7 +52,7 @@ object NotificationCopy {
             valveState != ValveState.Unknown &&
             receiverStatusMessage == null
 
-        val showAutomationActions = hasAutomationRules &&
+        val showDriveModeActions = driveModeEnabled &&
             connectionState is ConnectionState.Connected
 
         return NotificationPresentation(
@@ -63,8 +64,8 @@ object NotificationCopy {
             openValveEnabled = valveControlsEnabled && valveState != ValveState.Open,
             closeValveEnabled = valveControlsEnabled && valveState != ValveState.Closed,
             disconnectEnabled = connectionState is ConnectionState.Connected,
-            pauseAutomationEnabled = showAutomationActions && !automationPaused,
-            resumeAutomationEnabled = showAutomationActions && automationPaused,
+            pauseDriveModeEnabled = showDriveModeActions && !driveModePaused,
+            resumeDriveModeEnabled = showDriveModeActions && driveModePaused,
         )
     }
 

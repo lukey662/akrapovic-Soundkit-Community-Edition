@@ -9,6 +9,8 @@ import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.test.FakeBleRepository
 import com.akrapovic.soundkit.community.test.FakeSettingsStore
+import com.akrapovic.soundkit.community.domain.DriveModeEngine
+import com.akrapovic.soundkit.community.test.NoopRuleExecutionLogStore
 import com.akrapovic.soundkit.community.test.MainDispatcherRule
 import com.akrapovic.soundkit.community.test.testDevice
 import java.io.File
@@ -59,8 +61,15 @@ class SoundKitViewModelTest {
                 },
                 crashReader = { crashReporter.readPendingCrash() },
                 outputDirectoryProvider = { outputDirectory },
+                carAppReadinessProvider = { _ -> "CAR APP READINESS" },
             ),
             crashReporter = crashReporter,
+            driveModeEngine = DriveModeEngine(
+                bleRepository = bleRepository,
+                settingsStore = settingsStore,
+                executionLog = NoopRuleExecutionLogStore(),
+                diagnosticsRepository = diagnosticsRepository,
+            ),
         )
     }
 

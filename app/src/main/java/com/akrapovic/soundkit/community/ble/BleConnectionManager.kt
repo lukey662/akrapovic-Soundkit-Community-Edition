@@ -39,6 +39,7 @@ interface BleConnectionGateway {
     val receiverStatusMessage: StateFlow<String?>
 
     fun markReconnecting(device: SoundKitDevice, attempt: Int, nextDelayMs: Long)
+    fun markReconnectGaveUp(message: String)
     suspend fun connect(device: SoundKitDevice): Result<Unit>
     suspend fun disconnect()
     suspend fun writeCommand(command: ValveCommand): CommandResult
@@ -71,6 +72,10 @@ class BleConnectionManager @Inject constructor(
 
     override fun markReconnecting(device: SoundKitDevice, attempt: Int, nextDelayMs: Long) {
         _connectionState.value = ConnectionState.Reconnecting(device, attempt, nextDelayMs)
+    }
+
+    override fun markReconnectGaveUp(message: String) {
+        _connectionState.value = ConnectionState.Error(message, recoverable = false)
     }
 
     @SuppressLint("MissingPermission")

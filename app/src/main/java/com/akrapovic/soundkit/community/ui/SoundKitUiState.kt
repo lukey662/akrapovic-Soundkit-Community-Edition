@@ -25,12 +25,9 @@ enum class AppScreen {
     More,
     Diagnostics,
     Settings,
+    DriveMode,
     Roadmap,
     GarageThemes,
-    Beta,
-    Rules,
-    RuleEditor,
-    GeofenceZones,
-    AutomationLog,
+    AndroidAutoSetup,
 }
 

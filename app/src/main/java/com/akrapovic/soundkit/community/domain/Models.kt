@@ -47,6 +47,19 @@ enum class DiagnosticsLevel {
     Error,
 }
 
+enum class PreferredValveMode {
+    Open,
+    Closed,
+}
+
+data class QuietStartSettings(
+    val enabled: Boolean = false,
+    val daysOfWeek: Set<Int> = setOf(0, 1, 2, 3, 4, 5, 6),
+    val windowStartMinute: Int = 6 * 60,
+    val windowEndMinute: Int = 9 * 60,
+    val holdClosedMinutes: Int = 5,
+)
+
 data class SavedReceiver(
     val address: String,
     val name: String,
@@ -98,6 +111,9 @@ data class SoundKitSettings(
     val onboardingCompletedAt: Long = 0L,
     val automationPaused: Boolean = false,
     val betaDisclaimerAcceptedAt: Long = 0L,
+    val driveModeEnabled: Boolean = true,
+    val preferredValveMode: PreferredValveMode = PreferredValveMode.Open,
+    val quietStart: QuietStartSettings = QuietStartSettings(),
 ) {
     val riskNoticeAccepted: Boolean get() = riskNoticeAcceptedAt > 0L
     val onboardingCompleted: Boolean get() = onboardingCompletedAt > 0L

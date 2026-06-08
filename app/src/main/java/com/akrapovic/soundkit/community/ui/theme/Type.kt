@@ -29,10 +29,10 @@ val AkraTypography = Typography(
     ),
     displaySmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 28.sp,
-        letterSpacing = (-0.3).sp,
-        lineHeight = 32.sp,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        letterSpacing = (-0.6).sp,
+        lineHeight = 36.sp,
     ),
     headlineMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,

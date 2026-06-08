@@ -17,6 +17,7 @@ class DiagnosticsReportBuilder(
     private val metadataProvider: () -> DiagnosticsReportMetadata,
     private val crashReader: () -> String?,
     private val outputDirectoryProvider: () -> File,
+    private val carAppReadinessProvider: (Boolean) -> String,
 ) {
     @Inject
     constructor(
@@ -26,13 +27,22 @@ class DiagnosticsReportBuilder(
         metadataProvider = { DiagnosticsReportMetadata.from(context) },
         crashReader = { crashReporter.readPendingCrash() },
         outputDirectoryProvider = { File(context.cacheDir, "diagnostics") },
+        carAppReadinessProvider = { hasDefaultReceiver ->
+            CarAppDiagnostics.format(context, hasDefaultReceiver)
+        },
     )
 
-    fun buildDiagnosticsReport(entries: List<DiagnosticsEntry>, includeCrash: Boolean = true): String {
+    fun buildDiagnosticsReport(
+        entries: List<DiagnosticsEntry>,
+        hasDefaultReceiver: Boolean = false,
+        includeCrash: Boolean = true,
+    ): String {
         val metadata = metadataProvider()
         val crash = if (includeCrash) crashReader()?.takeIf { it.isNotBlank() } else null
         return buildString {
             appendHeader(metadata)
+            appendLine()
+            appendLine(carAppReadinessProvider(hasDefaultReceiver))
             appendLine()
             appendLine("PRIVACY NOTE")
             appendLine("Review before sending. This report may include BLE device names and MAC addresses.")
@@ -70,8 +80,14 @@ class DiagnosticsReportBuilder(
         }
     }
 
-    fun writeDiagnosticsReportFile(entries: List<DiagnosticsEntry>): File {
-        return writeReportFile("soundkit-diagnostics", buildDiagnosticsReport(entries))
+    fun writeDiagnosticsReportFile(
+        entries: List<DiagnosticsEntry>,
+        hasDefaultReceiver: Boolean = false,
+    ): File {
+        return writeReportFile(
+            "soundkit-diagnostics",
+            buildDiagnosticsReport(entries, hasDefaultReceiver),
+        )
     }
 
     fun writeCrashReportFile(): File {

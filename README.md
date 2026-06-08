@@ -92,13 +92,23 @@ Test while parked. Do not send unknown BLE payloads to the receiver. This app on
 
 ## Android Auto
 
-Android Auto support is implemented as a local-only IoT template surface:
+Android Auto support is implemented as a local-only **IoT** Car App template surface:
 
 ```text
 Android Auto screen -> phone CarAppService -> phone BLE service -> Sound Kit receiver
 ```
 
-This does not use the internet. Public Google Play approval for Android Auto may be policy-sensitive because the app controls a vehicle-adjacent device.
+Google’s IoT category supports **projected Android Auto** (phone USB/wireless) and **Android Automotive OS** built-in head units. Because this is a sideloaded valve controller, it will **not** appear in the car launcher until you configure the **Android Auto app on the phone**:
+
+1. Developer mode (tap version line 10× in AA settings)
+2. **Unknown sources** in AA developer settings
+3. **Customize launcher** → enable Sound Kit (on newer AA builds)
+
+See **More → Android Auto** in the app and `DOCS.md` § Android Auto Testing for the full checklist. Diagnostics exports include a **CAR APP READINESS** section.
+
+**Play Store listing** for projected Android Auto remains out of scope (policy). Sideload + developer mode is the supported personal path. If the car launcher never lists Sound Kit, use the foreground notification or Quick Settings tile while connected.
+
+This does not use the internet.
 
 ## Reverse Engineering
 

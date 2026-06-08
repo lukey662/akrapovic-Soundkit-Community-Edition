@@ -6,6 +6,7 @@ class RetryPolicy(
     private val initialDelayMs: Long = 1_000L,
     private val maxDelayMs: Long = 30_000L,
     private val multiplier: Double = 2.0,
+    val maxAttempts: Int = 8,
 ) {
     fun delayForAttempt(attempt: Int): Long {
         require(attempt >= 1) { "attempt must be 1 or greater" }
@@ -15,5 +16,7 @@ class RetryPolicy(
         }
         return min(delay.toLong(), maxDelayMs)
     }
+
+    fun hasMoreAttempts(attempt: Int): Boolean = attempt < maxAttempts
 }
 

@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.akrapovic.soundkit.community.domain.PreferredValveMode
+import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
@@ -33,6 +35,9 @@ interface SettingsStore {
     suspend fun completeOnboarding()
     suspend fun setAutomationPaused(paused: Boolean)
     suspend fun acceptBetaDisclaimer()
+    suspend fun setDriveModeEnabled(enabled: Boolean)
+    suspend fun setPreferredValveMode(mode: PreferredValveMode)
+    suspend fun setQuietStart(settings: QuietStartSettings)
 }
 
 @Singleton
@@ -51,6 +56,9 @@ class SettingsRepository @Inject constructor(
         val OnboardingCompletedAt = androidx.datastore.preferences.core.longPreferencesKey("onboarding_completed_at")
         val AutomationPaused = booleanPreferencesKey("automation_paused")
         val BetaDisclaimerAcceptedAt = androidx.datastore.preferences.core.longPreferencesKey("beta_disclaimer_accepted_at")
+        val DriveModeEnabled = booleanPreferencesKey("drive_mode_enabled")
+        val PreferredValveMode = stringPreferencesKey("preferred_valve_mode")
+        val QuietStartJson = stringPreferencesKey("quiet_start_json")
     }
 
     override val settings: Flow<SoundKitSettings> = context.settingsDataStore.data.map { preferences ->
@@ -65,6 +73,11 @@ class SettingsRepository @Inject constructor(
             onboardingCompletedAt = preferences[Keys.OnboardingCompletedAt] ?: 0L,
             automationPaused = preferences[Keys.AutomationPaused] ?: false,
             betaDisclaimerAcceptedAt = preferences[Keys.BetaDisclaimerAcceptedAt] ?: 0L,
+            driveModeEnabled = preferences[Keys.DriveModeEnabled] ?: true,
+            preferredValveMode = preferences[Keys.PreferredValveMode]
+                ?.let { runCatching { PreferredValveMode.valueOf(it) }.getOrNull() }
+                ?: PreferredValveMode.Open,
+            quietStart = QuietStartCodec.decode(preferences[Keys.QuietStartJson]),
         )
     }
 
@@ -178,6 +191,24 @@ class SettingsRepository @Inject constructor(
     override suspend fun acceptBetaDisclaimer() {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.BetaDisclaimerAcceptedAt] = System.currentTimeMillis()
+        }
+    }
+
+    override suspend fun setDriveModeEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.DriveModeEnabled] = enabled
+        }
+    }
+
+    override suspend fun setPreferredValveMode(mode: PreferredValveMode) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.PreferredValveMode] = mode.name
+        }
+    }
+
+    override suspend fun setQuietStart(settings: QuietStartSettings) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.QuietStartJson] = QuietStartCodec.encode(settings)
         }
     }
 

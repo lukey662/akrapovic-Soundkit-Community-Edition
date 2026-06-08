@@ -54,7 +54,7 @@ class ServiceAndManifestSmokeTest {
     }
 
     @Test
-    fun notificationShowsPauseAutomationWhenRulesExist() {
+    fun notificationShowsPauseDriveModeWhenEnabled() {
         val factory = SoundKitNotificationFactory(context)
         val device = com.akrapovic.soundkit.community.testDeviceForSmoke()
 
@@ -62,11 +62,11 @@ class ServiceAndManifestSmokeTest {
         val notification = factory.build(
             connectionState = ConnectionState.Connected(device),
             valveState = ValveState.Closed,
-            hasAutomationRules = true,
-            automationPaused = false,
+            driveModeEnabled = true,
+            driveModePaused = false,
         )
 
-        assertTrue(notification.actions.any { it.title.toString() == "Pause automation" })
+        assertTrue(notification.actions.any { it.title.toString() == "Pause drive mode" })
     }
 
     @Test

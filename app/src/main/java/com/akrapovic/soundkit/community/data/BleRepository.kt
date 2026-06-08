@@ -142,6 +142,7 @@ class BleRepositoryImpl @Inject constructor(
         }
         lastRequestedDevice = device
         reconnectJob?.cancel()
+        reconnectAttempt = 0
         diagnosticsRepository.info("User requested connection to ${device.name}")
         connectionManager.connect(device).onFailure { error ->
             suppressNextAutoReconnect = false
@@ -173,9 +174,15 @@ class BleRepositoryImpl @Inject constructor(
             while (lastRequestedDevice?.address == device.address) {
                 reconnectAttempt += 1
                 val attempt = reconnectAttempt
+                if (!retryPolicy.hasMoreAttempts(attempt)) {
+                    diagnosticsRepository.warning("Auto-reconnect gave up after $attempt attempts")
+                    connectionManager.markReconnectGaveUp(RECONNECT_GAVE_UP_MESSAGE)
+                    return@launch
+                }
                 val delayMs = retryPolicy.delayForAttempt(attempt)
                 diagnosticsRepository.warning("Scheduling reconnect attempt $attempt in ${delayMs}ms")
                 delay(delayMs)
+                if (lastRequestedDevice?.address != device.address) return@launch
                 connectionManager.markReconnecting(device, attempt, delayMs)
                 val result = connectionManager.connect(device)
                 if (result.isSuccess) {
@@ -185,6 +192,10 @@ class BleRepositoryImpl @Inject constructor(
                 diagnosticsRepository.error("Reconnect attempt $attempt failed: ${result.exceptionOrNull()?.message}")
             }
         }
+    }
+
+    companion object {
+        const val RECONNECT_GAVE_UP_MESSAGE = "Couldn't reach receiver — tap to retry"
     }
 
     private fun logCommandResult(command: String, result: CommandResult) {

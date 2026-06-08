@@ -1,6 +1,8 @@
 package com.akrapovic.soundkit.community.service
 
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
+import com.akrapovic.soundkit.community.domain.RuleExecutionOutcome
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.test.testDevice
@@ -56,17 +58,37 @@ class NotificationCopyTest {
     }
 
     @Test
-    fun automationPausedShownInContent() {
+    fun driveModePausedShownInContent() {
         val presentation = NotificationCopy.build(
             connectionState = ConnectionState.Disconnected,
             valveState = ValveState.Closed,
             receiverStatusMessage = null,
             defaultReceiver = null,
-            automationPaused = true,
-            hasAutomationRules = true,
+            driveModeEnabled = true,
+            driveModePaused = true,
         )
 
-        assertTrue(presentation.contentText.contains("Automation paused"))
-        assertFalse(presentation.pauseAutomationEnabled)
+        assertTrue(presentation.contentText.contains("Drive mode paused"))
+        assertFalse(presentation.pauseDriveModeEnabled)
+    }
+
+    @Test
+    fun lastDriveModeApplyShownInContent() {
+        val presentation = NotificationCopy.build(
+            connectionState = ConnectionState.Connected(testDevice()),
+            valveState = ValveState.Open,
+            receiverStatusMessage = null,
+            defaultReceiver = null,
+            driveModeEnabled = true,
+            lastExecution = RuleExecutionEntry(
+                timestampMillis = 1L,
+                ruleName = "Drive mode",
+                action = "Open",
+                reason = "connect",
+                outcome = RuleExecutionOutcome.Success,
+            ),
+        )
+
+        assertTrue(presentation.contentText.contains("Last: Drive mode → Open"))
     }
 }

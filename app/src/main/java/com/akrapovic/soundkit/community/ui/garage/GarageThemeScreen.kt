@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,10 +29,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.akrapovic.soundkit.community.ui.components.AkraCard
+import com.akrapovic.soundkit.community.ui.components.AkraActionButton
 import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
-import com.akrapovic.soundkit.community.ui.components.AkraStatusPill
-import com.akrapovic.soundkit.community.ui.theme.AkraColors
+import com.akrapovic.soundkit.community.ui.components.AkraSurface
 import com.akrapovic.soundkit.community.ui.theme.GarageTheme
 import com.akrapovic.soundkit.community.ui.theme.GarageThemeFamilies
 import com.akrapovic.soundkit.community.ui.theme.GarageThemeFamily
@@ -49,14 +47,14 @@ fun GarageThemeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             AkraHeroHeader(
-                eyebrow = "Garage themes",
-                title = "Pick the mood",
-                subtitle = "Choose a car-inspired family, then pick the light or dark version.",
-                modifier = Modifier.padding(top = 10.dp),
+                title = "Appearance",
+                subtitle = "Pick a family, then light or dark.",
+                compact = true,
+                modifier = Modifier.padding(top = 8.dp),
             )
         }
 
@@ -82,10 +80,7 @@ private fun GarageThemeFamilyCard(
         else -> family.dark
     }
 
-    AkraCard(
-        accent = if (selected) previewTheme.accent else MaterialTheme.colorScheme.outline,
-        contentDescription = "Select ${family.name} theme",
-    ) {
+    AkraSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             BrandMark(
                 theme = previewTheme,
@@ -95,29 +90,58 @@ private fun GarageThemeFamilyCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = family.name,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = family.subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (selected) {
-                AkraStatusPill(text = if (previewTheme.isDark) "DARK" else "LIGHT", color = previewTheme.highlight)
             }
         }
-        ThemeSwatch(theme = previewTheme)
+        ThemePreviewStrip(theme = previewTheme)
         VariantSelector(
             family = family,
             selectedThemeId = selectedThemeId,
             onThemeSelected = onThemeSelected,
         )
-        Text(
-            text = if (selected) "Applied across the app and saved for next launch." else "Choose Light or Dark to apply instantly.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+    }
+}
+
+@Composable
+private fun ThemePreviewStrip(theme: GarageTheme) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(theme.base)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(theme.surface),
+            )
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(theme.accent),
+            )
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(theme.secondaryAccent),
+            )
+        }
+        AkraActionButton(
+            label = "Preview",
+            filled = true,
+            enabled = false,
+            onClick = {},
         )
     }
 }
@@ -196,49 +220,5 @@ private fun VariantButton(
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-}
-
-@Composable
-private fun ThemeSwatch(theme: GarageTheme) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.28f), RoundedCornerShape(16.dp)),
-        horizontalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        SwatchBlock(Modifier.weight(1f), theme.base, label = "Base")
-        SwatchBlock(Modifier.weight(1f), theme.surface, label = "Surface")
-        SwatchBlock(Modifier.weight(1f), theme.accent, label = "Accent")
-        SwatchBlock(Modifier.weight(1f), theme.secondaryAccent, label = "Secondary")
-        SwatchBlock(Modifier.weight(1f), theme.highlight, label = "Highlight")
-    }
-}
-
-@Composable
-private fun RowScope.SwatchBlock(
-    modifier: Modifier,
-    color: Color,
-    label: String,
-) {
-    Column(
-        modifier = modifier
-            .height(52.dp)
-            .background(color)
-            .semantics { contentDescription = "$label color swatch" },
-        verticalArrangement = Arrangement.Bottom,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (color.luminance() > 0.55f) Color(0xFF111111) else Color(0xFFF5F5F5),
-            modifier = Modifier.padding(4.dp),
-            maxLines = 1,
-        )
-    }
-}
-
-private fun Color.luminance(): Float {
-    return (0.299f * red + 0.587f * green + 0.114f * blue)
 }
 

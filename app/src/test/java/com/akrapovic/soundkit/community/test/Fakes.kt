@@ -7,6 +7,7 @@ import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.SavedReceiver
+import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.domain.ValveCommand
@@ -16,6 +17,19 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+
+class NoopRuleExecutionLogStore : com.akrapovic.soundkit.community.data.RuleExecutionLogStore {
+    override val entries: Flow<List<RuleExecutionEntry>> = MutableStateFlow(emptyList())
+    override val lastExecution = MutableStateFlow<RuleExecutionEntry?>(null)
+
+    override suspend fun append(entry: RuleExecutionEntry) {
+        lastExecution.value = entry
+    }
+
+    override suspend fun clear() {
+        lastExecution.value = null
+    }
+}
 
 class FakeBleScannerGateway : BleScannerGateway {
     val emissions = MutableSharedFlow<List<SoundKitDevice>>()
@@ -39,9 +53,16 @@ class FakeBleConnectionGateway : BleConnectionGateway {
     var writeResult: CommandResult = CommandResult.Failure("protocol not verified", recoverable = false)
     var connectResults: MutableList<Result<Unit>> = mutableListOf(Result.success(Unit))
 
+    val reconnectGaveUpMessages = mutableListOf<String>()
+
     override fun markReconnecting(device: SoundKitDevice, attempt: Int, nextDelayMs: Long) {
         reconnectMarks += ConnectionState.Reconnecting(device, attempt, nextDelayMs)
         connectionState.value = reconnectMarks.last()
+    }
+
+    override fun markReconnectGaveUp(message: String) {
+        reconnectGaveUpMessages += message
+        connectionState.value = ConnectionState.Error(message, recoverable = false)
     }
 
     override suspend fun connect(device: SoundKitDevice): Result<Unit> {
@@ -162,6 +183,18 @@ class FakeSettingsStore(
     override suspend fun acceptBetaDisclaimer() {
         settings.value = settings.value.copy(betaDisclaimerAcceptedAt = 1L)
     }
+
+    override suspend fun setDriveModeEnabled(enabled: Boolean) {
+        settings.value = settings.value.copy(driveModeEnabled = enabled)
+    }
+
+    override suspend fun setPreferredValveMode(mode: com.akrapovic.soundkit.community.domain.PreferredValveMode) {
+        settings.value = settings.value.copy(preferredValveMode = mode)
+    }
+
+    override suspend fun setQuietStart(quietStart: com.akrapovic.soundkit.community.domain.QuietStartSettings) {
+        settings.value = settings.value.copy(quietStart = quietStart)
+    }
 }
 
 class FakeBleRepository : BleRepository {
@@ -175,6 +208,8 @@ class FakeBleRepository : BleRepository {
     var stopScanCount = 0
     val connectedDevices = mutableListOf<SoundKitDevice>()
     var disconnectCount = 0
+    var openValveCount = 0
+    var closeValveCount = 0
     var openResult: CompletableDeferred<CommandResult> =
         CompletableDeferred(CommandResult.Failure("protocol not verified", recoverable = false))
     var closeResult: CompletableDeferred<CommandResult> =
@@ -200,9 +235,23 @@ class FakeBleRepository : BleRepository {
         connectionState.value = ConnectionState.Disconnected
     }
 
-    override suspend fun openValve(): CommandResult = openResult.await()
+    override suspend fun openValve(): CommandResult {
+        openValveCount += 1
+        return openResult.await().also { result ->
+            if (result is CommandResult.Success) {
+                valveState.value = result.valveState
+            }
+        }
+    }
 
-    override suspend fun closeValve(): CommandResult = closeResult.await()
+    override suspend fun closeValve(): CommandResult {
+        closeValveCount += 1
+        return closeResult.await().also { result ->
+            if (result is CommandResult.Success) {
+                valveState.value = result.valveState
+            }
+        }
+    }
 }
 
 fun testDevice(

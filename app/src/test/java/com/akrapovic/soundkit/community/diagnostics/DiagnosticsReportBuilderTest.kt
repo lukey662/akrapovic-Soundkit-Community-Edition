@@ -27,6 +27,7 @@ class DiagnosticsReportBuilderTest {
         )
 
         assertTrue(report.contains("applicationId=com.akrapovic.soundkit.community.debug"))
+        assertTrue(report.contains("CAR APP READINESS"))
         assertTrue(report.contains("versionName=0.1.0-debug"))
         assertTrue(report.contains("GATT PROFILE START"))
         assertTrue(report.contains("service[0]=00001800-0000-1000-8000-00805f9b34fb"))
@@ -76,6 +77,14 @@ class DiagnosticsReportBuilderTest {
             },
             crashReader = { crash },
             outputDirectoryProvider = { outputDirectory },
+            carAppReadinessProvider = { hasDefault ->
+                buildString {
+                    appendLine("CAR APP READINESS")
+                    appendLine("carAppServiceRegistered=true")
+                    appendLine("protocolVerified=true")
+                    appendLine("defaultReceiverSaved=$hasDefault")
+                }
+            },
         )
     }
 }

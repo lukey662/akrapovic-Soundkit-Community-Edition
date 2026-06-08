@@ -27,12 +27,13 @@ fun AkraStatePanel(
     onSecondary: (() -> Unit)? = null,
     secondaryContentDescription: String? = null,
 ) {
-    AkraCard(
-        modifier = modifier.fillMaxWidth(),
-        accent = MaterialTheme.colorScheme.onSurfaceVariant,
-    ) {
-        eyebrow?.let {
-            AkraStatusPill(text = it, color = MaterialTheme.colorScheme.primary)
+    AkraElevated(modifier = modifier.fillMaxWidth()) {
+        if (eyebrow != null) {
+            Text(
+                text = eyebrow,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
         Text(
             text = title,

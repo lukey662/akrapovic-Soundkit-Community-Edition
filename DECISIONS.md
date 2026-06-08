@@ -177,9 +177,9 @@ Document the limitation in `DOCS.md` § Android Auto Testing and list "Projected
 - No effort is sunk into trying to fit valve control into an unrelated Play category.
 - If Google ever publishes a category that fits, this decision can be revisited.
 
-### Update (May 2026)
+### Update (June 2026)
 
-**Sideload projected Android Auto** (developer mode + unknown sources) is in scope for personal use: car session auto-reconnect, toggle on `SoundKitCarScreen`, and notification/Quick Settings fallback documented in `TESTING.md`. This does not change the Play Store non-goal.
+Google documents the Car App Library **IoT** category for both **projected Android Auto** and **Automotive OS**. Sideloaded debug/release APKs still require AA **Developer mode**, **Unknown sources**, and often **Customize launcher** on the phone — installing via `adb` alone is not enough. In-app setup lives under **More → Android Auto**; diagnostics exports include **CAR APP READINESS**. Play Store projected listing remains a non-goal.
 
 ## 2026-05-16: Saved Receivers And Rules Engine (Design Spike)
 
@@ -228,3 +228,22 @@ Roadmap items for rules execution, schedules, geofencing, and notification autom
 - Play policy for background location remains user responsibility when enabling geofences.
 - Room migration remains optional until rule/log volume warrants it.
 
+## 2026-06-08: Drive Mode Replaces Beta Automation
+
+### Context
+
+Beta rules, geofencing, and WorkManager polling added complexity and background churn. Users wanted a simple “favorite valve on connect” plus optional quiet morning start, and auto-reconnect could loop indefinitely when the receiver was away.
+
+### Decision
+
+- Replace **`RuleExecutionEngine`** with **`DriveModeEngine`**: preferred Open/Closed on connect; optional quiet-start window (hold closed N minutes after each connect).
+- **Settings** hosts full drive mode controls; **Home** shows a shortcut card.
+- Remove Beta hub, geofence UI, rules persistence, WorkManager worker, and `play-services-location`.
+- Cap **auto-reconnect at 8 attempts** (~2 min); surface recoverable “Couldn't reach receiver — tap to retry”.
+- Reuse **`RuleExecutionLog`** for last drive mode apply in notification copy.
+
+### Consequences
+
+- Manual valve toggle on Home wins for the current connect session.
+- Geofence/schedule experiments archived; `RuleEvaluator` domain code may remain for unit tests only.
+- Version **0.3.0**.

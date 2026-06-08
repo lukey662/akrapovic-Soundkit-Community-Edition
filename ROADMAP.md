@@ -2,7 +2,7 @@
 
 Living plan for **Sound Kit Community**. Nothing here is a commitment or timeline; it records direction so contributors and users know what might come next. All work stays **local-first** (phone BLE only) unless an explicit decision says otherwise.
 
-*Last refreshed: May 2026 — Beta automation (rules, schedules, geofences, notification controls) shipped.*
+*Last refreshed: June 2026 — Drive mode (preferred valves + quiet start) replaces Beta rules/geofencing; reconnect capped at 8 attempts.*
 
 ## Principles
 
@@ -40,6 +40,8 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 | **Time automation (Beta)** | Schedule triggers via WorkManager + evaluate on connect when ready. |
 | **Geofencing (Beta)** | Up to 4 zones, opt-in location, enter/exit triggers via Geofencing API. |
 | **Automation notifications (Beta)** | Pause/resume automation + last-run cause in foreground notification. |
+| **Drive mode** | Preferred Open/Closed on connect; optional quiet-start window (hold closed N min); Settings + Home shortcut; replaces Beta rules/geofencing. |
+| **Reconnect cap** | Auto-reconnect stops after 8 attempts (~2 min); honest “Couldn't reach receiver — tap to retry” UI. |
 
 ## Near term
 
@@ -49,8 +51,8 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 
 ## Later (product)
 
-- **Automation polish** — richer schedule UI, map picker for zones, Room if rule/log volume grows, Quick Settings last-cause line.
-- **Quiet hours / sport profiles** — grouped rules and timezone-safe recurrence beyond simple windows.
+- **Drive mode polish** — richer quiet-hours UI, sport profiles, timezone-safe recurrence.
+- **Automation polish (archived Beta)** — schedule/geofence experiments removed; revisit only if product needs return.
 
 ## Non-goals (for now)
 

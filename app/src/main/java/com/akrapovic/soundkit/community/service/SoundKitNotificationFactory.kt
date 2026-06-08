@@ -42,16 +42,17 @@ class SoundKitNotificationFactory @Inject constructor(
         defaultReceiver: SavedReceiver? = null,
         automationPaused: Boolean = false,
         lastExecution: RuleExecutionEntry? = null,
-        hasAutomationRules: Boolean = false,
+        driveModeEnabled: Boolean = true,
+        driveModePaused: Boolean = automationPaused,
     ): Notification {
         val presentation = NotificationCopy.build(
             connectionState = connectionState,
             valveState = valveState,
             receiverStatusMessage = receiverStatusMessage,
             defaultReceiver = defaultReceiver,
-            automationPaused = automationPaused,
+            driveModeEnabled = driveModeEnabled,
+            driveModePaused = driveModePaused,
             lastExecution = lastExecution,
-            hasAutomationRules = hasAutomationRules,
         )
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -81,16 +82,16 @@ class SoundKitNotificationFactory @Inject constructor(
                 action(R.string.notification_action_disconnect, BleConnectionService.ACTION_DISCONNECT, 3),
             )
         }
-        if (presentation.pauseAutomationEnabled) {
+        if (presentation.pauseDriveModeEnabled) {
             builder.addAction(
-                action(R.string.notification_action_pause_automation, BleConnectionService.ACTION_PAUSE_AUTOMATION, 4),
+                action(R.string.notification_action_pause_drive_mode, BleConnectionService.ACTION_PAUSE_DRIVE_MODE, 4),
             )
         }
-        if (presentation.resumeAutomationEnabled) {
+        if (presentation.resumeDriveModeEnabled) {
             builder.addAction(
                 action(
-                    R.string.notification_action_resume_automation,
-                    BleConnectionService.ACTION_RESUME_AUTOMATION,
+                    R.string.notification_action_resume_drive_mode,
+                    BleConnectionService.ACTION_RESUME_DRIVE_MODE,
                     5,
                 ),
             )

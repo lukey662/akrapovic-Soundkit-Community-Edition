@@ -1,7 +1,9 @@
 package com.akrapovic.soundkit.community.ble
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RetryPolicyTest {
@@ -21,5 +23,13 @@ class RetryPolicyTest {
             RetryPolicy().delayForAttempt(0)
         }
     }
-}
 
+    @Test
+    fun hasMoreAttemptsRespectsMaximum() {
+        val policy = RetryPolicy(maxAttempts = 3)
+
+        assertTrue(policy.hasMoreAttempts(1))
+        assertTrue(policy.hasMoreAttempts(2))
+        assertFalse(policy.hasMoreAttempts(3))
+    }
+}

@@ -13,7 +13,11 @@ import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.diagnostics.CrashReporter
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
-import com.akrapovic.soundkit.community.domain.CommandResult
+import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
+import com.akrapovic.soundkit.community.domain.DriveModeEngine
+import com.akrapovic.soundkit.community.domain.PreferredValveMode
+import com.akrapovic.soundkit.community.domain.QuietStartSettings
+import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.DiagnosticsEntry
 import com.akrapovic.soundkit.community.domain.DiagnosticsLevel
@@ -35,6 +39,30 @@ import com.akrapovic.soundkit.community.ui.theme.SoundKitTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
+
+private class SmokeRuleExecutionLogStore : RuleExecutionLogStore {
+    override val entries = MutableStateFlow<List<RuleExecutionEntry>>(emptyList())
+    override val lastExecution = MutableStateFlow<RuleExecutionEntry?>(null)
+
+    override suspend fun append(entry: RuleExecutionEntry) {
+        lastExecution.value = entry
+    }
+
+    override suspend fun clear() {
+        lastExecution.value = null
+    }
+}
+
+private fun smokeDriveModeEngine(
+    bleRepository: BleRepository,
+    settingsRepository: SettingsStore,
+    diagnosticsRepository: DiagnosticsRepository,
+) = DriveModeEngine(
+    bleRepository = bleRepository,
+    settingsStore = settingsRepository,
+    executionLog = SmokeRuleExecutionLogStore(),
+    diagnosticsRepository = diagnosticsRepository,
+)
 
 @SdkSuppress(maxSdkVersion = 35)
 class ComposeSmokeTest {
@@ -77,7 +105,8 @@ class ComposeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("No receiver selected").assertIsDisplayed()
+        composeRule.onNodeWithText("No receivers yet").assertIsDisplayed()
+        composeRule.onNodeWithText("Scan nearby").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Scan for Sound Kit receiver").assertIsDisplayed()
     }
 
@@ -201,13 +230,16 @@ class ComposeSmokeTest {
                     onRemoveReceiver = {},
                     onUpdateNickname = { _, _ -> },
                     onForgetAll = {},
-                    onOpenBeta = {},
+                    onDriveModeEnabledChanged = {},
+                    onPreferredModeChanged = {},
+                    onQuietStartChanged = {},
+                    onDriveModePausedChanged = {},
                 )
             }
         }
 
         composeRule.onNodeWithText("Connect on launch").assertIsDisplayed()
-        composeRule.onNodeWithText("Automation (Beta)").assertIsDisplayed()
+        composeRule.onNodeWithText("Drive mode").assertIsDisplayed()
         composeRule.onNodeWithText("Auto reconnect").assertIsDisplayed()
         composeRule.onNodeWithText("Background connection").assertIsDisplayed()
         composeRule.onNodeWithText("Detailed logs").assertIsDisplayed()
@@ -237,7 +269,10 @@ class ComposeSmokeTest {
                     onRemoveReceiver = {},
                     onUpdateNickname = { _, _ -> },
                     onForgetAll = {},
-                    onOpenBeta = {},
+                    onDriveModeEnabledChanged = {},
+                    onPreferredModeChanged = {},
+                    onQuietStartChanged = {},
+                    onDriveModePausedChanged = {},
                 )
             }
         }
@@ -251,16 +286,23 @@ class ComposeSmokeTest {
     fun appShellShowsHomeWhenOnboardingComplete() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val crashReporter = CrashReporter(context)
+        val settingsRepository = FakeSettingsStoreForSmoke(
+            initial = SoundKitSettings(onboardingCompletedAt = 1L),
+        )
+        val diagnosticsRepository = DiagnosticsRepository()
         composeRule.setContent {
             SoundKitApp(
                 viewModel = SoundKitViewModel(
                     bleRepository = FakeBleRepositoryForSmoke(),
-                    settingsRepository = FakeSettingsStoreForSmoke(
-                        initial = SoundKitSettings(onboardingCompletedAt = 1L),
-                    ),
-                    diagnosticsRepository = DiagnosticsRepository(),
+                    settingsRepository = settingsRepository,
+                    diagnosticsRepository = diagnosticsRepository,
                     diagnosticsReportBuilder = DiagnosticsReportBuilder(context, crashReporter),
                     crashReporter = crashReporter,
+                    driveModeEngine = smokeDriveModeEngine(
+                        FakeBleRepositoryForSmoke(),
+                        settingsRepository,
+                        diagnosticsRepository,
+                    ),
                 ),
                 blePermissions = emptyList(),
                 blePermissionsGranted = true,
@@ -278,16 +320,23 @@ class ComposeSmokeTest {
     fun onboardingFlowShownWhenNotComplete() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val crashReporter = CrashReporter(context)
+        val settingsRepository = FakeSettingsStoreForSmoke(
+            initial = SoundKitSettings(onboardingCompletedAt = 0L),
+        )
+        val diagnosticsRepository = DiagnosticsRepository()
         composeRule.setContent {
             SoundKitApp(
                 viewModel = SoundKitViewModel(
                     bleRepository = FakeBleRepositoryForSmoke(),
-                    settingsRepository = FakeSettingsStoreForSmoke(
-                        initial = SoundKitSettings(onboardingCompletedAt = 0L),
-                    ),
-                    diagnosticsRepository = DiagnosticsRepository(),
+                    settingsRepository = settingsRepository,
+                    diagnosticsRepository = diagnosticsRepository,
                     diagnosticsReportBuilder = DiagnosticsReportBuilder(context, crashReporter),
                     crashReporter = crashReporter,
+                    driveModeEngine = smokeDriveModeEngine(
+                        FakeBleRepositoryForSmoke(),
+                        settingsRepository,
+                        diagnosticsRepository,
+                    ),
                 ),
                 blePermissions = emptyList(),
                 blePermissionsGranted = true,
@@ -313,6 +362,7 @@ class ComposeSmokeTest {
         composeRule.onNodeWithText("Settings").assertIsDisplayed()
         composeRule.onNodeWithText("Roadmap").assertIsDisplayed()
         composeRule.onNodeWithText("Appearance").assertIsDisplayed()
+        composeRule.onNodeWithText("Android Auto").assertIsDisplayed()
     }
 
     @Test
@@ -338,9 +388,10 @@ class ComposeSmokeTest {
             }
         }
 
+        composeRule.onNodeWithText("Appearance").assertIsDisplayed()
         composeRule.onNodeWithText("Studio").assertIsDisplayed()
         composeRule.onNodeWithText("Audi RS").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Accent color swatch").assertIsDisplayed()
+        composeRule.onNodeWithText("Preview").assertIsDisplayed()
     }
 
     @Test
@@ -445,5 +496,17 @@ private class FakeSettingsStoreForSmoke(
 
     override suspend fun acceptBetaDisclaimer() {
         settings.value = settings.value.copy(betaDisclaimerAcceptedAt = System.currentTimeMillis())
+    }
+
+    override suspend fun setDriveModeEnabled(enabled: Boolean) {
+        settings.value = settings.value.copy(driveModeEnabled = enabled)
+    }
+
+    override suspend fun setPreferredValveMode(mode: PreferredValveMode) {
+        settings.value = settings.value.copy(preferredValveMode = mode)
+    }
+
+    override suspend fun setQuietStart(quietStart: QuietStartSettings) {
+        settings.value = settings.value.copy(quietStart = quietStart)
     }
 }

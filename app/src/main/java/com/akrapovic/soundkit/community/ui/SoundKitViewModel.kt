@@ -10,6 +10,9 @@ import com.akrapovic.soundkit.community.diagnostics.CrashReporter
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.DriveModeEngine
+import com.akrapovic.soundkit.community.domain.PreferredValveMode
+import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.ValveState
@@ -30,6 +33,7 @@ class SoundKitViewModel @Inject constructor(
     private val diagnosticsRepository: DiagnosticsRepository,
     private val diagnosticsReportBuilder: DiagnosticsReportBuilder,
     private val crashReporter: CrashReporter,
+    private val driveModeEngine: DriveModeEngine,
 ) : ViewModel() {
     private val commandInFlight = MutableStateFlow(false)
     private val lastError = MutableStateFlow<String?>(null)
@@ -125,14 +129,17 @@ class SoundKitViewModel @Inject constructor(
     }
 
     fun openValve() {
+        driveModeEngine.onUserValveAdjustment()
         sendCommand { bleRepository.openValve() }
     }
 
     fun closeValve() {
+        driveModeEngine.onUserValveAdjustment()
         sendCommand { bleRepository.closeValve() }
     }
 
     fun toggleValve() {
+        driveModeEngine.onUserValveAdjustment()
         when (uiState.value.valveState) {
             ValveState.Open -> closeValve()
             ValveState.Closed -> openValve()
@@ -210,12 +217,46 @@ class SoundKitViewModel @Inject constructor(
         }
     }
 
+    fun setDriveModeEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setDriveModeEnabled(enabled)
+        }
+    }
+
+    fun setPreferredValveMode(mode: PreferredValveMode) {
+        viewModelScope.launch {
+            settingsRepository.setPreferredValveMode(mode)
+        }
+    }
+
+    fun setQuietStart(quietStart: QuietStartSettings) {
+        viewModelScope.launch {
+            settingsRepository.setQuietStart(quietStart)
+        }
+    }
+
+    fun setDriveModePaused(paused: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setAutomationPaused(paused)
+        }
+    }
+
     fun buildDiagnosticsReport(): String {
-        return diagnosticsReportBuilder.buildDiagnosticsReport(uiState.value.diagnostics)
+        val settings = uiState.value.settings
+        val hasDefault = RememberedDeviceConnector.defaultDevice(settings) != null
+        return diagnosticsReportBuilder.buildDiagnosticsReport(
+            entries = uiState.value.diagnostics,
+            hasDefaultReceiver = hasDefault,
+        )
     }
 
     fun writeDiagnosticsReportFile(): java.io.File {
-        return diagnosticsReportBuilder.writeDiagnosticsReportFile(uiState.value.diagnostics)
+        val settings = uiState.value.settings
+        val hasDefault = RememberedDeviceConnector.defaultDevice(settings) != null
+        return diagnosticsReportBuilder.writeDiagnosticsReportFile(
+            entries = uiState.value.diagnostics,
+            hasDefaultReceiver = hasDefault,
+        )
     }
 
     fun buildCrashReport(): String {

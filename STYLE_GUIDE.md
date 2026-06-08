@@ -43,13 +43,19 @@
 
 ## Visual language (Sound Kit Community)
 
-- Prefer a premium companion-app style in `ui/components`: calm hierarchy, rounded elevated panels, restrained accent color, concise copy, and large touch targets.
-- Primary screens should use plain customer language: find receiver, connect, open valves, close valves, settings, diagnostics.
+- **Calm shell, loud moment**: flat backgrounds and list rows by default; reserve emphasis for Home valve state and primary CTAs.
+- Use **`AkraSurface`** for grouped content (16dp radius, no shadow, optional hairline). Use **`AkraElevated`** only for modals, empty states, and blocking panels.
+- Prefer **`AkraListGroup` / `AkraListRow`** for Settings, More, and secondary actions — not a full card per row.
+- **`AkraHeroHeader`**: compact title + one subtitle on secondary screens; Home uses inline status + valve hero instead of a page hero.
+- **Status**: inline dot + text (`AkraInlineStatus`) or slim **`AkraBanner`** for errors/reconnect — not stacked cards with pills.
+- **`AkraStatusPill`**: warnings and onboarding badges only, not connection/valve state.
+- Primary screens use plain customer language: scan nearby, connect, open valves, close valves, drive mode, settings, diagnostics.
 - Keep UUIDs, hashes, GATT details, raw logs, and reverse-engineering language inside Diagnostics or documentation.
-- Garage themes are organized as brand-inspired families with explicit Light and Dark variants. They may change gradients, accent, brand mark, and background color, but screens should keep the same layout, hierarchy, and local-only privacy language.
-- Brand marks are loaded from local `brand_*.xml` drawables. Replace them with your own SVGs locally; only ship marks you have rights to use.
-- Prefer theme color roles (`MaterialTheme.colorScheme.onSurface`, `onSurfaceVariant`, etc.) over fixed white/gray text so Studio Light remains readable.
-- Use gradients for depth on screen backgrounds, cards, and primary actions. Keep them subtle and functional, not decorative noise.
-- Avoid square debug-style cards, dense uppercase copy, decorative borders, and telemetry panels that do not help the user complete the current task.
+- Garage themes are brand-inspired families with Light/Dark variants. Themes change accent, background, and preview strip colors — layout stays the same.
+- Brand marks load from local `brand_*.xml` drawables. Only ship marks you have rights to use.
+- Prefer theme color roles (`MaterialTheme.colorScheme.onSurface`, `onSurfaceVariant`, etc.) over fixed white/gray text.
+- **Avoid**: screen + card double gradients, 10dp shadows on every block, uppercase eyebrow labels on every screen, decorative pill bottom nav.
+- Optional accent gradients belong on Home hero glow or theme preview strips — not default card treatment.
+- **`ValveVisual`** uses layered vector drawables (`valve_ring`, `valve_blade_*`, `valve_core_*`) shared with the launcher icon geometry. Spring motion for open/close; glow and flow lines when open; respect reduced motion.
 - Launcher artwork should use the same dark carbon / titanium / amber vocabulary and remain vector-based.
 

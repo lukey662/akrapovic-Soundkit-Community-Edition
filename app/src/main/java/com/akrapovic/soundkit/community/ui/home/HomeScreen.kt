@@ -22,6 +22,7 @@ fun HomeScreen(
     onDisconnect: () -> Unit,
     onRetryConnection: () -> Unit = {},
     onSetDefaultReceiver: (String) -> Unit = {},
+    onOpenDriveMode: () -> Unit = {},
 ) {
     if (state.showsControlSection()) {
         ConnectedDeviceScreen(
@@ -30,6 +31,7 @@ fun HomeScreen(
             onToggleValve = onToggleValve,
             onDisconnect = onDisconnect,
             onRetryConnection = onRetryConnection,
+            onOpenDriveMode = onOpenDriveMode,
         )
     } else {
         ScanScreen(
@@ -43,6 +45,7 @@ fun HomeScreen(
             onConnect = onConnect,
             onRetryConnection = onRetryConnection,
             onSetDefaultReceiver = onSetDefaultReceiver,
+            onOpenDriveMode = onOpenDriveMode,
         )
     }
 }

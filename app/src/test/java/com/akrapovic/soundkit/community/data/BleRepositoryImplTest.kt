@@ -28,7 +28,7 @@ class BleRepositoryImplTest {
     private val connection = FakeBleConnectionGateway()
     private val settings = FakeSettingsStore()
     private val diagnostics = DiagnosticsRepository()
-    private val retryPolicy = RetryPolicy(initialDelayMs = 1_000, maxDelayMs = 5_000)
+    private val retryPolicy = RetryPolicy(initialDelayMs = 1_000, maxDelayMs = 5_000, maxAttempts = 8)
 
     private fun repository() = BleRepositoryImpl(
         scanner = scanner,
@@ -188,6 +188,29 @@ class BleRepositoryImplTest {
         assertEquals(listOf(ValveCommand.Open), connection.writtenCommands)
         assertTrue(result is CommandResult.Failure)
         assertTrue(diagnostics.entries.value.any { it.message.contains("OPEN command failed") })
+    }
+
+    @Test
+    fun autoReconnectStopsAfterMaxAttempts() = runTest(mainDispatcherRule.dispatcher) {
+        val cappedPolicy = RetryPolicy(initialDelayMs = 100, maxDelayMs = 100, maxAttempts = 3)
+        val repository = BleRepositoryImpl(
+            scanner = scanner,
+            connectionManager = connection,
+            settingsRepository = settings,
+            diagnosticsRepository = diagnostics,
+            retryPolicy = cappedPolicy,
+        )
+        val device = testDevice()
+        connection.connectResults = MutableList(10) { Result.failure(IllegalStateException("offline")) }
+
+        repository.connect(device)
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertEquals(1, connection.reconnectGaveUpMessages.size)
+        assertEquals(BleRepositoryImpl.RECONNECT_GAVE_UP_MESSAGE, connection.reconnectGaveUpMessages.single())
+        assertTrue(connection.connectionState.value is ConnectionState.Error)
+        assertEquals(2, connection.reconnectMarks.size)
     }
 }
 

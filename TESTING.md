@@ -35,8 +35,8 @@ Covered areas:
 - Saved receivers codec (JSON, migration, default uniqueness cap)
 - `RememberedDeviceConnector` connect-on-launch policy (phone and car)
 - `NotificationCopy` and `QsTilePresenter` action gating
-- `RuleEvaluator` precedence and `RuleExecutionEngine` (paused, schedule match)
-- `NotificationCopy` automation paused line
+- `DriveModeEngine` — preferred valve on connect + quiet start; manual toggle wins per session
+- Reconnect backoff **max 8 attempts**
 - Diagnostics report generation and local crash-log round trip
 
 These tests do not need Android BLE hardware.
@@ -57,7 +57,7 @@ Covered areas:
 - Scan screen empty state
 - Control screen waits for receiver status before enabling valve commands
 - Diagnostics screen renders Copy/Share export controls and duplicate-timestamp entries do not crash
-- Settings screen: connect on launch, saved receiver list, Automation (Beta) entry
+- Settings screen: connect on launch, saved receiver list, drive mode controls
 - Notification: disconnected omits valve actions; connected enables Open/Disconnect
 - Garage themes apply app-wide and persist through DataStore-backed settings
 - Persistent notification can be built
@@ -137,8 +137,9 @@ If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel app
 3. Save a second receiver (connect from scan) → set the other as default → relaunch → confirm connect targets the new default.
 4. With receiver connected and status known: notification Open/Close work while parked; Quick Settings tile toggles.
 5. With status `04`: notification and tile omit valve actions; copy shows not-ready.
-6. **Beta automation:** Settings → Automation (Beta) → accept disclaimer → create schedule rule → connect → verify log entry / valve change when window matches.
-7. **Geofence (optional):** grant location → add zone → enter/exit with rule → check log.
+6. **Drive mode:** Settings → set preferred **Open** → connect → valves open when ready.
+7. **Quiet start:** enable quiet window + 5 min hold → connect during window → closed, wait 5 min → preferred mode.
+8. **Reconnect cap:** turn receiver off → confirm reconnect stops after ~8 attempts and Home shows “Couldn't reach receiver — tap to retry”.
 8. **Notification pause:** Pause automation from notification → confirm no further log entries until Resume.
 
 ### Command Smoke Pass
