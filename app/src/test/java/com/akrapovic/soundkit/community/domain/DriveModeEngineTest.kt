@@ -122,6 +122,35 @@ class DriveModeEngineTest {
         assertEquals(0, ble.openValveCount)
     }
 
+    @Test
+    fun duplicateConnectReadySessionIsNoOp() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        val ble = FakeBleRepository()
+        ble.connectionState.value = ConnectionState.Connected(device)
+        ble.valveState.value = ValveState.Open
+        ble.closeResult = CompletableDeferred(CommandResult.Success(ValveState.Closed))
+        val quiet = QuietStartSettings(
+            enabled = true,
+            daysOfWeek = setOf(0, 1, 2, 3, 4, 5, 6),
+            windowStartMinute = 0,
+            windowEndMinute = 24 * 60 - 1,
+            holdClosedMinutes = 5,
+        )
+        val log = InMemoryLog()
+        val engine = engine(
+            ble = ble,
+            settings = FakeSettingsStore(SoundKitSettings(quietStart = quiet)),
+            log = log,
+        )
+
+        engine.onConnectReady(1L, this)
+        runCurrent()
+        engine.onConnectReady(1L, this)
+        runCurrent()
+
+        assertEquals(1, ble.closeValveCount)
+    }
+
     private fun engine(
         ble: FakeBleRepository = FakeBleRepository(),
         settings: FakeSettingsStore = FakeSettingsStore(),

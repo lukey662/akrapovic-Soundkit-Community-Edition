@@ -14,6 +14,7 @@ import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
 import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.EntryPointAccessors
@@ -33,14 +34,23 @@ class SoundKitCarScreen(
     )
     private val repository: BleRepository = entryPoint.bleRepository()
     private val settingsStore: SettingsStore = entryPoint.settingsStore()
+    private val driveModeEngine: DriveModeEngine = entryPoint.driveModeEngine()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var hasDefaultReceiver = false
+    private var autoReconnectEnabled = true
 
     init {
         scope.launch {
             val settings = settingsStore.settings.first()
             hasDefaultReceiver = RememberedDeviceConnector.defaultDevice(settings) != null
+            autoReconnectEnabled = settings.autoReconnect
             CarBleBootstrap.onCarEntry(carContext, repository, settings, scope)
+        }
+        scope.launch {
+            settingsStore.settings.collect { settings ->
+                hasDefaultReceiver = RememberedDeviceConnector.defaultDevice(settings) != null
+                autoReconnectEnabled = settings.autoReconnect
+            }
         }
         scope.launch {
             combine(
@@ -139,6 +149,7 @@ class SoundKitCarScreen(
     }
 
     private suspend fun toggleValve(valveState: ValveState) {
+        driveModeEngine.onUserValveAdjustment()
         when (valveState) {
             ValveState.Open -> repository.closeValve()
             ValveState.Closed -> repository.openValve()
@@ -149,7 +160,11 @@ class SoundKitCarScreen(
     private fun ConnectionState.asCarText(): String {
         return when (this) {
             ConnectionState.Disconnected ->
-                "Disconnected. Reconnecting to your default receiver, or open the phone app to scan."
+                if (autoReconnectEnabled && hasDefaultReceiver) {
+                    "Disconnected. Reconnecting to your default receiver, or open the phone app to scan."
+                } else {
+                    "Disconnected. Open the phone app to connect."
+                }
             ConnectionState.Scanning -> "Scanning for receivers on phone."
             is ConnectionState.Connecting -> "Connecting to ${device.name}…"
             is ConnectionState.Connected -> "Connected to ${device.name}"

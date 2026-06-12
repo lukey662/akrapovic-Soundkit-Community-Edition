@@ -123,7 +123,7 @@ val GarageThemeFamilies = listOf(
             base = Color(0xFF0A0A0A),
             surface = Color(0xFF141414),
             accent = Color(0xFFCC0000),
-            secondaryAccent = Color(0xFF1C1C1C),
+            secondaryAccent = Color(0xFF990000),
             highlight = Color(0xFF2E2E2E),
         ),
         light = lightTheme(

@@ -11,9 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
 import com.akrapovic.soundkit.community.data.SettingsStore
-import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
-import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.flow.combine
@@ -63,6 +61,7 @@ class BleConnectionService : LifecycleService() {
             }
         }
         lifecycleScope.launch {
+            var wasConnectReady = false
             combine(
                 bleRepository.connectionState,
                 bleRepository.valveState,
@@ -72,17 +71,22 @@ class BleConnectionService : LifecycleService() {
             }
                 .distinctUntilChanged()
                 .collect { (connection, valve, notReady) ->
-                    when (connection) {
-                        is ConnectionState.Connected -> {
-                            if (valve != ValveState.Unknown && notReady == null) {
-                                connectSessionId += 1
-                                driveModeEngine.onConnectReady(connectSessionId, lifecycleScope)
-                            }
+                    val transition = ConnectReadyObserver.evaluate(
+                        connection = connection,
+                        valve = valve,
+                        notReady = notReady,
+                        wasConnectReady = wasConnectReady,
+                    )
+                    when {
+                        transition.disconnected -> {
+                            wasConnectReady = false
+                            driveModeEngine.onDisconnect()
                         }
-                        ConnectionState.Disconnected,
-                        is ConnectionState.Error,
-                        -> driveModeEngine.onDisconnect()
-                        else -> Unit
+                        transition.becameReady -> {
+                            connectSessionId += 1
+                            driveModeEngine.onConnectReady(connectSessionId, lifecycleScope)
+                            wasConnectReady = true
+                        }
                     }
                 }
         }
@@ -91,8 +95,14 @@ class BleConnectionService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
-            ACTION_OPEN -> lifecycleScope.launch { bleRepository.openValve() }
-            ACTION_CLOSE -> lifecycleScope.launch { bleRepository.closeValve() }
+            ACTION_OPEN -> lifecycleScope.launch {
+                driveModeEngine.onUserValveAdjustment()
+                bleRepository.openValve()
+            }
+            ACTION_CLOSE -> lifecycleScope.launch {
+                driveModeEngine.onUserValveAdjustment()
+                bleRepository.closeValve()
+            }
             ACTION_DISCONNECT -> lifecycleScope.launch { bleRepository.disconnect() }
             ACTION_PAUSE_DRIVE_MODE -> lifecycleScope.launch {
                 settingsStore.setAutomationPaused(true)

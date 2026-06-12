@@ -266,3 +266,23 @@ Ship a minimal procedural **`ValveVisual`**: carbon outer rim stroke, titanium l
 - Fast, crisp, and maintainable in Compose; works on all devices without large assets.
 - Does not attempt photoreal titanium/carbon; adjacent status text carries precision for a11y.
 - Public `ValveVisual` API unchanged; command-in-flight ring and success ripple preserved.
+
+## 2026-06-13: Connect-Ready Edge Trigger, Quiet Hours UI, Dark Primary Contrast
+
+### Context
+
+Quiet neighbours appeared to hold valves closed for the entire morning window because `BleConnectionService` re-ran drive mode on every valve state change, clearing manual override. Quiet window start/end times were not editable in Settings. Audi RS Dark primary buttons faded into the matte black background due to near-black gradient partners and dark `onPrimary` text.
+
+### Decision
+
+- Introduce **`ConnectReadyObserver`**: drive mode runs only on the first connect-ready transition per BLE session (connected + valve known + not status `0x04`), not when valve state updates mid-session.
+- Register **`onUserValveAdjustment`** from notification Open/Close actions and Android Auto toggle, matching Home behavior.
+- Add **start/end TimePicker** controls for quiet neighbours; default hold **3 minutes**.
+- Fix dark-theme **primary button contrast**: Audi RS Dark darker-red gradient partner, dark `onPrimary` → Pearl, low-contrast gradient guard in `AkraActionButton`.
+- **Auto-reconnect**: honor Settings toggle on initial connect failure; skip duplicate reconnect scheduling when a job is already active.
+
+### Consequences
+
+- Manual valve control during quiet hold persists until disconnect or drive-mode resume.
+- Reconnect spam remains bounded (8 attempts); duplicate error states no longer restart the backoff counter mid-flight.
+- Theme preview and Home CTA remain readable on near-black garage themes.

@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -365,6 +366,8 @@ fun AkraActionButton(
     onClick: () -> Unit,
 ) {
     val accent = MaterialTheme.colorScheme.primary
+    val akraTheme = LocalAkraTheme.current
+    val screenBackground = MaterialTheme.colorScheme.background
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -372,11 +375,18 @@ fun AkraActionButton(
         animationSpec = spring(stiffness = 500f),
         label = "buttonScale",
     )
+    val filledGradientColors = remember(accent, akraTheme.secondaryAccent, screenBackground) {
+        filledActionGradientColors(
+            accent = accent,
+            secondaryAccent = akraTheme.secondaryAccent,
+            background = screenBackground,
+        )
+    }
     val background = when {
         !enabled -> Brush.linearGradient(
             listOf(MaterialTheme.colorScheme.outlineVariant, MaterialTheme.colorScheme.outlineVariant),
         )
-        filled -> Brush.linearGradient(listOf(accent, LocalAkraTheme.current.secondaryAccent))
+        filled -> Brush.linearGradient(filledGradientColors)
         else -> Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
     }
     val textColor = when {
@@ -497,6 +507,28 @@ fun AkraButtonRow(content: @Composable RowScope.() -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         content = content,
     )
+}
+
+private const val LOW_CONTRAST_COLOR_DELTA = 0.15f
+
+private fun filledActionGradientColors(
+    accent: Color,
+    secondaryAccent: Color,
+    background: Color,
+): List<Color> {
+    val gradientEnd = if (colorsTooSimilar(secondaryAccent, background)) {
+        lerp(accent, Color.Black, 0.25f)
+    } else {
+        secondaryAccent
+    }
+    return listOf(accent, gradientEnd)
+}
+
+private fun colorsTooSimilar(first: Color, second: Color): Boolean {
+    val delta = kotlin.math.abs(first.red - second.red) +
+        kotlin.math.abs(first.green - second.green) +
+        kotlin.math.abs(first.blue - second.blue)
+    return delta < LOW_CONTRAST_COLOR_DELTA
 }
 
 private fun clickableModifier(onClick: (() -> Unit)?, contentDescription: String?): Modifier {

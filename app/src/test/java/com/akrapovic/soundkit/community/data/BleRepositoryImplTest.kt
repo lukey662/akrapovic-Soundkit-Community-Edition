@@ -144,6 +144,26 @@ class BleRepositoryImplTest {
     }
 
     @Test
+    fun autoReconnectDisabledSkipsInitialConnectionFailureRetry() = runTest(mainDispatcherRule.dispatcher) {
+        val repository = BleRepositoryImpl(
+            scanner = scanner,
+            connectionManager = connection,
+            settingsRepository = FakeSettingsStore(settings.settings.value.copy(autoReconnect = false)),
+            diagnosticsRepository = diagnostics,
+            retryPolicy = retryPolicy,
+        )
+        runCurrent()
+        val device = testDevice()
+        connection.connectResults = mutableListOf(Result.failure(IllegalStateException("radio busy")))
+
+        repository.connect(device)
+        advanceTimeBy(2_000)
+        runCurrent()
+
+        assertTrue(connection.reconnectMarks.isEmpty())
+    }
+
+    @Test
     fun autoReconnectDisabledPreventsReconnectAfterStableConnectionDrops() = runTest(mainDispatcherRule.dispatcher) {
         val repository = BleRepositoryImpl(
             scanner = scanner,

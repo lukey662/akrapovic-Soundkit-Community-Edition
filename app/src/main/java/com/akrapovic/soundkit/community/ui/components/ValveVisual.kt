@@ -42,6 +42,7 @@ fun ValveVisual(
     successRippleTrigger: Int = 0,
 ) {
     val accent = LocalAkraTheme.current.accent
+    val rimShadow = LocalAkraTheme.current.highlight
     val context = LocalContext.current
     val reduceMotion = remember(context) {
         Settings.Global.getFloat(
@@ -124,7 +125,7 @@ fun ValveVisual(
 
             // Carbon outer rim
             drawOval(
-                color = ExhaustTipPalette.shadowColor.copy(alpha = 0.35f * contentAlpha),
+                color = rimShadow.copy(alpha = 0.28f * contentAlpha),
                 topLeft = Offset(center.x - outerRx * 1.02f, center.y - outerRy * 1.02f),
                 size = Size(outerRx * 2.04f, outerRy * 2.04f),
             )

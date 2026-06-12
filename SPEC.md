@@ -89,8 +89,9 @@ flowchart TD
 
 | Piece | Status |
 |-------|--------|
-| `PreferredValveMode`, `QuietStartSettings` | DataStore via `SettingsRepository` |
-| `DriveModeEngine` | On connect-ready: quiet hold → preferred mode; manual override per session |
+| `PreferredValveMode`, `QuietStartSettings` | DataStore via `SettingsRepository`; quiet window start/end editable in Settings |
+| `DriveModeEngine` | On first connect-ready per BLE session: quiet hold (default 3 min) → preferred mode; manual override per session |
+| `ConnectReadyObserver` | `BleConnectionService` fires drive mode only on connect-ready false→true (not on valve state changes) |
 | `RuleExecutionLog` | Ring buffer (~30 entries); reused for drive mode apply log |
 | Reconnect | `RetryPolicy.maxAttempts = 8`; `BleRepository` stops GATT churn when gave up |
 

@@ -46,10 +46,10 @@ Clearing app data resets onboarding. Existing installs see the full screen again
 Entry: **Settings** (full controls) or **Home** shortcut → Drive mode screen.
 
 - Set **preferred valves** (Open or Closed) applied when connected and ready.
-- Optional **quiet start** window: after each connect, hold Closed for N minutes, then apply preferred mode.
+- Optional **quiet neighbours** window (editable start/end times in Settings): after each connect during the window, hold Closed for N minutes (default **3**), then apply preferred mode. Manual open/close from Home, notification, or Android Auto wins for that connect session.
 - **Pause drive mode** from Settings or the foreground notification.
 - Drive mode applies only when **connected**, valve state is **known**, and the receiver is **not** in status `0x04`.
-- **Auto-reconnect** stops after 8 attempts; use **Try again** on Home if unreachable.
+- **Auto-reconnect** stops after 8 attempts (~90s backoff); honors the Settings toggle for initial failures too; use **Try again** on Home if unreachable.
 
 ## Notification and Quick Settings
 

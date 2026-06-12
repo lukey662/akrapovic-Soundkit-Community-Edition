@@ -27,7 +27,7 @@ object QuietStartCodec {
                     .ifEmpty { QuietStartSettings().daysOfWeek },
                 windowStartMinute = item.optInt("windowStartMinute", 6 * 60),
                 windowEndMinute = item.optInt("windowEndMinute", 9 * 60),
-                holdClosedMinutes = item.optInt("holdClosedMinutes", 5).coerceIn(1, 15),
+                holdClosedMinutes = item.optInt("holdClosedMinutes", 3).coerceIn(1, 15),
             )
         }.getOrDefault(QuietStartSettings())
     }

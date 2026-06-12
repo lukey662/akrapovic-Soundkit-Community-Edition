@@ -6,13 +6,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -23,11 +28,13 @@ import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.ui.components.AkraListDivider
 import com.akrapovic.soundkit.community.ui.components.AkraListGroup
+import com.akrapovic.soundkit.community.ui.components.AkraListRow
 import com.akrapovic.soundkit.community.ui.components.AkraSectionTitle
 import com.akrapovic.soundkit.community.ui.components.AkraSegmentedControl
 import com.akrapovic.soundkit.community.ui.components.AkraSwitchRow
 
 private val DAY_LABELS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+private const val MINUTES_PER_DAY = 24 * 60
 
 @Composable
 fun DriveModeSettingsSection(
@@ -85,10 +92,12 @@ private fun QuietStartRows(
     var holdMinutes by remember(quietStart.holdClosedMinutes) {
         mutableIntStateOf(quietStart.holdClosedMinutes)
     }
+    var editingStart by remember { mutableStateOf(false) }
+    var editingEnd by remember { mutableStateOf(false) }
 
     AkraSwitchRow(
         title = "Quiet neighbours",
-        subtitle = "Hold closed briefly after morning connects",
+        subtitle = "Hold closed briefly when you connect during the window",
         checked = quietStart.enabled,
         onCheckedChange = { enabled -> onQuietStartChanged(quietStart.copy(enabled = enabled)) },
     )
@@ -123,10 +132,28 @@ private fun QuietStartRows(
                 }
             }
             Text(
-                text = "${DriveModeSummary.formatMinute(quietStart.windowStartMinute)} – " +
-                    DriveModeSummary.formatMinute(quietStart.windowEndMinute),
+                text = "Quiet window",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            AkraListRow(
+                title = "Start",
+                trailing = DriveModeSummary.formatMinute(quietStart.windowStartMinute),
+                showChevron = true,
+                onClick = { editingStart = true },
+            )
+            AkraListRow(
+                title = "End",
+                trailing = DriveModeSummary.formatMinute(quietStart.windowEndMinute),
+                showChevron = true,
+                onClick = { editingEnd = true },
+            )
+            Text(
+                text = "Closes valves for ${holdMinutes.coerceIn(1, 15)} min when you connect during this window.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
             )
             Text(
                 text = "Hold closed: ${holdMinutes.coerceIn(1, 15)} min",
@@ -145,4 +172,73 @@ private fun QuietStartRows(
             )
         }
     }
+
+    if (editingStart) {
+        QuietTimePickerDialog(
+            title = "Quiet window start",
+            initialMinuteOfDay = quietStart.windowStartMinute,
+            onDismiss = { editingStart = false },
+            onConfirm = { minute ->
+                val endMinute = ensureEndAfterStart(minute, quietStart.windowEndMinute)
+                onQuietStartChanged(
+                    quietStart.copy(
+                        windowStartMinute = minute,
+                        windowEndMinute = endMinute,
+                    ),
+                )
+            },
+        )
+    }
+    if (editingEnd) {
+        QuietTimePickerDialog(
+            title = "Quiet window end",
+            initialMinuteOfDay = quietStart.windowEndMinute,
+            onDismiss = { editingEnd = false },
+            onConfirm = { minute ->
+                val endMinute = ensureEndAfterStart(quietStart.windowStartMinute, minute)
+                onQuietStartChanged(quietStart.copy(windowEndMinute = endMinute))
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuietTimePickerDialog(
+    title: String,
+    initialMinuteOfDay: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit,
+) {
+    val clampedMinute = initialMinuteOfDay.coerceIn(0, MINUTES_PER_DAY - 1)
+    val timeState = rememberTimePickerState(
+        initialHour = clampedMinute / 60,
+        initialMinute = clampedMinute % 60,
+        is24Hour = true,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { TimePicker(state = timeState) },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(timeState.hour * 60 + timeState.minute)
+                    onDismiss()
+                },
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
+}
+
+private fun ensureEndAfterStart(startMinute: Int, endMinute: Int): Int {
+    if (endMinute > startMinute) return endMinute.coerceAtMost(MINUTES_PER_DAY - 1)
+    return (startMinute + 60).coerceAtMost(MINUTES_PER_DAY - 1)
 }

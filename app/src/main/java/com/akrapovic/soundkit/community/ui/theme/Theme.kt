@@ -54,9 +54,9 @@ fun SoundKitTheme(
     val scheme = if (garageTheme.isDark) {
         darkColorScheme(
             primary = garageTheme.accent,
-            onPrimary = garageTheme.base,
+            onPrimary = AkraColors.Pearl,
             secondary = garageTheme.highlight,
-            onSecondary = garageTheme.base,
+            onSecondary = AkraColors.Pearl,
             tertiary = garageTheme.secondaryAccent,
             background = garageTheme.base,
             onBackground = garageTheme.onBase,

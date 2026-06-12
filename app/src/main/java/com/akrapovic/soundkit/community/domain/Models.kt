@@ -57,7 +57,7 @@ data class QuietStartSettings(
     val daysOfWeek: Set<Int> = setOf(0, 1, 2, 3, 4, 5, 6),
     val windowStartMinute: Int = 6 * 60,
     val windowEndMinute: Int = 9 * 60,
-    val holdClosedMinutes: Int = 5,
+    val holdClosedMinutes: Int = 3,
 )
 
 data class SavedReceiver(

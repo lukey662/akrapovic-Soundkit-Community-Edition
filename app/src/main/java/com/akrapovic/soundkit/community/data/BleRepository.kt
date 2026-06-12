@@ -147,7 +147,9 @@ class BleRepositoryImpl @Inject constructor(
         connectionManager.connect(device).onFailure { error ->
             suppressNextAutoReconnect = false
             diagnosticsRepository.error("Initial connection failed: ${error.message}", error)
-            scheduleReconnect(device)
+            if (autoReconnectEnabled) {
+                scheduleReconnect(device)
+            }
         }
     }
 
@@ -169,7 +171,11 @@ class BleRepositoryImpl @Inject constructor(
     }
 
     private fun scheduleReconnect(device: SoundKitDevice) {
-        reconnectJob?.cancel()
+        if (!autoReconnectEnabled) return
+        if (reconnectJob?.isActive == true) {
+            diagnosticsRepository.debug("Reconnect already scheduled; skipping duplicate request")
+            return
+        }
         reconnectJob = scope.launch {
             while (lastRequestedDevice?.address == device.address) {
                 reconnectAttempt += 1

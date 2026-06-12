@@ -20,26 +20,13 @@ object DriveModeSummary {
         if (settings.automationPaused) return "Manual control until you resume"
         if (settings.quietStart.enabled && isQuietWindowActive(settings.quietStart)) {
             val hold = settings.quietStart.holdClosedMinutes
-            val until = quietReleaseTime(settings.quietStart)
-            return if (until != null) {
-                "Closed for $hold min · then ${preferred(settings)} until $until"
-            } else {
-                "Starts closed for $hold min after each connect"
-            }
+            return "Closed for $hold min after connect, then ${preferred(settings)}"
         }
         return "Auto-applies ${settings.preferredValveMode.name.lowercase()} when you're linked"
     }
 
     private fun preferred(settings: SoundKitSettings): String =
         settings.preferredValveMode.name.lowercase()
-
-    private fun quietReleaseTime(quiet: QuietStartSettings): String? {
-        if (!isQuietWindowActive(quiet)) return null
-        val calendar = Calendar.getInstance(TimeZone.getDefault())
-        val minuteOfDay = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
-        val releaseMinute = (minuteOfDay + quiet.holdClosedMinutes).coerceAtMost(quiet.windowEndMinute)
-        return formatMinute(releaseMinute)
-    }
 
     private fun isQuietWindowActive(quiet: QuietStartSettings): Boolean {
         val calendar = Calendar.getInstance(TimeZone.getDefault())
