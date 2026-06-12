@@ -56,31 +56,40 @@ fun RoadmapScreen(
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
             eyebrow = "Roadmap",
-            title = "What's next",
-            subtitle = "Upcoming work first. Everything already shipped is summarized at the bottom.",
+            title = "Roadmap",
+            subtitle = "What's already in the app.",
         )
 
-        RoadmapSummaryStrip(
-            shippedCount = shippedItems.size,
-            upNextCount = upNextItems.size,
-            laterCount = laterItems.size,
-        )
+        RoadmapSummaryStrip(shippedCount = shippedItems.size)
 
-        RoadmapSection(
-            title = "Up next",
-            subtitle = "Near-term focus",
-            accent = MaterialTheme.colorScheme.primary,
-            items = upNextItems,
-            style = RoadmapSectionStyle.Featured,
-        )
+        if (upNextItems.isNotEmpty()) {
+            RoadmapSection(
+                title = "Up next",
+                subtitle = "Near-term focus",
+                accent = MaterialTheme.colorScheme.primary,
+                items = upNextItems,
+                style = RoadmapSectionStyle.Featured,
+            )
+        }
 
-        RoadmapSection(
-            title = "On the horizon",
-            subtitle = "Product ideas after the foundation is solid",
-            accent = LocalAkraTheme.current.secondaryAccent,
-            items = laterItems,
-            style = RoadmapSectionStyle.Standard,
-        )
+        if (laterItems.isNotEmpty()) {
+            RoadmapSection(
+                title = "On the horizon",
+                subtitle = "Product ideas after the foundation is solid",
+                accent = LocalAkraTheme.current.secondaryAccent,
+                items = laterItems,
+                style = RoadmapSectionStyle.Standard,
+            )
+        }
+
+        if (upNextItems.isEmpty() && laterItems.isEmpty()) {
+            Text(
+                text = "No queued work — fixes and polish land as feedback arrives.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+        }
 
         NonGoalsCard()
 
@@ -94,18 +103,12 @@ fun RoadmapScreen(
 @Composable
 private fun RoadmapSummaryStrip(
     shippedCount: Int,
-    upNextCount: Int,
-    laterCount: Int,
 ) {
     AkraCard(accent = MaterialTheme.colorScheme.primary) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.Center,
         ) {
-            SummaryStat(value = upNextCount.toString(), label = "Up next")
-            SummaryDivider()
-            SummaryStat(value = laterCount.toString(), label = "Later")
-            SummaryDivider()
             SummaryStat(value = shippedCount.toString(), label = "Shipped")
         }
     }
@@ -128,16 +131,6 @@ private fun SummaryStat(value: String, label: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-}
-
-@Composable
-private fun SummaryDivider() {
-    Box(
-        modifier = Modifier
-            .width(1.dp)
-            .height(36.dp)
-            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
-    )
 }
 
 private enum class RoadmapSectionStyle {
@@ -490,7 +483,7 @@ private val shippedItems = listOf(
     ),
     RoadmapItem(
         "More screen",
-        "Settings, Appearance, Roadmap, Diagnostics, and Android Auto up front; Developer for logs.",
+        "Settings and Appearance on More; Advanced hub for Diagnostics, Android Auto, Roadmap, and Developer.",
     ),
     RoadmapItem(
         "Rules engine (design)",
@@ -502,23 +495,9 @@ private val shippedItems = listOf(
     ),
 )
 
-private val upNextItems = listOf(
-    RoadmapItem(
-        "Maintenance",
-        "Device feedback on themes, BLE edge cases, and Android version shifts.",
-    ),
-)
+private val upNextItems = emptyList<RoadmapItem>()
 
-private val laterItems = listOf(
-    RoadmapItem(
-        "Drive mode polish",
-        "Sport profiles and timezone-safe recurrence.",
-    ),
-    RoadmapItem(
-        "Automation polish",
-        "Archived Beta experiments — revisit only if product needs return.",
-    ),
-)
+private val laterItems = emptyList<RoadmapItem>()
 
 private val nonGoalItems = listOf(
     RoadmapItem("Cloud control", "No accounts, remote valve control, or telemetry backends."),

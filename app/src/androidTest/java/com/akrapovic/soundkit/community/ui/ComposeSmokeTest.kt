@@ -30,6 +30,7 @@ import com.akrapovic.soundkit.community.testDeviceForSmoke
 import com.akrapovic.soundkit.community.ui.control.ConnectedDeviceScreen
 import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
 import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
+import com.akrapovic.soundkit.community.ui.more.AdvancedScreen
 import com.akrapovic.soundkit.community.ui.more.MoreScreen
 import com.akrapovic.soundkit.community.ui.onboarding.OnboardingFlow
 import com.akrapovic.soundkit.community.ui.roadmap.RoadmapScreen
@@ -358,9 +359,20 @@ class ComposeSmokeTest {
 
         composeRule.onNodeWithText("Settings").assertIsDisplayed()
         composeRule.onNodeWithText("Appearance").assertIsDisplayed()
-        composeRule.onNodeWithText("Roadmap").assertIsDisplayed()
+        composeRule.onNodeWithText("Advanced").assertIsDisplayed()
+    }
+
+    @Test
+    fun advancedScreenShowsDestinations() {
+        composeRule.setContent {
+            SoundKitTheme {
+                AdvancedScreen(onNavigate = {})
+            }
+        }
+
         composeRule.onNodeWithText("Diagnostics").assertIsDisplayed()
         composeRule.onNodeWithText("Android Auto").assertIsDisplayed()
+        composeRule.onNodeWithText("Roadmap").assertIsDisplayed()
         composeRule.onNodeWithText("Developer").assertIsDisplayed()
     }
 
@@ -372,8 +384,8 @@ class ComposeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("On the horizon").assertIsDisplayed()
         composeRule.onNodeWithText("Shipped").assertIsDisplayed()
+        composeRule.onNodeWithText("No queued work — fixes and polish land as feedback arrives.").assertIsDisplayed()
     }
 
     @Test

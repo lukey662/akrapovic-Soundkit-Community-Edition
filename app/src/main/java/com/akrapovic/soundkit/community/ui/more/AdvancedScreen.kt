@@ -18,44 +18,51 @@ import com.akrapovic.soundkit.community.ui.components.AkraListRow
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
 
 @Composable
-fun MoreScreen(
+fun AdvancedScreen(
     modifier: Modifier = Modifier,
     onNavigate: (AppScreen) -> Unit,
 ) {
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
-            title = "More",
-            subtitle = null,
+            title = "Advanced",
+            subtitle = "Troubleshooting, car setup, and technical options.",
             compact = true,
             titleModifier = Modifier.semantics { heading() },
         )
 
         AkraListGroup {
             AkraListRow(
-                title = "Settings",
-                subtitle = "Receivers, drive mode, and connection",
+                title = "Diagnostics",
+                subtitle = "Help with troubleshooting",
                 showChevron = true,
-                onClick = { onNavigate(AppScreen.Settings) },
+                onClick = { onNavigate(AppScreen.Diagnostics) },
             )
             AkraListDivider()
             AkraListRow(
-                title = "Appearance",
-                subtitle = "Garage themes",
+                title = "Android Auto",
+                subtitle = "Use Sound Kit on your car display",
                 showChevron = true,
-                onClick = { onNavigate(AppScreen.GarageThemes) },
+                onClick = { onNavigate(AppScreen.AndroidAutoSetup) },
             )
             AkraListDivider()
             AkraListRow(
-                title = "Advanced",
-                subtitle = "Diagnostics, Android Auto, roadmap, developer",
+                title = "Roadmap",
+                subtitle = "What's already in the app",
                 showChevron = true,
-                onClick = { onNavigate(AppScreen.Advanced) },
+                onClick = { onNavigate(AppScreen.Roadmap) },
+            )
+            AkraListDivider()
+            AkraListRow(
+                title = "Developer",
+                subtitle = "Detailed logs and technical options",
+                showChevron = true,
+                onClick = { onNavigate(AppScreen.Developer) },
             )
         }
 
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Everything stays on this phone. No account, no cloud.",
+            text = "Nothing here leaves your phone unless you choose to share a report.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp),

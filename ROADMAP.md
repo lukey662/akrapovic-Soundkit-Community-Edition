@@ -2,7 +2,7 @@
 
 Living plan for **Sound Kit Community**. Nothing here is a commitment or timeline; it records direction so contributors and users know what might come next. All work stays **local-first** (phone BLE only) unless an explicit decision says otherwise.
 
-*Last refreshed: June 2026 — Quiet neighbours hours (including overnight), simplified More screen, drive-mode connect-ready fix.*
+*Last refreshed: June 2026 — More tab simplified (Settings, Appearance, Advanced hub); public roadmap queue cleared.*
 
 ## Principles
 
@@ -44,18 +44,9 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 | **Reconnect cap** | Auto-reconnect stops after 8 attempts (~2 min); honest “Couldn't reach receiver — tap to retry” UI. |
 | **Quiet neighbours hours** | Editable start/end times, overnight windows (e.g. 22:00–06:00), 3 min default hold; manual override respected per connect session. |
 | **Theme contrast** | Audi RS Dark and dark primary buttons readable on Home; low-contrast gradient guard on action buttons. |
-| **More screen** | Settings, Appearance, Roadmap, Diagnostics, and Android Auto up front; Developer section for detailed logs. |
+| **More screen** | Settings and Appearance on More; Advanced hub for Diagnostics, Android Auto, Roadmap, and Developer. |
 
-## Near term
-
-| Area | Intent |
-|------|--------|
-| **Maintenance** | Device feedback on themes, BLE edge cases, projected AA validation on more head units, Play policy as Android versions shift. |
-
-## Later (product)
-
-- **Drive mode polish** — sport profiles, timezone-safe recurrence (quiet window hours shipped).
-- **Automation polish (archived Beta)** — schedule/geofence experiments removed; revisit only if product needs return.
+No active public queue — fixes and polish land as feedback arrives.
 
 ## Non-goals (for now)
 

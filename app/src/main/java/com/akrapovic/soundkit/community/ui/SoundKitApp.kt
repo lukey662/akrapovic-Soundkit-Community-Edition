@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
 import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
 import com.akrapovic.soundkit.community.ui.home.HomeScreen
+import com.akrapovic.soundkit.community.ui.more.AdvancedScreen
 import com.akrapovic.soundkit.community.ui.more.AndroidAutoSetupScreen
 import com.akrapovic.soundkit.community.ui.more.DeveloperScreen
 import com.akrapovic.soundkit.community.ui.more.MoreScreen
@@ -188,6 +189,10 @@ fun SoundKitApp(
                     AppScreen.AndroidAutoSetup -> AndroidAutoSetupScreen(
                         modifier = modifier,
                     )
+                    AppScreen.Advanced -> AdvancedScreen(
+                        modifier = modifier,
+                        onNavigate = { destination -> subScreen = destination },
+                    )
                     AppScreen.Developer -> DeveloperScreen(
                         modifier = modifier,
                         debugLoggingEnabled = state.settings.debugLoggingEnabled,
@@ -310,6 +315,7 @@ private fun AppScreen.topBarTitle(): String = when (this) {
     AppScreen.Roadmap -> "Roadmap"
     AppScreen.GarageThemes -> "Appearance"
     AppScreen.AndroidAutoSetup -> "Android Auto"
+    AppScreen.Advanced -> "Advanced"
     AppScreen.Developer -> "Developer"
 }
 

@@ -29,6 +29,7 @@ enum class AppScreen {
     Roadmap,
     GarageThemes,
     AndroidAutoSetup,
+    Advanced,
     Developer,
 }
 

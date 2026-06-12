@@ -61,6 +61,8 @@ Entry: **Settings** (full controls) or **Home** shortcut → Drive mode screen.
 
 The app uses a consumer-first companion UI built from reusable Compose components in `ui/components`. Screens should prefer calm hierarchy, rounded elevated panels, concise headers, large touch targets, and theme-driven gradients instead of square debug-style cards or protocol-heavy panels. Garage themes are persisted in DataStore and applied app-wide through `SoundKitTheme`; each brand-inspired family has explicit Light and Dark variants plus a local `brand_*.xml` mark that can be replaced with assets the user has rights to use.
 
+**More tab:** **Settings** and **Appearance** are the primary destinations. **Advanced** opens a hub for Diagnostics, Android Auto setup, Roadmap, and Developer (detailed logs).
+
 ### Valve hero rendering
 
 `ValveVisual` (the Home hero) is a **minimal ring-and-disc** animation: carbon rim stroke, titanium lip, dark bore, flat disc at 80% fill when closed; disc clears and lip brightens when open. No glow or air effects. Prototype: `design/valve-simple-animations.html` (Option 5). Optional Blender experiments live under `design/blender/` but are not used in-app.
@@ -73,7 +75,7 @@ Local `:app:assembleDebug` runs `:app:testDebugUnitTest` first. GitHub Actions v
 
 ## Diagnostics Export And Crash Logs
 
-Diagnostics are local-only. `More -> Diagnostics` can copy a full report to the clipboard or share a generated `.txt` attachment through Android's share sheet. Reports include app version, device metadata, BLE diagnostics, and any pending crash log. The app does not request `INTERNET`, does not upload logs automatically, and uses a non-exported `FileProvider` to grant one-time access to files selected by the user.
+Diagnostics are local-only. **More → Advanced → Diagnostics** can copy a full report to the clipboard or share a generated `.txt` attachment through Android's share sheet. Reports include app version, device metadata, BLE diagnostics, and any pending crash log. The app does not request `INTERNET`, does not upload logs automatically, and uses a non-exported `FileProvider` to grant one-time access to files selected by the user.
 
 If the app crashes, `CrashReporter` writes `files/crashes/last_crash.txt` synchronously before delegating to Android's crash handler. On next launch, Diagnostics shows a crash panel with copy/share/dismiss actions.
 
@@ -85,7 +87,7 @@ Planned features, UX direction, and non-goals are tracked in `ROADMAP.md`.
 
 1. Review `APK_ANALYSIS.md` and `BLE_PROTOCOL.md` for the verified original APK evidence.
 2. Connect to the physical receiver with this app and complete Android system pairing with the receiver/manual PIN if prompted.
-3. Copy the `GATT PROFILE START` / `GATT PROFILE END` diagnostics block from `More -> Diagnostics`.
+3. Copy the `GATT PROFILE START` / `GATT PROFILE END` diagnostics block from **More → Advanced → Diagnostics**.
 4. Confirm the physical receiver exposes characteristic `0000fff4-0000-1000-8000-00805f9b34fb` and CCCD `00002902-0000-1000-8000-00805f9b34fb`.
 5. Confirm notification status bytes match `BLE_PROTOCOL.md` before running command smoke tests.
 6. Test commands while parked with diagnostics enabled.
