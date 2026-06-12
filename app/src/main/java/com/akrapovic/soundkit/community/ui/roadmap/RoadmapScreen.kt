@@ -473,6 +473,26 @@ private val shippedItems = listOf(
         "Gated Open/Close, nickname titles, and honest not-ready copy on status 04.",
     ),
     RoadmapItem(
+        "Drive mode",
+        "Preferred Open/Closed on connect; quiet neighbours with editable hours and overnight windows.",
+    ),
+    RoadmapItem(
+        "Reconnect cap",
+        "Auto-reconnect stops after eight attempts with honest retry copy.",
+    ),
+    RoadmapItem(
+        "Quiet neighbours hours",
+        "Start/end time pickers, overnight windows, and manual override per connect session.",
+    ),
+    RoadmapItem(
+        "Theme contrast",
+        "Readable primary buttons on dark garage themes, especially Audi RS Dark.",
+    ),
+    RoadmapItem(
+        "More screen",
+        "Settings, Appearance, Roadmap, Diagnostics, and Android Auto up front; Developer for logs.",
+    ),
+    RoadmapItem(
         "Rules engine (design)",
         "Evaluator and precedence spec only — execution and persistence come later.",
     ),
@@ -491,8 +511,12 @@ private val upNextItems = listOf(
 
 private val laterItems = listOf(
     RoadmapItem(
+        "Drive mode polish",
+        "Sport profiles and timezone-safe recurrence.",
+    ),
+    RoadmapItem(
         "Automation polish",
-        "Map picker, sport/quiet profiles, and Room if rules outgrow JSON storage.",
+        "Archived Beta experiments — revisit only if product needs return.",
     ),
 )
 

@@ -41,7 +41,6 @@ fun SettingsScreen(
     state: SoundKitUiState,
     onAutoReconnectChanged: (Boolean) -> Unit,
     onConnectOnLaunchChanged: (Boolean) -> Unit,
-    onDebugLoggingChanged: (Boolean) -> Unit,
     onSetDefaultReceiver: (String) -> Unit,
     onRemoveReceiver: (String) -> Unit,
     onUpdateNickname: (String, String?) -> Unit,
@@ -74,13 +73,6 @@ fun SettingsScreen(
                 subtitle = "Retry if the Bluetooth link drops",
                 checked = state.settings.autoReconnect,
                 onCheckedChange = onAutoReconnectChanged,
-            )
-            AkraListDivider()
-            AkraSwitchRow(
-                title = "Detailed logs",
-                subtitle = "Local only — never uploaded",
-                checked = state.settings.debugLoggingEnabled,
-                onCheckedChange = onDebugLoggingChanged,
             )
         }
 

@@ -44,6 +44,7 @@ import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
 import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
 import com.akrapovic.soundkit.community.ui.home.HomeScreen
 import com.akrapovic.soundkit.community.ui.more.AndroidAutoSetupScreen
+import com.akrapovic.soundkit.community.ui.more.DeveloperScreen
 import com.akrapovic.soundkit.community.ui.more.MoreScreen
 import com.akrapovic.soundkit.community.ui.onboarding.OnboardingFlow
 import com.akrapovic.soundkit.community.ui.roadmap.RoadmapScreen
@@ -159,7 +160,6 @@ fun SoundKitApp(
                         state = state,
                         onAutoReconnectChanged = viewModel::setAutoReconnect,
                         onConnectOnLaunchChanged = viewModel::setConnectOnLaunch,
-                        onDebugLoggingChanged = viewModel::setDebugLogging,
                         onSetDefaultReceiver = viewModel::setDefaultReceiver,
                         onRemoveReceiver = viewModel::removeReceiver,
                         onUpdateNickname = viewModel::updateNickname,
@@ -187,6 +187,11 @@ fun SoundKitApp(
                     )
                     AppScreen.AndroidAutoSetup -> AndroidAutoSetupScreen(
                         modifier = modifier,
+                    )
+                    AppScreen.Developer -> DeveloperScreen(
+                        modifier = modifier,
+                        debugLoggingEnabled = state.settings.debugLoggingEnabled,
+                        onDebugLoggingChanged = viewModel::setDebugLogging,
                     )
                 }
             }
@@ -305,6 +310,7 @@ private fun AppScreen.topBarTitle(): String = when (this) {
     AppScreen.Roadmap -> "Roadmap"
     AppScreen.GarageThemes -> "Appearance"
     AppScreen.AndroidAutoSetup -> "Android Auto"
+    AppScreen.Developer -> "Developer"
 }
 
 private fun AppScreen.label(): String {

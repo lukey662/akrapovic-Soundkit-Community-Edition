@@ -18,6 +18,7 @@ import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
+import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.DiagnosticsEntry
 import com.akrapovic.soundkit.community.domain.DiagnosticsLevel
@@ -225,7 +226,6 @@ class ComposeSmokeTest {
                     state = SoundKitUiState(),
                     onAutoReconnectChanged = {},
                     onConnectOnLaunchChanged = {},
-                    onDebugLoggingChanged = {},
                     onSetDefaultReceiver = {},
                     onRemoveReceiver = {},
                     onUpdateNickname = { _, _ -> },
@@ -242,7 +242,6 @@ class ComposeSmokeTest {
         composeRule.onNodeWithText("Drive mode").assertIsDisplayed()
         composeRule.onNodeWithText("Auto reconnect").assertIsDisplayed()
         composeRule.onNodeWithText("Background connection").assertIsDisplayed()
-        composeRule.onNodeWithText("Detailed logs").assertIsDisplayed()
     }
 
     @Test
@@ -264,7 +263,6 @@ class ComposeSmokeTest {
                     ),
                     onAutoReconnectChanged = {},
                     onConnectOnLaunchChanged = {},
-                    onDebugLoggingChanged = {},
                     onSetDefaultReceiver = {},
                     onRemoveReceiver = {},
                     onUpdateNickname = { _, _ -> },
@@ -358,11 +356,12 @@ class ComposeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("Diagnostics").assertIsDisplayed()
         composeRule.onNodeWithText("Settings").assertIsDisplayed()
-        composeRule.onNodeWithText("Roadmap").assertIsDisplayed()
         composeRule.onNodeWithText("Appearance").assertIsDisplayed()
+        composeRule.onNodeWithText("Roadmap").assertIsDisplayed()
+        composeRule.onNodeWithText("Diagnostics").assertIsDisplayed()
         composeRule.onNodeWithText("Android Auto").assertIsDisplayed()
+        composeRule.onNodeWithText("Developer").assertIsDisplayed()
     }
 
     @Test

@@ -16,6 +16,7 @@ import com.akrapovic.soundkit.community.ui.components.AkraListDivider
 import com.akrapovic.soundkit.community.ui.components.AkraListGroup
 import com.akrapovic.soundkit.community.ui.components.AkraListRow
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
+import com.akrapovic.soundkit.community.ui.components.AkraSectionTitle
 
 @Composable
 fun MoreScreen(
@@ -33,16 +34,9 @@ fun MoreScreen(
         AkraListGroup {
             AkraListRow(
                 title = "Settings",
-                subtitle = "Receivers, drive mode, reconnect",
+                subtitle = "Receivers, drive mode, and connection",
                 showChevron = true,
                 onClick = { onNavigate(AppScreen.Settings) },
-            )
-            AkraListDivider()
-            AkraListRow(
-                title = "Diagnostics",
-                subtitle = "Local logs and reports",
-                showChevron = true,
-                onClick = { onNavigate(AppScreen.Diagnostics) },
             )
             AkraListDivider()
             AkraListRow(
@@ -53,17 +47,34 @@ fun MoreScreen(
             )
             AkraListDivider()
             AkraListRow(
-                title = "Android Auto",
-                subtitle = "Car display setup (sideload)",
-                showChevron = true,
-                onClick = { onNavigate(AppScreen.AndroidAutoSetup) },
-            )
-            AkraListDivider()
-            AkraListRow(
                 title = "Roadmap",
                 subtitle = "What's shipped and what's next",
                 showChevron = true,
                 onClick = { onNavigate(AppScreen.Roadmap) },
+            )
+            AkraListDivider()
+            AkraListRow(
+                title = "Diagnostics",
+                subtitle = "Help with troubleshooting",
+                showChevron = true,
+                onClick = { onNavigate(AppScreen.Diagnostics) },
+            )
+            AkraListDivider()
+            AkraListRow(
+                title = "Android Auto",
+                subtitle = "Use Sound Kit on your car display",
+                showChevron = true,
+                onClick = { onNavigate(AppScreen.AndroidAutoSetup) },
+            )
+        }
+
+        AkraSectionTitle("Advanced")
+        AkraListGroup {
+            AkraListRow(
+                title = "Developer",
+                subtitle = "Detailed logs and technical options",
+                showChevron = true,
+                onClick = { onNavigate(AppScreen.Developer) },
             )
         }
 
