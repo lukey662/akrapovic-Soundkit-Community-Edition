@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.domain.DriveModeSummary
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
+import com.akrapovic.soundkit.community.domain.QuietWindowEvaluator
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.ui.components.AkraListDivider
 import com.akrapovic.soundkit.community.ui.components.AkraListGroup
@@ -145,10 +146,17 @@ private fun QuietStartRows(
             )
             AkraListRow(
                 title = "End",
-                trailing = DriveModeSummary.formatMinute(quietStart.windowEndMinute),
+                trailing = DriveModeSummary.formatEndMinute(quietStart),
                 showChevron = true,
                 onClick = { editingEnd = true },
             )
+            if (QuietWindowEvaluator.isOvernight(quietStart)) {
+                Text(
+                    text = "Runs overnight (ends next morning)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
                 text = "Closes valves for ${holdMinutes.coerceIn(1, 15)} min when you connect during this window.",
                 style = MaterialTheme.typography.bodySmall,
@@ -179,13 +187,7 @@ private fun QuietStartRows(
             initialMinuteOfDay = quietStart.windowStartMinute,
             onDismiss = { editingStart = false },
             onConfirm = { minute ->
-                val endMinute = ensureEndAfterStart(minute, quietStart.windowEndMinute)
-                onQuietStartChanged(
-                    quietStart.copy(
-                        windowStartMinute = minute,
-                        windowEndMinute = endMinute,
-                    ),
-                )
+                onQuietStartChanged(quietStart.copy(windowStartMinute = minute))
             },
         )
     }
@@ -195,8 +197,7 @@ private fun QuietStartRows(
             initialMinuteOfDay = quietStart.windowEndMinute,
             onDismiss = { editingEnd = false },
             onConfirm = { minute ->
-                val endMinute = ensureEndAfterStart(quietStart.windowStartMinute, minute)
-                onQuietStartChanged(quietStart.copy(windowEndMinute = endMinute))
+                onQuietStartChanged(quietStart.copy(windowEndMinute = minute))
             },
         )
     }
@@ -236,9 +237,4 @@ private fun QuietTimePickerDialog(
             }
         },
     )
-}
-
-private fun ensureEndAfterStart(startMinute: Int, endMinute: Int): Int {
-    if (endMinute > startMinute) return endMinute.coerceAtMost(MINUTES_PER_DAY - 1)
-    return (startMinute + 60).coerceAtMost(MINUTES_PER_DAY - 1)
 }

@@ -4,8 +4,6 @@ import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
 import com.akrapovic.soundkit.community.data.SettingsStore
-import java.util.Calendar
-import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -60,7 +58,7 @@ class DriveModeEngine @Inject constructor(
         }
 
         val quiet = settings.quietStart
-        if (quiet.enabled && isQuietWindowActive(quiet)) {
+        if (QuietWindowEvaluator.isActive(quiet)) {
             applyClose("quiet start")
             val holdMs = quiet.holdClosedMinutes.coerceIn(1, 15) * 60_000L
             quietJob = scope.launch {
@@ -145,13 +143,5 @@ class DriveModeEngine @Inject constructor(
         if (bleRepository.valveState.value == ValveState.Unknown) return false
         if (bleRepository.receiverStatusMessage.value != null) return false
         return true
-    }
-
-    private fun isQuietWindowActive(quiet: QuietStartSettings): Boolean {
-        val calendar = Calendar.getInstance(TimeZone.getDefault())
-        val dayOfWeek = (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7
-        if (dayOfWeek !in quiet.daysOfWeek) return false
-        val minuteOfDay = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
-        return minuteOfDay in quiet.windowStartMinute..quiet.windowEndMinute
     }
 }

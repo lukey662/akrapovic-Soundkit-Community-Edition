@@ -138,7 +138,7 @@ If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel app
 4. With receiver connected and status known: notification Open/Close work while parked; Quick Settings tile toggles.
 5. With status `04`: notification and tile omit valve actions; copy shows not-ready.
 6. **Drive mode:** Settings → set preferred **Open** → connect → valves open when ready.
-7. **Quiet start:** enable quiet window + 3 min hold → connect during window → closed, wait 3 min → preferred mode; manual open during hold should stay open.
+7. **Quiet neighbours:** Settings → Drive mode → enable quiet neighbours → set **Start** / **End** (try 03:00–09:00 for early risers, or 22:00–06:00 overnight) + 3 min hold → connect during window → closed, wait 3 min → preferred mode; manual open during hold should stay open.
 8. **Reconnect cap:** turn receiver off → confirm reconnect stops after ~8 attempts and Home shows “Couldn't reach receiver — tap to retry”.
 8. **Notification pause:** Pause automation from notification → confirm no further log entries until Resume.
 
