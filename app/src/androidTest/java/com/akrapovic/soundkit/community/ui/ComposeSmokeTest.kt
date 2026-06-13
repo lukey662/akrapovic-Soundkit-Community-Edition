@@ -385,7 +385,7 @@ class ComposeSmokeTest {
         }
 
         composeRule.onNodeWithText("Shipped").assertIsDisplayed()
-        composeRule.onNodeWithText("No queued work — fixes and polish land as feedback arrives.").assertIsDisplayed()
+        composeRule.onNodeWithText("Up next").assertIsDisplayed()
     }
 
     @Test
@@ -412,7 +412,9 @@ class ComposeSmokeTest {
                 OnboardingFlow(
                     blePermissionsGranted = false,
                     notificationsGranted = false,
+                    selectedVehicleId = null,
                     onAcceptRisk = {},
+                    onSelectVehicle = {},
                     onRequestBlePermissions = {},
                     onRequestNotificationPermission = {},
                     onComplete = {},
@@ -500,6 +502,12 @@ private class FakeSettingsStoreForSmoke(
     override suspend fun completeOnboarding() {
         settings.value = settings.value.copy(onboardingCompletedAt = System.currentTimeMillis())
     }
+
+    override suspend fun setSelectedVehicle(vehicleId: String?) {
+        settings.value = settings.value.copy(selectedVehicleId = vehicleId)
+    }
+
+    override suspend fun importSettingsBackup(json: String) = Unit
 
     override suspend fun setAutomationPaused(paused: Boolean) {
         settings.value = settings.value.copy(automationPaused = paused)

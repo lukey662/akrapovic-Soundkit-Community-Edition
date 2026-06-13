@@ -109,6 +109,7 @@ data class SoundKitSettings(
     val garageThemeId: String = "studio-dark",
     val riskNoticeAcceptedAt: Long = 0L,
     val onboardingCompletedAt: Long = 0L,
+    val selectedVehicleId: String? = null,
     val automationPaused: Boolean = false,
     val betaDisclaimerAcceptedAt: Long = 0L,
     val driveModeEnabled: Boolean = true,

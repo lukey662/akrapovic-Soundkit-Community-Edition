@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sound Kit Wear</string>
+    <string name="tile_label">Connect</string>
+    <string name="tile_description">Open Sound Kit on your phone and connect</string>
+</resources>

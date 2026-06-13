@@ -59,6 +59,7 @@ private data class OnboardingStep(
 
 private val onboardingSteps = listOf(
     OnboardingStep("risk", "Risk", "Risk notice"),
+    OnboardingStep("vehicle", "Vehicle", "Vehicle selection step"),
     OnboardingStep("bluetooth", "Bluetooth", "Bluetooth onboarding step"),
     OnboardingStep("notifications", "Alerts", "Notifications onboarding step"),
     OnboardingStep("battery", "Battery", "Battery onboarding step"),
@@ -68,7 +69,9 @@ private val onboardingSteps = listOf(
 fun OnboardingFlow(
     blePermissionsGranted: Boolean,
     notificationsGranted: Boolean,
+    selectedVehicleId: String?,
     onAcceptRisk: () -> Unit,
+    onSelectVehicle: (String) -> Unit,
     onRequestBlePermissions: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
     onComplete: () -> Unit,
@@ -82,11 +85,12 @@ fun OnboardingFlow(
 
     val stepComplete = listOf(
         riskAccepted,
+        isVehicleSelectionComplete(selectedVehicleId),
         blePermissionsGranted,
         notificationsGranted || !needsNotificationPermission,
         true, // battery is optional
     )
-    val readyToFinish = stepComplete[0] && stepComplete[1] && stepComplete[2]
+    val readyToFinish = stepComplete[0] && stepComplete[1] && stepComplete[2] && stepComplete[3]
     val activeStepIndex = stepComplete.indexOfFirst { !it }.let { if (it < 0) onboardingSteps.lastIndex else it }
 
     Scaffold(
@@ -105,6 +109,8 @@ fun OnboardingFlow(
                     Text(
                         text = when {
                             !riskAccepted -> "Accept the disclaimer to continue."
+                            !isVehicleSelectionComplete(selectedVehicleId) ->
+                                "Select your car (or Other car with Sound Kit) to continue."
                             !blePermissionsGranted -> "Bluetooth access is required to find your receiver."
                             needsNotificationPermission && !notificationsGranted ->
                                 "Allow notifications so the connection can stay active."
@@ -208,6 +214,18 @@ fun OnboardingFlow(
 
             OnboardingSection(
                 stepNumber = 2,
+                title = "Your car",
+                titleSemantics = "Vehicle selection step",
+                complete = stepComplete[1],
+            ) {
+                VehicleSelectionContent(
+                    selectedVehicleId = selectedVehicleId,
+                    onSelectVehicle = onSelectVehicle,
+                )
+            }
+
+            OnboardingSection(
+                stepNumber = 3,
                 title = "Bluetooth",
                 titleSemantics = "Bluetooth onboarding step",
                 complete = blePermissionsGranted,
@@ -228,10 +246,10 @@ fun OnboardingFlow(
             }
 
             OnboardingSection(
-                stepNumber = 3,
+                stepNumber = 4,
                 title = "Notifications",
                 titleSemantics = "Notifications onboarding step",
-                complete = stepComplete[2],
+                complete = stepComplete[3],
             ) {
                 Text(
                     text = "A small foreground alert keeps the BLE session alive while connected.",
@@ -253,7 +271,7 @@ fun OnboardingFlow(
             }
 
             OnboardingSection(
-                stepNumber = 4,
+                stepNumber = 5,
                 title = "Background connection",
                 titleSemantics = "Battery onboarding step",
                 complete = true,

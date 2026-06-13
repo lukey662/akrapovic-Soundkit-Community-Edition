@@ -49,6 +49,9 @@ fun SettingsScreen(
     onPreferredModeChanged: (com.akrapovic.soundkit.community.domain.PreferredValveMode) -> Unit,
     onQuietStartChanged: (com.akrapovic.soundkit.community.domain.QuietStartSettings) -> Unit,
     onDriveModePausedChanged: (Boolean) -> Unit,
+    onExportSettingsBackup: () -> String = { "{}" },
+    onImportSettingsBackup: (String) -> Unit = {},
+    onApplyDriveModeProfile: (com.akrapovic.soundkit.community.data.DriveModeProfile) -> Unit = {},
 ) {
     val context = LocalContext.current
     val powerManager = remember { context.getSystemService(PowerManager::class.java) }
@@ -82,6 +85,12 @@ fun SettingsScreen(
             onPreferredModeChanged = onPreferredModeChanged,
             onQuietStartChanged = onQuietStartChanged,
             onDriveModePausedChanged = onDriveModePausedChanged,
+            onApplyProfile = onApplyDriveModeProfile,
+        )
+
+        SettingsBackupSection(
+            onExportBackup = onExportSettingsBackup,
+            onImportBackup = onImportSettingsBackup,
         )
 
         AkraSectionTitle("Saved receivers")

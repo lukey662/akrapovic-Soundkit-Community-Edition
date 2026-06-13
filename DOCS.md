@@ -63,6 +63,10 @@ The app uses a consumer-first companion UI built from reusable Compose component
 
 **More tab:** **Settings** and **Appearance** are the primary destinations. **Advanced** opens a hub for Diagnostics, Android Auto setup, Roadmap, and Developer (detailed logs).
 
+**First launch:** After the risk disclaimer, onboarding includes a **vehicle picker** (Supported vs Beta tiers). Selection is stored in DataStore and included in diagnostics exports.
+
+**Support:** Diagnostics includes **Copy email** and **Email support** for **support@appsforgood.net** — user attaches exported `.txt` manually; no auto-upload.
+
 ### Valve hero rendering
 
 `ValveVisual` (the Home hero) is a **minimal ring-and-disc** animation: carbon rim stroke, titanium lip, dark bore, flat disc at 80% fill when closed; disc clears and lip brightens when open. No glow or air effects. Prototype: `design/valve-simple-animations.html` (Option 5). Optional Blender experiments live under `design/blender/` but are not used in-app.

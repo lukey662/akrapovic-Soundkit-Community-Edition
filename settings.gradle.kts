@@ -16,4 +16,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "AkrapovicSoundKitCommunity"
 include(":app")
+include(":wear")
 

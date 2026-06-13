@@ -2,11 +2,16 @@ package com.akrapovic.soundkit.community.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akrapovic.soundkit.community.BuildConfig
 import com.akrapovic.soundkit.community.ble.SoundKitProtocol
+import com.akrapovic.soundkit.community.data.DriveModeProfile
+import com.akrapovic.soundkit.community.data.SettingsBackupCodec
+import com.akrapovic.soundkit.community.data.applyTo
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.diagnostics.CrashReporter
+import com.akrapovic.soundkit.community.diagnostics.DiagnosticsSupport
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
@@ -16,6 +21,7 @@ import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.ValveState
+import com.akrapovic.soundkit.community.domain.VehicleCompatibilityCatalog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -117,7 +123,15 @@ class SoundKitViewModel @Inject constructor(
     fun connect(device: SoundKitDevice) {
         viewModelScope.launch {
             lastError.value = null
+            val settings = settingsRepository.settings.first()
+            val vehicle = VehicleCompatibilityCatalog.findById(settings.selectedVehicleId)
             settingsRepository.saveReceiver(device, setAsDefault = true)
+            vehicle?.defaultNickname?.let { nickname ->
+                val existing = settings.savedReceivers.firstOrNull { it.address == device.address }
+                if (existing?.nickname.isNullOrBlank()) {
+                    settingsRepository.updateNickname(device.address, nickname)
+                }
+            }
             bleRepository.connect(device)
         }
     }
@@ -183,6 +197,35 @@ class SoundKitViewModel @Inject constructor(
         }
     }
 
+    fun setSelectedVehicle(vehicleId: String) {
+        viewModelScope.launch {
+            settingsRepository.setSelectedVehicle(vehicleId)
+            VehicleCompatibilityCatalog.findById(vehicleId)?.suggestedGarageThemeId?.let { themeId ->
+                settingsRepository.setGarageThemeId(themeId)
+            }
+        }
+    }
+
+    fun exportSettingsBackup(): String {
+        return SettingsBackupCodec.encode(uiState.value.settings)
+    }
+
+    fun importSettingsBackup(json: String) {
+        viewModelScope.launch {
+            settingsRepository.importSettingsBackup(json)
+        }
+    }
+
+    fun applyDriveModeProfile(profile: DriveModeProfile) {
+        viewModelScope.launch {
+            val settings = settingsRepository.settings.first()
+            val updated = profile.applyTo(settings)
+            settingsRepository.setDriveModeEnabled(updated.driveModeEnabled)
+            settingsRepository.setPreferredValveMode(updated.preferredValveMode)
+            settingsRepository.setQuietStart(updated.quietStart)
+        }
+    }
+
     fun retryConnection() {
         viewModelScope.launch {
             lastError.value = null
@@ -244,9 +287,13 @@ class SoundKitViewModel @Inject constructor(
     fun buildDiagnosticsReport(): String {
         val settings = uiState.value.settings
         val hasDefault = RememberedDeviceConnector.defaultDevice(settings) != null
+        val vehicle = VehicleCompatibilityCatalog.findById(settings.selectedVehicleId)
         return diagnosticsReportBuilder.buildDiagnosticsReport(
             entries = uiState.value.diagnostics,
             hasDefaultReceiver = hasDefault,
+            vehicleDisplayName = vehicle?.displayName,
+            vehicleTier = vehicle?.tierLabel,
+            connectionState = uiState.value.connectionState.toString(),
         )
     }
 
@@ -271,6 +318,17 @@ class SoundKitViewModel @Inject constructor(
         if (crashReporter.clearPendingCrash()) {
             hasPendingCrash.value = false
         }
+    }
+
+    fun buildAppVersionLabel(): String = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+
+    fun buildSupportTriageBody(state: SoundKitUiState): String {
+        val vehicle = VehicleCompatibilityCatalog.findById(state.settings.selectedVehicleId)
+        return DiagnosticsSupport.buildTriageBody(
+            appVersion = buildAppVersionLabel(),
+            vehicleLine = vehicle?.let { "vehicle=${it.displayName} tier=${it.tierLabel}" },
+            connectionLine = "connection=${state.connectionState}",
+        )
     }
 
     private fun sendCommand(block: suspend () -> CommandResult) {

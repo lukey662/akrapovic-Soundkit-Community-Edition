@@ -36,11 +36,16 @@ class DiagnosticsReportBuilder(
         entries: List<DiagnosticsEntry>,
         hasDefaultReceiver: Boolean = false,
         includeCrash: Boolean = true,
+        vehicleDisplayName: String? = null,
+        vehicleTier: String? = null,
+        connectionState: String? = null,
     ): String {
         val metadata = metadataProvider()
         val crash = if (includeCrash) crashReader()?.takeIf { it.isNotBlank() } else null
         return buildString {
             appendHeader(metadata)
+            appendLine()
+            appendVehicleContext(vehicleDisplayName, vehicleTier, connectionState)
             appendLine()
             appendLine(carAppReadinessProvider(hasDefaultReceiver))
             appendLine()
@@ -113,6 +118,18 @@ class DiagnosticsReportBuilder(
         appendLine("debug=${metadata.debug}")
         appendLine("device=${metadata.manufacturer} ${metadata.model}")
         appendLine("android=${metadata.androidRelease} api=${metadata.androidApi}")
+    }
+
+    private fun StringBuilder.appendVehicleContext(
+        vehicleDisplayName: String?,
+        vehicleTier: String?,
+        connectionState: String?,
+    ) {
+        appendLine("VEHICLE CONTEXT")
+        appendLine("vehicle=${vehicleDisplayName ?: "not set"}")
+        appendLine("vehicleTier=${vehicleTier ?: "not set"}")
+        appendLine("connectionState=${connectionState ?: "unknown"}")
+        appendLine("supportEmail=${DiagnosticsSupport.EMAIL}")
     }
 
     private fun List<DiagnosticsEntry>.toExportText(): String {

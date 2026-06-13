@@ -39,6 +39,7 @@ import com.akrapovic.soundkit.community.ui.components.AkraListGroup
 import com.akrapovic.soundkit.community.ui.components.AkraListRow
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
 import com.akrapovic.soundkit.community.ui.components.DriveModeShortcutRow
+import com.akrapovic.soundkit.community.ui.components.ReceiverNotReadyChecklistContent
 import com.akrapovic.soundkit.community.ui.components.ValveVisual
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
 
@@ -171,7 +172,7 @@ fun ConnectedDeviceScreen(
             AlertDialog(
                 onDismissRequest = { showReceiverLearnMore.value = false },
                 title = { Text("Receiver not ready") },
-                text = { Text(SoundKitProtocol.RECEIVER_NOT_READY_MESSAGE) },
+                text = { ReceiverNotReadyChecklistContent() },
                 confirmButton = {
                     TextButton(onClick = { showReceiverLearnMore.value = false }) {
                         Text("OK")

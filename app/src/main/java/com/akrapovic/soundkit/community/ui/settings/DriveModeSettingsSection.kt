@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.data.DriveModeProfile
 import com.akrapovic.soundkit.community.domain.DriveModeSummary
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
@@ -44,8 +45,29 @@ fun DriveModeSettingsSection(
     onPreferredModeChanged: (PreferredValveMode) -> Unit,
     onQuietStartChanged: (QuietStartSettings) -> Unit,
     onDriveModePausedChanged: (Boolean) -> Unit,
+    onApplyProfile: ((DriveModeProfile) -> Unit)? = null,
 ) {
     AkraSectionTitle("Drive mode")
+    if (onApplyProfile != null) {
+        Text(
+            text = "Quick profiles",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        val profiles = DriveModeProfile.entries
+        val selectedProfile = profiles.firstOrNull { profile ->
+            profile.mode == settings.preferredValveMode &&
+                profile.quietEnabled == settings.quietStart.enabled
+        } ?: DriveModeProfile.Everyday
+        AkraSegmentedControl(
+            options = profiles,
+            selected = selectedProfile,
+            label = { it.label },
+            onSelected = onApplyProfile,
+        )
+        Spacer(Modifier.height(12.dp))
+    }
     AkraListGroup {
         AkraSwitchRow(
             title = "Drive mode",

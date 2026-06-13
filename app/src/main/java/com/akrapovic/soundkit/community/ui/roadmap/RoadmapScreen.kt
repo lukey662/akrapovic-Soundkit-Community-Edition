@@ -486,6 +486,34 @@ private val shippedItems = listOf(
         "Settings and Appearance on More; Advanced hub for Diagnostics, Android Auto, Roadmap, and Developer.",
     ),
     RoadmapItem(
+        "Vehicle onboarding",
+        "Car picker with Supported and Beta tiers; persisted for diagnostics and theme hints.",
+    ),
+    RoadmapItem(
+        "Diagnostics support",
+        "support@appsforgood.net from Diagnostics — copy email and mailto triage; no auto-upload.",
+    ),
+    RoadmapItem(
+        "Widget and shortcuts",
+        "Home-screen widget and launcher shortcuts for open, close, and connect.",
+    ),
+    RoadmapItem(
+        "Settings backup",
+        "Export and import local JSON backup for receivers and drive mode.",
+    ),
+    RoadmapItem(
+        "Drive mode profiles",
+        "Everyday, Quiet street, and Track quick presets.",
+    ),
+    RoadmapItem(
+        "iOS scaffold",
+        "SwiftUI + CoreBluetooth sources under ios/SoundKitCommunity/.",
+    ),
+    RoadmapItem(
+        "Wear OS tile",
+        "Wear module tile opens Sound Kit on the paired phone.",
+    ),
+    RoadmapItem(
         "Rules engine (design)",
         "Evaluator and precedence spec only — execution and persistence come later.",
     ),
@@ -495,9 +523,27 @@ private val shippedItems = listOf(
     ),
 )
 
-private val upNextItems = emptyList<RoadmapItem>()
+private val upNextItems = listOf(
+    RoadmapItem(
+        "iOS parity",
+        "TestFlight-quality connect/open/close on SwiftUI + CoreBluetooth.",
+    ),
+    RoadmapItem(
+        "Compatibility matrix",
+        "Promote Beta vehicles to Supported after field validation.",
+    ),
+)
 
-private val laterItems = emptyList<RoadmapItem>()
+private val laterItems = listOf(
+    RoadmapItem(
+        "Assistant intents",
+        "Local voice shortcuts when connected and valve state is known.",
+    ),
+    RoadmapItem(
+        "CarPlay",
+        "Explore in-car surface separate from Android Auto IoT.",
+    ),
+)
 
 private val nonGoalItems = listOf(
     RoadmapItem("Cloud control", "No accounts, remote valve control, or telemetry backends."),
@@ -505,5 +551,9 @@ private val nonGoalItems = listOf(
     RoadmapItem(
         "Play Store projected AA",
         "Public Play listing in projected Android Auto — policy does not fit a valve controller.",
+    ),
+    RoadmapItem(
+        "ECU sound-mode wiring",
+        "Factory adaptive vs race exhaust modes — hardware/firmware, not BLE app scope.",
     ),
 )

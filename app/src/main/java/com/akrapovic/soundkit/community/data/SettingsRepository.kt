@@ -33,6 +33,8 @@ interface SettingsStore {
     suspend fun setGarageThemeId(themeId: String)
     suspend fun acceptRiskNotice()
     suspend fun completeOnboarding()
+    suspend fun setSelectedVehicle(vehicleId: String?)
+    suspend fun importSettingsBackup(json: String)
     suspend fun setAutomationPaused(paused: Boolean)
     suspend fun acceptBetaDisclaimer()
     suspend fun setDriveModeEnabled(enabled: Boolean)
@@ -54,6 +56,7 @@ class SettingsRepository @Inject constructor(
         val GarageThemeId = stringPreferencesKey("garage_theme_id")
         val RiskNoticeAcceptedAt = androidx.datastore.preferences.core.longPreferencesKey("risk_notice_accepted_at")
         val OnboardingCompletedAt = androidx.datastore.preferences.core.longPreferencesKey("onboarding_completed_at")
+        val SelectedVehicleId = stringPreferencesKey("selected_vehicle_id")
         val AutomationPaused = booleanPreferencesKey("automation_paused")
         val BetaDisclaimerAcceptedAt = androidx.datastore.preferences.core.longPreferencesKey("beta_disclaimer_accepted_at")
         val DriveModeEnabled = booleanPreferencesKey("drive_mode_enabled")
@@ -71,6 +74,7 @@ class SettingsRepository @Inject constructor(
             garageThemeId = preferences[Keys.GarageThemeId] ?: "studio-dark",
             riskNoticeAcceptedAt = preferences[Keys.RiskNoticeAcceptedAt] ?: 0L,
             onboardingCompletedAt = preferences[Keys.OnboardingCompletedAt] ?: 0L,
+            selectedVehicleId = preferences[Keys.SelectedVehicleId],
             automationPaused = preferences[Keys.AutomationPaused] ?: false,
             betaDisclaimerAcceptedAt = preferences[Keys.BetaDisclaimerAcceptedAt] ?: 0L,
             driveModeEnabled = preferences[Keys.DriveModeEnabled] ?: true,
@@ -179,6 +183,30 @@ class SettingsRepository @Inject constructor(
     override suspend fun completeOnboarding() {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.OnboardingCompletedAt] = System.currentTimeMillis()
+        }
+    }
+
+    override suspend fun setSelectedVehicle(vehicleId: String?) {
+        context.settingsDataStore.edit { preferences ->
+            if (vehicleId.isNullOrBlank()) {
+                preferences.remove(Keys.SelectedVehicleId)
+            } else {
+                preferences[Keys.SelectedVehicleId] = vehicleId
+            }
+        }
+    }
+
+    override suspend fun importSettingsBackup(json: String) {
+        val backup = SettingsBackupCodec.decode(json)
+        context.settingsDataStore.edit { preferences ->
+            backup.savedReceiversJson?.let { preferences[Keys.SavedReceiversJson] = it }
+            backup.connectOnLaunch?.let { preferences[Keys.ConnectOnLaunch] = it }
+            backup.autoReconnect?.let { preferences[Keys.AutoReconnect] = it }
+            backup.garageThemeId?.let { preferences[Keys.GarageThemeId] = it }
+            backup.selectedVehicleId?.let { preferences[Keys.SelectedVehicleId] = it }
+            backup.driveModeEnabled?.let { preferences[Keys.DriveModeEnabled] = it }
+            backup.preferredValveMode?.let { preferences[Keys.PreferredValveMode] = it }
+            backup.quietStartJson?.let { preferences[Keys.QuietStartJson] = it }
         }
     }
 

@@ -93,7 +93,9 @@ fun SoundKitApp(
             OnboardingFlow(
                 blePermissionsGranted = blePermissionsGranted,
                 notificationsGranted = notificationsGranted,
+                selectedVehicleId = state.settings.selectedVehicleId,
                 onAcceptRisk = viewModel::acceptRiskNotice,
+                onSelectVehicle = viewModel::setSelectedVehicle,
                 onRequestBlePermissions = onRequestBlePermissions,
                 onRequestNotificationPermission = onRequestNotificationPermission,
                 onComplete = viewModel::completeOnboarding,
@@ -155,6 +157,8 @@ fun SoundKitApp(
                         onBuildCrashReport = viewModel::buildCrashReport,
                         onCreateCrashReportFile = viewModel::writeCrashReportFile,
                         onCrashHandled = viewModel::clearPendingCrash,
+                        supportTriageBody = viewModel.buildSupportTriageBody(state),
+                        appVersionLabel = viewModel.buildAppVersionLabel(),
                     )
                     AppScreen.Settings -> SettingsScreen(
                         modifier = modifier,
@@ -169,6 +173,9 @@ fun SoundKitApp(
                         onPreferredModeChanged = viewModel::setPreferredValveMode,
                         onQuietStartChanged = viewModel::setQuietStart,
                         onDriveModePausedChanged = viewModel::setDriveModePaused,
+                        onExportSettingsBackup = viewModel::exportSettingsBackup,
+                        onImportSettingsBackup = viewModel::importSettingsBackup,
+                        onApplyDriveModeProfile = viewModel::applyDriveModeProfile,
                     )
                     AppScreen.DriveMode -> DriveModeScreen(
                         modifier = modifier,
@@ -177,6 +184,7 @@ fun SoundKitApp(
                         onPreferredModeChanged = viewModel::setPreferredValveMode,
                         onQuietStartChanged = viewModel::setQuietStart,
                         onDriveModePausedChanged = viewModel::setDriveModePaused,
+                        onApplyDriveModeProfile = viewModel::applyDriveModeProfile,
                     )
                     AppScreen.Roadmap -> RoadmapScreen(
                         modifier = modifier,

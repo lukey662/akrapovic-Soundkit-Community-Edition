@@ -3,6 +3,8 @@ package com.akrapovic.soundkit.community.test
 import com.akrapovic.soundkit.community.ble.BleConnectionGateway
 import com.akrapovic.soundkit.community.ble.BleScannerGateway
 import com.akrapovic.soundkit.community.data.BleRepository
+import com.akrapovic.soundkit.community.data.QuietStartCodec
+import com.akrapovic.soundkit.community.data.SettingsBackupCodec
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
@@ -174,6 +176,27 @@ class FakeSettingsStore(
     override suspend fun completeOnboarding() {
         onboardingCompleteCount += 1
         settings.value = settings.value.copy(onboardingCompletedAt = 1L)
+    }
+
+    override suspend fun setSelectedVehicle(vehicleId: String?) {
+        settings.value = settings.value.copy(selectedVehicleId = vehicleId)
+    }
+
+    override suspend fun importSettingsBackup(json: String) {
+        val backup = SettingsBackupCodec.decode(json)
+        var next = settings.value
+        backup.selectedVehicleId?.let { next = next.copy(selectedVehicleId = it) }
+        backup.connectOnLaunch?.let { next = next.copy(connectOnLaunch = it) }
+        backup.autoReconnect?.let { next = next.copy(autoReconnect = it) }
+        backup.garageThemeId?.let { next = next.copy(garageThemeId = it) }
+        backup.driveModeEnabled?.let { next = next.copy(driveModeEnabled = it) }
+        backup.preferredValveMode?.let { mode ->
+            runCatching { com.akrapovic.soundkit.community.domain.PreferredValveMode.valueOf(mode) }
+                .getOrNull()
+                ?.let { next = next.copy(preferredValveMode = it) }
+        }
+        backup.quietStartJson?.let { next = next.copy(quietStart = QuietStartCodec.decode(it)) }
+        settings.value = next
     }
 
     override suspend fun setAutomationPaused(paused: Boolean) {

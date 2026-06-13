@@ -232,7 +232,8 @@ private fun DeviceRow(
 }
 
 private fun signalText(rssi: Int): String = when {
-    rssi >= -55 -> "Strong"
-    rssi >= -75 -> "Good"
-    else -> "Weak"
+    rssi >= -55 -> "Strong signal"
+    rssi >= -75 -> "Good signal"
+    rssi >= -85 -> "Weak — move closer (~20 m)"
+    else -> "Very weak — move closer"
 }

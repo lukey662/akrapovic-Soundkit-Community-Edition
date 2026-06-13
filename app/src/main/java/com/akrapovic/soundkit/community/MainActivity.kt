@@ -2,6 +2,7 @@ package com.akrapovic.soundkit.community
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -27,10 +28,14 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_NAV_HOME = "nav_home"
+        const val ACTION_SHORTCUT_OPEN = "com.akrapovic.soundkit.community.action.SHORTCUT_OPEN"
+        const val ACTION_SHORTCUT_CLOSE = "com.akrapovic.soundkit.community.action.SHORTCUT_CLOSE"
+        const val ACTION_SHORTCUT_CONNECT = "com.akrapovic.soundkit.community.action.SHORTCUT_CONNECT"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleShortcutIntent(intent)
         enableEdgeToEdge()
         setContent {
             val blePermissions = remember { PermissionPolicy.requiredBlePermissions() }
@@ -81,6 +86,24 @@ class MainActivity : ComponentActivity() {
                 },
             )
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleShortcutIntent(intent)
+    }
+
+    private fun handleShortcutIntent(intent: Intent?) {
+        when (intent?.action) {
+            ACTION_SHORTCUT_OPEN -> dispatchValveAction(BleConnectionService.ACTION_OPEN)
+            ACTION_SHORTCUT_CLOSE -> dispatchValveAction(BleConnectionService.ACTION_CLOSE)
+            ACTION_SHORTCUT_CONNECT -> BleConnectionService.start(this)
+        }
+    }
+
+    private fun dispatchValveAction(action: String) {
+        BleConnectionService.start(this)
+        startService(Intent(this, BleConnectionService::class.java).setAction(action))
     }
 
     private fun Context.hasAllPermissions(permissions: List<String>): Boolean {

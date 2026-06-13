@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.ui.diagnostics
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsShare
+import com.akrapovic.soundkit.community.diagnostics.DiagnosticsSupport
 import com.akrapovic.soundkit.community.domain.DiagnosticsEntry
 import com.akrapovic.soundkit.community.domain.DiagnosticsLevel
 import com.akrapovic.soundkit.community.ui.components.AkraCardShape
@@ -57,6 +59,8 @@ fun DiagnosticsScreen(
     onBuildCrashReport: () -> String = { "" },
     onCreateCrashReportFile: () -> File? = { null },
     onCrashHandled: () -> Unit = {},
+    supportTriageBody: String = "",
+    appVersionLabel: String = "",
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -139,6 +143,19 @@ fun DiagnosticsScreen(
                 )
             }
             Spacer(Modifier.height(6.dp))
+            SupportPanel(
+                appVersionLabel = appVersionLabel,
+                supportTriageBody = supportTriageBody,
+                onCopyEmail = { DiagnosticsSupport.copyEmailAddress(context) },
+                onEmailSupport = {
+                    val intent = DiagnosticsSupport.emailSupportIntent(
+                        subject = "Sound Kit Community — Diagnostics (Android)",
+                        body = supportTriageBody,
+                    )
+                    context.startActivity(Intent.createChooser(intent, "Email support"))
+                },
+            )
+            Spacer(Modifier.height(6.dp))
         }
 
         if (hasPendingCrash) {
@@ -179,6 +196,56 @@ fun DiagnosticsScreen(
         }
 
         item { Spacer(Modifier.height(8.dp)) }
+    }
+}
+
+@Composable
+private fun SupportPanel(
+    appVersionLabel: String,
+    supportTriageBody: String,
+    onCopyEmail: () -> Unit,
+    onEmailSupport: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(AkraCardShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), AkraCardShape)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Eyebrow("Need help?")
+        Text(
+            text = "Export your report above, then email it to ${DiagnosticsSupport.EMAIL}. Nothing is uploaded automatically.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (appVersionLabel.isNotBlank()) {
+            Text(
+                text = appVersionLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DiagnosticsButton(
+                modifier = Modifier.weight(1f),
+                label = "Copy email",
+                enabled = true,
+                filled = false,
+                contentDescription = "Copy support email address",
+                onClick = onCopyEmail,
+            )
+            DiagnosticsButton(
+                modifier = Modifier.weight(1f),
+                label = "Email support",
+                enabled = true,
+                filled = true,
+                contentDescription = "Open email to support",
+                onClick = onEmailSupport,
+            )
+        }
     }
 }
 

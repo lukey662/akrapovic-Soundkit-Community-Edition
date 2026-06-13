@@ -33,6 +33,12 @@ See `APK_ANALYSIS.md` and `BLE_PROTOCOL.md`.
 
 Testing strategy and the physical receiver smoke checklist are documented in `TESTING.md`.
 
+**Vehicle support:** Any car with the Akrapovič **Car** Sound Kit BLE receiver (not motorcycle Sound Kit Custom). Audi RS3 is the reference **Supported** tier; other platforms are **Beta** until field-validated — see `COMPATIBILITY.md`.
+
+**Support:** Export diagnostics from **More → Advanced → Diagnostics** and email **support@appsforgood.net** (Apps for Good Product Studio). Nothing uploads automatically.
+
+**iOS:** SwiftUI scaffold under `ios/SoundKitCommunity/` — parity work in progress; see `ROADMAP.md`.
+
 ## Documentation
 
 - `README.md` — overview, build, safety
@@ -42,6 +48,7 @@ Testing strategy and the physical receiver smoke checklist are documented in `TE
 - `DOCS.md` — developer workflow
 - `STYLE_GUIDE.md` — code and UI conventions
 - `BLE_PROTOCOL.md` / `APK_ANALYSIS.md` — protocol and reverse engineering
+- `COMPATIBILITY.md` — vehicle tiers (Supported / Beta) and diagnostics submission
 - `TESTING.md` — test strategy and hardware checklist
 
 ## Features

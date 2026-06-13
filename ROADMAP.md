@@ -2,7 +2,7 @@
 
 Living plan for **Sound Kit Community**. Nothing here is a commitment or timeline; it records direction so contributors and users know what might come next. All work stays **local-first** (phone BLE only) unless an explicit decision says otherwise.
 
-*Last refreshed: June 2026 — More tab simplified (Settings, Appearance, Advanced hub); public roadmap queue cleared.*
+*Last refreshed: June 2026 — Vehicle onboarding tiers, diagnostics support email, widget/shortcuts, settings backup, iOS scaffold, Wear tile.*
 
 ## Principles
 
@@ -45,8 +45,31 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 | **Quiet neighbours hours** | Editable start/end times, overnight windows (e.g. 22:00–06:00), 3 min default hold; manual override respected per connect session. |
 | **Theme contrast** | Audi RS Dark and dark primary buttons readable on Home; low-contrast gradient guard on action buttons. |
 | **More screen** | Settings and Appearance on More; Advanced hub for Diagnostics, Android Auto, Roadmap, and Developer. |
+| **Vehicle onboarding** | Car picker with Supported (Tier 1) and Beta (Tier 2) labels; persisted for diagnostics. |
+| **Diagnostics support** | support@appsforgood.net copy/email from Diagnostics; user-initiated export only. |
+| **Home widget and shortcuts** | Widget and launcher shortcuts for open/close/connect. |
+| **Settings backup** | Local JSON export/import via Files. |
+| **Receiver not-ready checklist** | Step-by-step help for status `04`. |
+| **RSSI hints** | Weak-signal copy on scan list. |
+| **Drive mode profiles** | Everyday, Quiet street, Track quick presets. |
+| **iOS scaffold** | SwiftUI + CoreBluetooth sources under `ios/SoundKitCommunity/`. |
+| **Wear OS tile** | `:wear` module opens phone app for connect. |
 
-No active public queue — fixes and polish land as feedback arrives.
+## Up next
+
+Maintenance driven by owner feedback; no fixed timeline.
+
+| Area | Intent |
+|------|--------|
+| **iOS parity** | Ship TestFlight-quality connect/open/close matching Android safety rules. |
+| **Compatibility matrix** | Promote Beta vehicles as Supported when field-validated. |
+
+## Later (product)
+
+| Area | Intent |
+|------|--------|
+| **Assistant intents** | Local voice shortcuts when connected and state-known. |
+| **CarPlay** | Explore in-car surface separate from Android Auto IoT. |
 
 ## Non-goals (for now)
 

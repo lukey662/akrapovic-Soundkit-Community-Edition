@@ -2,6 +2,7 @@ package com.akrapovic.soundkit.community.ui.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.akrapovic.soundkit.community.data.DriveModeProfile
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.ui.SoundKitUiState
@@ -15,6 +16,7 @@ fun DriveModeScreen(
     onPreferredModeChanged: (PreferredValveMode) -> Unit,
     onQuietStartChanged: (QuietStartSettings) -> Unit,
     onDriveModePausedChanged: (Boolean) -> Unit,
+    onApplyDriveModeProfile: (DriveModeProfile) -> Unit = {},
 ) {
     AkraScreen(modifier = modifier) {
         DriveModeSettingsSection(
@@ -23,6 +25,7 @@ fun DriveModeScreen(
             onPreferredModeChanged = onPreferredModeChanged,
             onQuietStartChanged = onQuietStartChanged,
             onDriveModePausedChanged = onDriveModePausedChanged,
+            onApplyProfile = onApplyDriveModeProfile,
         )
     }
 }

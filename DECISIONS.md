@@ -286,3 +286,23 @@ Quiet neighbours appeared to hold valves closed for the entire morning window be
 - Manual valve control during quiet hold persists until disconnect or drive-mode resume.
 - Reconnect spam remains bounded (8 attempts); duplicate error states no longer restart the backoff counter mid-flight.
 - Theme preview and Home CTA remain readable on near-black garage themes.
+
+## 2026-06-13: Vehicle Tiers, Support Email, And iOS Companion
+
+### Context
+
+Owners asked which cars are supported beyond the RS3 reference install, how to get help with diagnostics, and whether an iOS app is feasible.
+
+### Decision
+
+- Model support by **receiver protocol**, not VIN: **Supported** (Tier 1, RS3 reference) vs **Beta** (Tier 2, same Car SoundKit BLE stack, unvalidated here).
+- Persist `selectedVehicleId` from onboarding; include vehicle tier in diagnostics headers.
+- Route support to **support@appsforgood.net** (Apps for Good Product Studio) via user-initiated email with exported `.txt` — **no auto-upload**, no new `INTERNET` permission.
+- Add **iOS scaffold** (`ios/SoundKitCommunity/`) sharing `BLE_PROTOCOL.md` as source of truth; Android remains primary until iOS parity ships.
+- Exclude **ECU coding / exhaust sound-mode wiring** from product scope.
+
+### Consequences
+
+- Motorcycle Sound Kit Custom and remote-only kits stay out of the wizard catalog.
+- Community can promote Beta → Supported via `COMPATIBILITY.md` and catalog updates after field validation.
+- Wear OS tile (`:wear`) opens the phone app rather than duplicating BLE on the watch.

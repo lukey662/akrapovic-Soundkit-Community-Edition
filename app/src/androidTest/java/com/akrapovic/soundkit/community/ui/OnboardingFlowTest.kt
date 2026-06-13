@@ -25,7 +25,9 @@ class OnboardingFlowTest {
                 OnboardingFlow(
                     blePermissionsGranted = false,
                     notificationsGranted = false,
+                    selectedVehicleId = null,
                     onAcceptRisk = {},
+                    onSelectVehicle = {},
                     onRequestBlePermissions = {},
                     onRequestNotificationPermission = {},
                     onComplete = {},
@@ -36,6 +38,7 @@ class OnboardingFlowTest {
         composeRule.onNodeWithText("Set up Sound Kit").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Onboarding progress").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Risk notice").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Vehicle selection step").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Bluetooth onboarding step").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Notifications onboarding step").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Battery onboarding step").assertIsDisplayed()
@@ -50,7 +53,9 @@ class OnboardingFlowTest {
                 OnboardingFlow(
                     blePermissionsGranted = true,
                     notificationsGranted = true,
+                    selectedVehicleId = "audi-rs3",
                     onAcceptRisk = {},
+                    onSelectVehicle = {},
                     onRequestBlePermissions = {},
                     onRequestNotificationPermission = {},
                     onComplete = { completed = true },
@@ -72,7 +77,9 @@ class OnboardingFlowTest {
                 OnboardingFlow(
                     blePermissionsGranted = false,
                     notificationsGranted = true,
+                    selectedVehicleId = null,
                     onAcceptRisk = {},
+                    onSelectVehicle = {},
                     onRequestBlePermissions = {},
                     onRequestNotificationPermission = {},
                     onComplete = {},
