@@ -1,8 +1,34 @@
 # Sound Kit Community
 
-Open-source Android replacement scaffold for the abandoned Akrapovič Car SoundKit app (`si.sunesis.akrapovic.soundkit`).
+Open-source Android app for the Akrapovič **Car Sound Kit** BLE receiver — a maintained replacement for the abandoned official app (`si.sunesis.akrapovic.soundkit`).
 
-This app is designed for local Bluetooth Low Energy control only. It has no internet permission, no account system, no cloud backend, and no telemetry.
+**Not affiliated with Akrapovič.** Local Bluetooth only — no internet, accounts, or telemetry.
+
+## For Sound Kit owners
+
+**[Install guide → INSTALL.md](INSTALL.md)** — download the APK, grant permissions, scan your receiver. No coding required.
+
+| Step | What you will see |
+|------|-------------------|
+| Setup | Risk notice and vehicle selection |
+| Scan | Find your receiver nearby |
+| Home | Open/close valves when parked |
+| Support | Export diagnostics and email **support@appsforgood.net** |
+
+<p align="center">
+  <img src="docs/screenshots/01-onboarding-risk.png" alt="Onboarding setup" width="240" />
+  <img src="docs/screenshots/03-scan-receivers.png" alt="Scan for receivers" width="240" />
+  <img src="docs/screenshots/04-home-connected.png" alt="Connected home screen" width="240" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/05-more-menu.png" alt="More menu" width="240" />
+  <img src="docs/screenshots/07-diagnostics-support.png" alt="Diagnostics and support" width="240" />
+</p>
+
+Screenshots are generated from the app UI via `./scripts/capture-docs-screenshots.sh` (Paparazzi — no device needed).
+
+---
 
 ## Why this project
 
@@ -41,6 +67,7 @@ Testing strategy and the physical receiver smoke checklist are documented in `TE
 
 ## Documentation
 
+- `INSTALL.md` — owner install guide (APK, permissions, first run)
 - `README.md` — overview, build, safety
 - `ROADMAP.md` — planned features (favorites, rules, automations, UI/UX)
 - `SPEC.md` — technical behavior
@@ -69,7 +96,9 @@ Testing strategy and the physical receiver smoke checklist are documented in `TE
 
 ## Build
 
-Install Android Studio with Android SDK 35 and JDK 17, then from the repository root run:
+**Owners:** see `INSTALL.md` — you do not need Android Studio.
+
+**Developers:** install Android Studio with Android SDK 35 and JDK 17, then from the repository root run:
 
 ```bash
 ./gradlew :app:assembleDebug

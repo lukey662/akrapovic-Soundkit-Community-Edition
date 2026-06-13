@@ -21,6 +21,18 @@ app/src/main/java/com/akrapovic/soundkit/community/
 4. Build with `./gradlew :app:assembleDebug` (uses the committed Gradle wrapper).
 5. Install on a physical Android device with BLE support.
 
+## README screenshots
+
+Marketing screenshots for `docs/screenshots/` and the README are recorded with [Paparazzi](https://github.com/cashapp/paparazzi) — JVM tests, no emulator or phone:
+
+```bash
+./scripts/capture-docs-screenshots.sh
+```
+
+This runs `DocsScreenshotPaparazziTest`, writes goldens under `app/src/test/snapshots/images/`, and copies friendly filenames into `docs/screenshots/`. CI can gate regressions with `./gradlew :app:verifyPaparazziDebug`.
+
+**Note:** Compose UI tests on a physical device require Espresso; Android 16 (API 36) currently breaks Espresso's `InputManager` shim, so prefer Paparazzi for doc captures on bleeding-edge phones.
+
 ## First-run onboarding
 
 Until `onboardingCompletedAt` is set in DataStore, the app shows a single scrollable setup screen (not the main tabs) with a breadcrumb progress strip and four inline sections:
