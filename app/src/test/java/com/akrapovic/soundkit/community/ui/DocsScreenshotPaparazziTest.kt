@@ -1,5 +1,10 @@
 package com.akrapovic.soundkit.community.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import com.akrapovic.soundkit.community.domain.ConnectionState
@@ -22,18 +27,21 @@ import org.junit.Test
 /**
  * JVM screenshot tests for README / docs. Run [scripts/capture-docs-screenshots.sh]
  * to record PNGs into docs/screenshots/ (works without a device or emulator).
+ *
+ * Uses full [DeviceConfig.PIXEL_6] pixel dimensions (1080×2400) — do not override
+ * screenWidth/Height with dp-like values or text and buttons clip badly.
  */
 class DocsScreenshotPaparazziTest {
     @get:Rule
     val paparazzi = Paparazzi(
-        deviceConfig = DeviceConfig.PIXEL_5.copy(screenHeight = 892, screenWidth = 412),
-        theme = "android:Theme.Material.Light.NoActionBar",
+        deviceConfig = DeviceConfig.PIXEL_6,
+        theme = "android:Theme.Material.NoActionBar",
     )
 
     @Test
     fun onboardingRisk() {
         paparazzi.snapshot(name = "01-onboarding-risk") {
-            SoundKitTheme {
+            PhoneFrame {
                 OnboardingFlow(
                     blePermissionsGranted = false,
                     notificationsGranted = false,
@@ -51,7 +59,7 @@ class DocsScreenshotPaparazziTest {
     @Test
     fun vehicleSelection() {
         paparazzi.snapshot(name = "02-vehicle-selection") {
-            SoundKitTheme {
+            PhoneFrame {
                 VehicleSelectionContent(
                     selectedVehicleId = "audi-rs3",
                     onSelectVehicle = {},
@@ -63,7 +71,7 @@ class DocsScreenshotPaparazziTest {
     @Test
     fun scanReceivers() {
         paparazzi.snapshot(name = "03-scan-receivers") {
-            SoundKitTheme {
+            PhoneFrame {
                 ScanScreen(
                     state = SoundKitUiState(
                         isScanning = false,
@@ -91,7 +99,7 @@ class DocsScreenshotPaparazziTest {
     fun homeConnected() {
         val device = testDeviceForSmoke()
         paparazzi.snapshot(name = "04-home-connected") {
-            SoundKitTheme {
+            PhoneFrame {
                 ConnectedDeviceScreen(
                     state = SoundKitUiState(
                         connectionState = ConnectionState.Connected(device),
@@ -109,7 +117,7 @@ class DocsScreenshotPaparazziTest {
     @Test
     fun moreMenu() {
         paparazzi.snapshot(name = "05-more-menu") {
-            SoundKitTheme {
+            PhoneFrame {
                 MoreScreen(onNavigate = {})
             }
         }
@@ -118,7 +126,7 @@ class DocsScreenshotPaparazziTest {
     @Test
     fun advancedHub() {
         paparazzi.snapshot(name = "06-advanced-hub") {
-            SoundKitTheme {
+            PhoneFrame {
                 AdvancedScreen(onNavigate = {})
             }
         }
@@ -127,26 +135,38 @@ class DocsScreenshotPaparazziTest {
     @Test
     fun diagnosticsSupport() {
         paparazzi.snapshot(name = "07-diagnostics-support") {
-            SoundKitTheme {
+            PhoneFrame {
                 WithStubActivityResultRegistry {
                     DiagnosticsScreen(
-                    entries = listOf(
-                        DiagnosticsEntry(
-                            id = 1L,
-                            timestampMillis = 1_700_000_000_000L,
-                            level = DiagnosticsLevel.Info,
-                            message = "Connected to Akrapovic SoundKit",
+                        entries = listOf(
+                            DiagnosticsEntry(
+                                id = 1L,
+                                timestampMillis = 1_700_000_000_000L,
+                                level = DiagnosticsLevel.Info,
+                                message = "Connected to Akrapovic SoundKit",
+                            ),
+                            DiagnosticsEntry(
+                                id = 2L,
+                                timestampMillis = 1_700_000_001_000L,
+                                level = DiagnosticsLevel.Debug,
+                                message = "Valve state: OPEN",
+                            ),
                         ),
-                        DiagnosticsEntry(
-                            id = 2L,
-                            timestampMillis = 1_700_000_001_000L,
-                            level = DiagnosticsLevel.Debug,
-                            message = "Valve state: OPEN",
-                        ),
-                    ),
-                    onBuildReport = { "Sound Kit Community diagnostics report" },
+                        onBuildReport = { "Sound Kit Community diagnostics report" },
                     )
                 }
+            }
+        }
+    }
+
+    @Composable
+    private fun PhoneFrame(content: @Composable () -> Unit) {
+        SoundKitTheme {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background,
+            ) {
+                content()
             }
         }
     }

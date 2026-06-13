@@ -29,7 +29,7 @@ Marketing screenshots for `docs/screenshots/` and the README are recorded with [
 ./scripts/capture-docs-screenshots.sh
 ```
 
-This runs `DocsScreenshotPaparazziTest`, writes goldens under `app/src/test/snapshots/images/`, and copies friendly filenames into `docs/screenshots/`. CI can gate regressions with `./gradlew :app:verifyPaparazziDebug`.
+This runs `DocsScreenshotPaparazziTest`, writes goldens under `app/src/test/snapshots/images/`, and copies friendly filenames into `docs/screenshots/`. Uses full `DeviceConfig.PIXEL_6` pixel dimensions — do not shrink `screenWidth`/`screenHeight` or buttons and labels clip. CI can gate regressions with `./gradlew :app:verifyPaparazziDebug`.
 
 **Note:** Compose UI tests on a physical device require Espresso; Android 16 (API 36) currently breaks Espresso's `InputManager` shim, so prefer Paparazzi for doc captures on bleeding-edge phones.
 
