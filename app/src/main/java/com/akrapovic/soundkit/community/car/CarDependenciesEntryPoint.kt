@@ -15,5 +15,7 @@ interface CarDependenciesEntryPoint {
     fun settingsStore(): SettingsStore
 
     fun driveModeEngine(): DriveModeEngine
+
+    fun carSessionTracker(): CarSessionTracker
 }
 

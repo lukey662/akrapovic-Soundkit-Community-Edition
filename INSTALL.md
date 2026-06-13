@@ -43,6 +43,17 @@ Plain-language guide for Akrapovič Sound Kit owners. No developer tools require
 | Connect fails | Power-cycle the receiver; forget the device in Android Bluetooth settings and scan again. |
 | Valves do not move | Wait until status shows Open/Closed; only toggle when parked. Export diagnostics and email support. |
 
+## Two phones in one car
+
+If you and a partner both have the app:
+
+1. Leave **Head unit priority** on (Settings → Connection).
+2. Use **Android Auto on the driver’s phone** — that phone becomes primary and auto-connects.
+3. The passenger phone stays idle unless they tap **Take control** on Home (confirms it may disconnect the other phone).
+4. Turn off head-unit priority on a phone only if you want the old “both phones race to connect” behavior.
+
+On **iOS** (dev builds), contention yield and Take control work; full driver priority requires a future CarPlay session hook.
+
 ## iOS
 
 An iPhone companion (**dev v1**) is in the repository for **developers with Xcode and a registered device** — it is **not available for owners** yet (no TestFlight or App Store build).

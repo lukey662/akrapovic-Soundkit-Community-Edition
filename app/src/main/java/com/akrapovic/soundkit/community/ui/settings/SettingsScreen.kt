@@ -41,6 +41,7 @@ fun SettingsScreen(
     state: SoundKitUiState,
     onAutoReconnectChanged: (Boolean) -> Unit,
     onConnectOnLaunchChanged: (Boolean) -> Unit,
+    onHeadUnitPriorityChanged: (Boolean) -> Unit,
     onSetDefaultReceiver: (String) -> Unit,
     onRemoveReceiver: (String) -> Unit,
     onUpdateNickname: (String, String?) -> Unit,
@@ -64,6 +65,13 @@ fun SettingsScreen(
     AkraScreen(modifier = modifier) {
         AkraSectionTitle("Connection")
         AkraListGroup {
+            AkraSwitchRow(
+                title = "Head unit priority",
+                subtitle = "When this phone is on Android Auto, it controls the Sound Kit. Other phones won't auto-connect.",
+                checked = state.settings.headUnitPriorityEnabled,
+                onCheckedChange = onHeadUnitPriorityChanged,
+            )
+            AkraListDivider()
             AkraSwitchRow(
                 title = "Connect on launch",
                 subtitle = "Try your default receiver when the app opens",

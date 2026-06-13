@@ -19,6 +19,9 @@ import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
+import com.akrapovic.soundkit.community.car.CarSessionTracker
+import com.akrapovic.soundkit.community.domain.ConnectionPriorityPolicy
+import com.akrapovic.soundkit.community.domain.ConnectionYieldState
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.domain.VehicleCompatibilityCatalog
@@ -40,6 +43,7 @@ class SoundKitViewModel @Inject constructor(
     private val diagnosticsReportBuilder: DiagnosticsReportBuilder,
     private val crashReporter: CrashReporter,
     private val driveModeEngine: DriveModeEngine,
+    private val carSessionTracker: CarSessionTracker,
 ) : ViewModel() {
     private val commandInFlight = MutableStateFlow(false)
     private val lastError = MutableStateFlow<String?>(null)
@@ -53,12 +57,21 @@ class SoundKitViewModel @Inject constructor(
         bleRepository.receiverStatusMessage,
         bleRepository.isScanning,
     ) { devices, connectionState, valveState, receiverStatusMessage, isScanning ->
-        BleUiState(
+        PartialBleUiState(
             devices = devices,
             connectionState = connectionState,
             valveState = valveState,
             receiverStatusMessage = receiverStatusMessage,
             isScanning = isScanning,
+        )
+    }.combine(bleRepository.connectionYieldState) { partial, connectionYieldState ->
+        BleUiState(
+            devices = partial.devices,
+            connectionState = partial.connectionState,
+            valveState = partial.valveState,
+            receiverStatusMessage = partial.receiverStatusMessage,
+            connectionYieldState = connectionYieldState,
+            isScanning = partial.isScanning,
         )
     }
 
@@ -68,6 +81,7 @@ class SoundKitViewModel @Inject constructor(
             connectionState = ble.connectionState,
             valveState = ble.valveState,
             receiverStatusMessage = ble.receiverStatusMessage,
+            connectionYieldState = ble.connectionYieldState,
             isScanning = ble.isScanning,
             settings = settings,
         )
@@ -90,6 +104,7 @@ class SoundKitViewModel @Inject constructor(
             commandInFlight = inFlight,
             lastError = error,
             receiverStatusMessage = core.receiverStatusMessage,
+            connectionYieldState = core.connectionYieldState,
             protocolVerified = SoundKitProtocol.VERIFIED,
             hasPendingCrash = pendingCrash,
         )
@@ -105,8 +120,14 @@ class SoundKitViewModel @Inject constructor(
             val settings = settingsRepository.settings.first()
             if (!settings.onboardingCompleted || !settings.connectOnLaunch) return@launch
             val device = RememberedDeviceConnector.defaultDevice(settings) ?: return@launch
-            if (RememberedDeviceConnector.shouldAutoConnect(bleRepository.connectionState.value, settings)) {
-                bleRepository.connect(device)
+            val carSessionActive = carSessionTracker.isCarSessionActive.value
+            if (ConnectionPriorityPolicy.shouldAutoConnectOnLaunch(
+                    settings,
+                    bleRepository.connectionState.value,
+                    carSessionActive,
+                )
+            ) {
+                bleRepository.connect(device, userInitiated = false)
             }
         }
     }
@@ -226,12 +247,27 @@ class SoundKitViewModel @Inject constructor(
         }
     }
 
+    fun takeControl() {
+        viewModelScope.launch {
+            lastError.value = null
+            val settings = settingsRepository.settings.first()
+            val device = RememberedDeviceConnector.defaultDevice(settings) ?: return@launch
+            bleRepository.takeControl(device)
+        }
+    }
+
+    fun setHeadUnitPriorityEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setHeadUnitPriorityEnabled(enabled)
+        }
+    }
+
     fun retryConnection() {
         viewModelScope.launch {
             lastError.value = null
             val settings = settingsRepository.settings.first()
             val device = RememberedDeviceConnector.defaultDevice(settings) ?: return@launch
-            bleRepository.connect(device)
+            bleRepository.connect(device, userInitiated = true)
         }
     }
 
@@ -344,11 +380,20 @@ class SoundKitViewModel @Inject constructor(
     }
 }
 
+private data class PartialBleUiState(
+    val devices: List<SoundKitDevice>,
+    val connectionState: ConnectionState,
+    val valveState: ValveState,
+    val receiverStatusMessage: String?,
+    val isScanning: Boolean,
+)
+
 private data class BleUiState(
     val devices: List<SoundKitDevice>,
     val connectionState: ConnectionState,
     val valveState: ValveState,
     val receiverStatusMessage: String?,
+    val connectionYieldState: ConnectionYieldState,
     val isScanning: Boolean,
 )
 
@@ -357,6 +402,7 @@ private data class CoreUiState(
     val connectionState: ConnectionState,
     val valveState: ValveState,
     val receiverStatusMessage: String?,
+    val connectionYieldState: ConnectionYieldState,
     val isScanning: Boolean,
     val settings: com.akrapovic.soundkit.community.domain.SoundKitSettings,
 )

@@ -79,3 +79,32 @@ final class ConnectReadyObserverTests: XCTestCase {
         XCTAssertTrue(t.becameReady)
     }
 }
+
+final class ConnectionPriorityPolicyTests: XCTestCase {
+    func testAutoConnectRequiresCarSessionWhenHeadUnitPriorityEnabled() {
+        var settings = SoundKitSettings()
+        settings.connectOnLaunch = true
+        settings.headUnitPriorityEnabled = true
+        settings.savedReceivers = [
+            SavedReceiver(address: "aa", name: "SoundKit", isDefault: true),
+        ]
+        XCTAssertTrue(ConnectionPriorityPolicy.shouldAutoConnectOnLaunch(
+            settings: settings,
+            carSessionActive: true
+        ))
+        XCTAssertFalse(ConnectionPriorityPolicy.shouldAutoConnectOnLaunch(
+            settings: settings,
+            carSessionActive: false
+        ))
+    }
+}
+
+final class BleContentionDetectorTests: XCTestCase {
+    func testQuickDropSignalsContention() {
+        var now: Int64 = 0
+        let detector = BleContentionDetector { now }
+        detector.onConnected()
+        now = 2_000
+        XCTAssertEqual(detector.onDisconnected(userInitiated: false), .quickDrop)
+    }
+}

@@ -138,6 +138,7 @@ fun SoundKitApp(
                         onToggleValve = viewModel::toggleValve,
                         onDisconnect = viewModel::disconnect,
                         onRetryConnection = viewModel::retryConnection,
+                        onTakeControl = viewModel::takeControl,
                         onSetDefaultReceiver = viewModel::setDefaultReceiver,
                         onOpenDriveMode = {
                             primaryScreen = AppScreen.More
@@ -165,6 +166,7 @@ fun SoundKitApp(
                         state = state,
                         onAutoReconnectChanged = viewModel::setAutoReconnect,
                         onConnectOnLaunchChanged = viewModel::setConnectOnLaunch,
+                        onHeadUnitPriorityChanged = viewModel::setHeadUnitPriorityEnabled,
                         onSetDefaultReceiver = viewModel::setDefaultReceiver,
                         onRemoveReceiver = viewModel::removeReceiver,
                         onUpdateNickname = viewModel::updateNickname,

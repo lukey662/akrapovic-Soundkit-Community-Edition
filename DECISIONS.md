@@ -1,5 +1,28 @@
 # Decisions
 
+## 2026-06-13: Head-unit priority for two-phone households
+
+### Context
+
+Two phones with the app in one car both auto-connect to the same Sound Kit BLE receiver, fight for the single GATT slot, and run conflicting drive-mode rules. There is no cloud or cross-phone channel.
+
+### Decision
+
+Use **local asymmetric policy**:
+
+- **Primary** — phone with an active Android Auto Car App session (Android) or future CarPlay session (iOS) auto-connects and auto-reconnects.
+- **Secondary** — skips connect-on-launch; on BLE contention (quick drop or connect storm) enters **yield** mode and stops reconnecting until the user taps **Take control**.
+- Setting **Head unit priority** (default on) disables legacy race behavior; turn off to restore previous connect-on-launch for all phones.
+
+Implementation: `CarSessionTracker`, `ConnectionPriorityPolicy`, `BleContentionDetector`, `ConnectionYieldState` in domain; `BleRepository` gates reconnect; Home/Settings UX for yield and Take control.
+
+### Consequences
+
+- Driver on Android Auto reliably holds the receiver without passenger phone reconnect storms.
+- Passenger can still take control explicitly (with confirmation).
+- iOS full primary detection waits for CarPlay; contention yield works today.
+- No live valve sync between phones (BLE limitation unchanged).
+
 ## 2026-05-16: Use Standard Android GATT APIs
 
 ### Context

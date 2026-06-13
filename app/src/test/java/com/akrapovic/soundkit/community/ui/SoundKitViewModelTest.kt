@@ -1,6 +1,7 @@
 package com.akrapovic.soundkit.community.ui
 
 import app.cash.turbine.test
+import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.diagnostics.CrashReporter
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
@@ -33,6 +34,7 @@ class SoundKitViewModelTest {
     private val bleRepository = FakeBleRepository()
     private val settingsStore = FakeSettingsStore()
     private val diagnosticsRepository = DiagnosticsRepository()
+    private val carSessionTracker = CarSessionTracker()
 
     private fun viewModel(): SoundKitViewModel {
         val outputDirectory = File(System.getProperty("java.io.tmpdir"), "soundkit-${System.nanoTime()}")
@@ -70,6 +72,7 @@ class SoundKitViewModelTest {
                 executionLog = NoopRuleExecutionLogStore(),
                 diagnosticsRepository = diagnosticsRepository,
             ),
+            carSessionTracker = carSessionTracker,
         )
     }
 
@@ -109,6 +112,7 @@ class SoundKitViewModelTest {
                 SavedReceiver(device.address, device.name, isDefault = true),
             ),
         )
+        carSessionTracker.beginSession()
         val viewModel = viewModel()
 
         viewModel.tryConnectOnLaunch()
@@ -123,6 +127,25 @@ class SoundKitViewModelTest {
         val device = testDevice()
         settingsStore.settings.value = settingsStore.settings.value.copy(
             connectOnLaunch = false,
+            onboardingCompletedAt = 1L,
+            savedReceivers = listOf(
+                SavedReceiver(device.address, device.name, isDefault = true),
+            ),
+        )
+        val viewModel = viewModel()
+
+        viewModel.tryConnectOnLaunch()
+        runCurrent()
+
+        assertTrue(bleRepository.connectedDevices.isEmpty())
+    }
+
+    @Test
+    fun tryConnectOnLaunchSkippedWhenHeadUnitPriorityWithoutCarSession() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        settingsStore.settings.value = settingsStore.settings.value.copy(
+            connectOnLaunch = true,
+            headUnitPriorityEnabled = true,
             onboardingCompletedAt = 1L,
             savedReceivers = listOf(
                 SavedReceiver(device.address, device.name, isDefault = true),

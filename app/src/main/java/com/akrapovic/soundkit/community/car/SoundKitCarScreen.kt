@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.car.app.model.MessageTemplate
 import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
@@ -35,11 +37,20 @@ class SoundKitCarScreen(
     private val repository: BleRepository = entryPoint.bleRepository()
     private val settingsStore: SettingsStore = entryPoint.settingsStore()
     private val driveModeEngine: DriveModeEngine = entryPoint.driveModeEngine()
+    private val carSessionTracker: CarSessionTracker = entryPoint.carSessionTracker()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var hasDefaultReceiver = false
     private var autoReconnectEnabled = true
 
     init {
+        carSessionTracker.beginSession()
+        lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onDestroy(owner: LifecycleOwner) {
+                    carSessionTracker.endSession()
+                }
+            },
+        )
         scope.launch {
             val settings = settingsStore.settings.first()
             hasDefaultReceiver = RememberedDeviceConnector.defaultDevice(settings) != null

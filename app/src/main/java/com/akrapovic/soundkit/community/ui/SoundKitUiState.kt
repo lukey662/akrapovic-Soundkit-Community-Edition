@@ -1,6 +1,7 @@
 package com.akrapovic.soundkit.community.ui
 
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.ConnectionYieldState
 import com.akrapovic.soundkit.community.domain.DiagnosticsEntry
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
@@ -16,6 +17,7 @@ data class SoundKitUiState(
     val commandInFlight: Boolean = false,
     val lastError: String? = null,
     val receiverStatusMessage: String? = null,
+    val connectionYieldState: ConnectionYieldState = ConnectionYieldState.None,
     val protocolVerified: Boolean = false,
     val hasPendingCrash: Boolean = false,
 )

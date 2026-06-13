@@ -32,6 +32,10 @@ final class SoundKitViewModel: ObservableObject {
         self.bleManager = ble
 
         self.driveModeEngine.configure(ble: ble, settings: self.settingsStore, diagnostics: self.diagnosticsStore)
+        ble.settingsProvider = { [weak settingsStore = self.settingsStore] in
+            settingsStore?.settings ?? SoundKitSettings()
+        }
+        ble.carSessionProvider = { CarSessionTracker.shared.isCarSessionActive }
         ble.onDiagnostics = { [weak diagnosticsStore = self.diagnosticsStore] message in
             Task { @MainActor in diagnosticsStore?.debug(message) }
         }
@@ -58,9 +62,19 @@ final class SoundKitViewModel: ObservableObject {
     }
 
     func tryConnectOnLaunch() {
-        guard settingsStore.settings.connectOnLaunch,
-              let receiver = settingsStore.settings.defaultReceiver else { return }
-        bleManager.connectToRemembered(id: receiver.address, name: receiver.displayName())
+        guard ConnectionPriorityPolicy.shouldAutoConnectOnLaunch(
+            settings: settingsStore.settings,
+            carSessionActive: CarSessionTracker.shared.isCarSessionActive
+        ), let receiver = settingsStore.settings.defaultReceiver else { return }
+        bleManager.connectToRemembered(
+            id: receiver.address,
+            name: receiver.displayName(),
+            userInitiated: false
+        )
+    }
+
+    func takeControl() {
+        bleManager.takeControl()
     }
 
     func completeOnboarding(vehicleId: String?) {

@@ -7,7 +7,9 @@ import com.akrapovic.soundkit.community.data.QuietStartCodec
 import com.akrapovic.soundkit.community.data.SettingsBackupCodec
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.CommandResult
+import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.ConnectionYieldState
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
@@ -148,6 +150,10 @@ class FakeSettingsStore(
         settings.value = settings.value.copy(connectOnLaunch = enabled)
     }
 
+    override suspend fun setHeadUnitPriorityEnabled(enabled: Boolean) {
+        settings.value = settings.value.copy(headUnitPriorityEnabled = enabled)
+    }
+
     override suspend fun forgetDevice() {
         forgetCount += 1
         settings.value = settings.value.copy(savedReceivers = emptyList())
@@ -187,6 +193,7 @@ class FakeSettingsStore(
         var next = settings.value
         backup.selectedVehicleId?.let { next = next.copy(selectedVehicleId = it) }
         backup.connectOnLaunch?.let { next = next.copy(connectOnLaunch = it) }
+        backup.headUnitPriorityEnabled?.let { next = next.copy(headUnitPriorityEnabled = it) }
         backup.autoReconnect?.let { next = next.copy(autoReconnect = it) }
         backup.garageThemeId?.let { next = next.copy(garageThemeId = it) }
         backup.driveModeEnabled?.let { next = next.copy(driveModeEnabled = it) }
@@ -225,6 +232,7 @@ class FakeBleRepository : BleRepository {
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val valveState = MutableStateFlow(ValveState.Unknown)
     override val receiverStatusMessage = MutableStateFlow<String?>(null)
+    override val connectionYieldState = MutableStateFlow<ConnectionYieldState>(ConnectionYieldState.None)
     override val isScanning = MutableStateFlow(false)
 
     var startScanCount = 0
@@ -248,9 +256,14 @@ class FakeBleRepository : BleRepository {
         isScanning.value = false
     }
 
-    override suspend fun connect(device: SoundKitDevice) {
+    override suspend fun connect(device: SoundKitDevice, userInitiated: Boolean) {
         connectedDevices += device
         connectionState.value = ConnectionState.Connecting(device)
+    }
+
+    override suspend fun takeControl(device: SoundKitDevice) {
+        connectionYieldState.value = ConnectionYieldState.None
+        connect(device, userInitiated = true)
     }
 
     override suspend fun disconnect() {

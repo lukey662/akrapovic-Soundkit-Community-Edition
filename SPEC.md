@@ -77,7 +77,16 @@ flowchart TD
 
 - `SavedReceiver`: address, name, optional nickname, `isDefault`.
 - CRUD via `SettingsStore`: save on connect (default if first), remove, set default, update nickname, forget all.
-- **Connect on launch:** one attempt per process when onboarding complete, BLE granted, `connectOnLaunch` true, and `RememberedDeviceConnector.shouldAutoConnect`.
+- **Connect on launch:** one attempt per process when onboarding complete, BLE granted, `connectOnLaunch` true, and `ConnectionPriorityPolicy.shouldAutoConnectOnLaunch` (respects head-unit priority — secondary phones defer until Car App session is active on that device).
+- **Head unit priority** (default on): when enabled, only the phone with an active Android Auto session auto-connects on launch; other phones yield on BLE contention and show **Take control** on Home.
+
+## Multi-phone / same car
+
+- One BLE receiver accepts one GATT connection at a time.
+- Each phone has independent settings; no accounts or sync.
+- **Primary** (Android Auto active on this phone): auto-connect + auto-reconnect per existing policy.
+- **Secondary** (no Car App session): no launch auto-connect; contention → yield; manual **Take control** sets `userRequestedControl` until disconnect.
+- `headUnitPriorityEnabled = false` restores prior race behavior for power users.
 
 ## Notification and Quick Settings
 

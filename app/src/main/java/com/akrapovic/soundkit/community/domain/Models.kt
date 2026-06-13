@@ -104,6 +104,7 @@ data class RuleExecutionEntry(
 data class SoundKitSettings(
     val savedReceivers: List<SavedReceiver> = emptyList(),
     val connectOnLaunch: Boolean = true,
+    val headUnitPriorityEnabled: Boolean = true,
     val autoReconnect: Boolean = true,
     val debugLoggingEnabled: Boolean = true,
     val garageThemeId: String = "studio-dark",

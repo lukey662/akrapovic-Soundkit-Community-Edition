@@ -28,6 +28,7 @@ struct SavedReceiver: Codable, Equatable, Identifiable {
 struct SoundKitSettings: Codable, Equatable {
     var savedReceivers: [SavedReceiver] = []
     var connectOnLaunch: Bool = true
+    var headUnitPriorityEnabled: Bool = true
     var autoReconnect: Bool = true
     var garageThemeId: String = "studio-dark"
     var riskNoticeAcceptedAt: TimeInterval = 0

@@ -23,7 +23,7 @@ object CarBleBootstrap {
         val device = RememberedDeviceConnector.defaultDevice(settings) ?: return
         scope.launch {
             if (RememberedDeviceConnector.shouldAutoConnect(repository.connectionState.value, settings)) {
-                repository.connect(device)
+                repository.connect(device, userInitiated = false)
             }
         }
     }

@@ -8,6 +8,7 @@ import org.json.JSONObject
 data class SettingsBackupPayload(
     val savedReceiversJson: String? = null,
     val connectOnLaunch: Boolean? = null,
+    val headUnitPriorityEnabled: Boolean? = null,
     val autoReconnect: Boolean? = null,
     val garageThemeId: String? = null,
     val selectedVehicleId: String? = null,
@@ -24,6 +25,7 @@ object SettingsBackupCodec {
             put("version", VERSION)
             put("savedReceiversJson", SavedReceiversCodec.encode(settings.savedReceivers))
             put("connectOnLaunch", settings.connectOnLaunch)
+            put("headUnitPriorityEnabled", settings.headUnitPriorityEnabled)
             put("autoReconnect", settings.autoReconnect)
             put("garageThemeId", settings.garageThemeId)
             settings.selectedVehicleId?.let { put("selectedVehicleId", it) }
@@ -41,6 +43,11 @@ object SettingsBackupCodec {
         return SettingsBackupPayload(
             savedReceiversJson = root.optString("savedReceiversJson").takeIf { it.isNotBlank() },
             connectOnLaunch = if (root.has("connectOnLaunch")) root.getBoolean("connectOnLaunch") else null,
+            headUnitPriorityEnabled = if (root.has("headUnitPriorityEnabled")) {
+                root.getBoolean("headUnitPriorityEnabled")
+            } else {
+                null
+            },
             autoReconnect = if (root.has("autoReconnect")) root.getBoolean("autoReconnect") else null,
             garageThemeId = root.optString("garageThemeId").takeIf { it.isNotBlank() },
             selectedVehicleId = root.optString("selectedVehicleId").takeIf { it.isNotBlank() },

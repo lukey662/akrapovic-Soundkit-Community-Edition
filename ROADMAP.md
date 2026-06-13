@@ -54,6 +54,7 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 | **Drive mode profiles** | Everyday, Quiet street, Track quick presets. |
 | **iOS dev v1** | Committed Xcode project; full BLE GATT, settings, onboarding, drive mode, Audi theme, diagnostics; XCTest + CI build. |
 | **Wear OS tile** | `:wear` module opens phone app for connect. |
+| **Head-unit priority** | Android Auto session = primary BLE controller; secondary phones defer auto-connect, yield on contention, Take control UX; iOS yield parity + CarPlay hook placeholder. |
 
 ## Up next
 

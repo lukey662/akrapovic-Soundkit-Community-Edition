@@ -27,9 +27,19 @@ final class BLEManager: NSObject, ObservableObject {
     @Published private(set) var discoveredDevices: [DiscoveredDevice] = []
     @Published private(set) var statusMessage: String?
     @Published private(set) var receiverNotReady = false
+    @Published private(set) var connectionYieldState: ConnectionYieldState = .none
     @Published private(set) var commandInFlight = false
 
+    static let yieldMessage =
+        "Another phone may be controlling the receiver. Tap Take control if you need this phone."
+
+    var settingsProvider: () -> SoundKitSettings = { SoundKitSettings() }
+    var carSessionProvider: () -> Bool = { false }
+
     var onDiagnostics: ((String) -> Void)?
+
+    private var userRequestedControl = false
+    private let contentionDetector = BleContentionDetector()
 
     private var centralManager: CBCentralManager!
     private var peripheralById: [String: CBPeripheral] = [:]
@@ -82,10 +92,15 @@ final class BLEManager: NSObject, ObservableObject {
         }
     }
 
-    func connect(to device: DiscoveredDevice) {
+    func connect(to device: DiscoveredDevice, userInitiated: Bool = true) {
         stopScan()
         reconnectTask?.cancel()
         reconnectAttempts = 0
+        if userInitiated {
+            userRequestedControl = true
+            connectionYieldState = .none
+            contentionDetector.reset()
+        }
         selectedDevice = device
         connectionPhase = .connecting(device)
         statusMessage = "Connecting to \(device.name)…"
@@ -99,25 +114,39 @@ final class BLEManager: NSObject, ObservableObject {
         log("BLE connect \(device.name)")
     }
 
-    func connectToRemembered(id: String, name: String) {
+    func connectToRemembered(id: String, name: String, userInitiated: Bool = true) {
         if let peripheral = peripheralById[id] {
-            connect(to: DiscoveredDevice(id: id, name: name, rssi: 0, isLikelySoundKit: true))
+            connect(
+                to: DiscoveredDevice(id: id, name: name, rssi: 0, isLikelySoundKit: true),
+                userInitiated: userInitiated
+            )
             return
         }
         let uuid = UUID(uuidString: id)
         let retrieved = uuid.map { centralManager.retrievePeripherals(withIdentifiers: [$0]) } ?? []
         if let peripheral = retrieved.first {
             peripheralById[id] = peripheral
-            connect(to: DiscoveredDevice(id: id, name: name, rssi: 0, isLikelySoundKit: true))
+            connect(
+                to: DiscoveredDevice(id: id, name: name, rssi: 0, isLikelySoundKit: true),
+                userInitiated: userInitiated
+            )
         } else {
             statusMessage = "Couldn't reach receiver — tap to scan"
             log("Remembered receiver not found: \(id)")
         }
     }
 
+    func takeControl() {
+        guard let receiver = settingsProvider().defaultReceiver else { return }
+        connectToRemembered(id: receiver.address, name: receiver.displayName(), userInitiated: true)
+    }
+
     func disconnect() {
         reconnectTask?.cancel()
         pendingReconnectId = nil
+        userRequestedControl = false
+        contentionDetector.reset()
+        connectionYieldState = .none
         if let peripheral = connectedPeripheral {
             centralManager.cancelPeripheralConnection(peripheral)
         }
@@ -134,11 +163,51 @@ final class BLEManager: NSObject, ObservableObject {
 
     func retryConnection() {
         reconnectAttempts = 0
+        userRequestedControl = true
+        connectionYieldState = .none
+        contentionDetector.reset()
         if let device = selectedDevice {
-            connect(to: device)
+            connect(to: device, userInitiated: true)
         } else if let id = pendingReconnectId,
                   let name = discoveredDevices.first(where: { $0.id == id })?.name {
-            connectToRemembered(id: id, name: name)
+            connectToRemembered(id: id, name: name, userInitiated: true)
+        }
+    }
+
+    private var currentSettings: SoundKitSettings { settingsProvider() }
+
+    private func shouldAutoReconnectNow() -> Bool {
+        ConnectionPriorityPolicy.shouldAutoReconnect(
+            settings: currentSettings,
+            carSessionActive: carSessionProvider(),
+            userRequestedControl: userRequestedControl,
+            yieldState: connectionYieldState
+        )
+    }
+
+    private func maybeYieldOnContention(_ signal: BleContentionSignal?) {
+        guard let signal else { return }
+        if userRequestedControl, signal == .connectStorm { return }
+        guard ConnectionPriorityPolicy.shouldEnterYieldOnContention(
+            settings: currentSettings,
+            carSessionActive: carSessionProvider()
+        ) else { return }
+        reconnectTask?.cancel()
+        reconnectAttempts = 0
+        connectionYieldState = .yielded(.headUnitMayBeActive)
+        log("BLE contention detected (\(signal)); yielding until user takes control")
+    }
+
+    private func handleLinkLoss(userInitiated: Bool, connectFailed: Bool) {
+        let signal: BleContentionSignal?
+        if connectFailed {
+            signal = contentionDetector.onConnectFailed()
+        } else {
+            signal = contentionDetector.onDisconnected(userInitiated: userInitiated)
+        }
+        maybeYieldOnContention(signal)
+        if shouldAutoReconnectNow() {
+            scheduleReconnect()
         }
     }
 
@@ -217,9 +286,14 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     private func scheduleReconnect() {
+        guard shouldAutoReconnectNow() else {
+            log("Auto-reconnect skipped by head-unit priority policy")
+            return
+        }
         guard reconnectAttempts < Self.maxReconnectAttempts, let device = selectedDevice else {
             connectionPhase = .error("Couldn't reach receiver — tap to retry")
             statusMessage = "Couldn't reach receiver — tap to retry"
+            maybeYieldOnContention(contentionDetector.onConnectFailed())
             return
         }
         reconnectAttempts += 1
@@ -230,7 +304,8 @@ final class BLEManager: NSObject, ObservableObject {
         reconnectTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: delayNs)
             guard let self, !Task.isCancelled else { return }
-            self.connect(to: device)
+            guard self.shouldAutoReconnectNow() else { return }
+            self.connect(to: device, userInitiated: false)
         }
     }
 
@@ -279,6 +354,7 @@ final class BLEManager: NSObject, ObservableObject {
         receiverNotReady = false
         statusMessage = nil
         reconnectAttempts = 0
+        contentionDetector.onConnected()
         log("BLE connected \(device.name)")
     }
 }
@@ -340,17 +416,17 @@ extension BLEManager: CBCentralManagerDelegate {
     nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         Task { @MainActor in
             log("BLE connect failed: \(error?.localizedDescription ?? "unknown")")
-            scheduleReconnect()
+            handleLinkLoss(userInitiated: false, connectFailed: true)
         }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         Task { @MainActor in
             log("BLE disconnected: \(error?.localizedDescription ?? "link lost")")
-            if selectedDevice != nil, reconnectAttempts < Self.maxReconnectAttempts {
-                scheduleReconnect()
-            } else {
-                resetConnectionState()
+            let hadDevice = selectedDevice != nil
+            resetConnectionState()
+            if hadDevice {
+                handleLinkLoss(userInitiated: false, connectFailed: false)
             }
         }
     }

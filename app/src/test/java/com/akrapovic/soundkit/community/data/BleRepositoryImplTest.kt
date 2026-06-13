@@ -1,8 +1,10 @@
 package com.akrapovic.soundkit.community.data
 
 import com.akrapovic.soundkit.community.ble.RetryPolicy
+import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.ConnectionYieldState
 import com.akrapovic.soundkit.community.domain.ValveCommand
 import com.akrapovic.soundkit.community.test.FakeBleConnectionGateway
 import com.akrapovic.soundkit.community.test.FakeBleScannerGateway
@@ -30,12 +32,15 @@ class BleRepositoryImplTest {
     private val diagnostics = DiagnosticsRepository()
     private val retryPolicy = RetryPolicy(initialDelayMs = 1_000, maxDelayMs = 5_000, maxAttempts = 8)
 
-    private fun repository() = BleRepositoryImpl(
+    private fun repository(
+        carSessionTracker: CarSessionTracker = CarSessionTracker(),
+    ) = BleRepositoryImpl(
         scanner = scanner,
         connectionManager = connection,
         settingsRepository = settings,
         diagnosticsRepository = diagnostics,
         retryPolicy = retryPolicy,
+        carSessionTracker = carSessionTracker,
     )
 
     @Test
@@ -151,6 +156,7 @@ class BleRepositoryImplTest {
             settingsRepository = FakeSettingsStore(settings.settings.value.copy(autoReconnect = false)),
             diagnosticsRepository = diagnostics,
             retryPolicy = retryPolicy,
+            carSessionTracker = CarSessionTracker(),
         )
         runCurrent()
         val device = testDevice()
@@ -171,6 +177,7 @@ class BleRepositoryImplTest {
             settingsRepository = FakeSettingsStore(settings.settings.value.copy(autoReconnect = false)),
             diagnosticsRepository = diagnostics,
             retryPolicy = retryPolicy,
+            carSessionTracker = CarSessionTracker(),
         )
         val device = testDevice()
 
@@ -219,6 +226,7 @@ class BleRepositoryImplTest {
             settingsRepository = settings,
             diagnosticsRepository = diagnostics,
             retryPolicy = cappedPolicy,
+            carSessionTracker = CarSessionTracker(),
         )
         val device = testDevice()
         connection.connectResults = MutableList(10) { Result.failure(IllegalStateException("offline")) }
@@ -231,6 +239,39 @@ class BleRepositoryImplTest {
         assertEquals(BleRepositoryImpl.RECONNECT_GAVE_UP_MESSAGE, connection.reconnectGaveUpMessages.single())
         assertTrue(connection.connectionState.value is ConnectionState.Error)
         assertEquals(2, connection.reconnectMarks.size)
+    }
+
+    @Test
+    fun secondaryPhoneYieldsAfterQuickDropWithoutManualControl() = runTest(mainDispatcherRule.dispatcher) {
+        val repository = repository()
+        val device = testDevice()
+
+        repository.connect(device, userInitiated = false)
+        connection.connectionState.value = ConnectionState.Connected(device)
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Disconnected
+        runCurrent()
+
+        assertTrue(repository.connectionYieldState.value is ConnectionYieldState.Yielded)
+        assertTrue(connection.reconnectMarks.isEmpty())
+    }
+
+    @Test
+    fun carSessionPrimaryReconnectsAfterDrop() = runTest(mainDispatcherRule.dispatcher) {
+        val tracker = CarSessionTracker()
+        tracker.beginSession()
+        val repository = repository(carSessionTracker = tracker)
+        val device = testDevice()
+
+        repository.connect(device, userInitiated = false)
+        connection.connectionState.value = ConnectionState.Connected(device)
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Disconnected
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertTrue(repository.connectionYieldState.value is ConnectionYieldState.None)
+        assertTrue(connection.reconnectMarks.isNotEmpty())
     }
 }
 

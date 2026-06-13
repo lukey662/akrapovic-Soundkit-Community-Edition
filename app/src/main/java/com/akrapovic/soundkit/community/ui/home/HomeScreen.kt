@@ -21,6 +21,7 @@ fun HomeScreen(
     onToggleValve: () -> Unit,
     onDisconnect: () -> Unit,
     onRetryConnection: () -> Unit = {},
+    onTakeControl: () -> Unit = {},
     onSetDefaultReceiver: (String) -> Unit = {},
     onOpenDriveMode: () -> Unit = {},
 ) {
@@ -44,6 +45,7 @@ fun HomeScreen(
             onStopScan = onStopScan,
             onConnect = onConnect,
             onRetryConnection = onRetryConnection,
+            onTakeControl = onTakeControl,
             onSetDefaultReceiver = onSetDefaultReceiver,
             onOpenDriveMode = onOpenDriveMode,
         )

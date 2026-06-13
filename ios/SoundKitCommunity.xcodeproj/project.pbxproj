@@ -23,6 +23,7 @@
 		AFC30C16C71C9FC1B47C7FFB /* DiagnosticsSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B480937AD1D664452DB6D286 /* DiagnosticsSupport.swift */; };
 		B81889D47D515C890BE79640 /* SoundKitCommunityApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131EBF40677C71C6FD152437 /* SoundKitCommunityApp.swift */; };
 		B9977A4987B5CC649F4C5629 /* SoundKitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7363CE8CCB3F1F35ECCFC7F /* SoundKitViewModel.swift */; };
+		8D9E0F1A2B3C4D5E6F708192 /* ConnectionPriority.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8D9E0F1A2B3C4D5E6F7081 /* ConnectionPriority.swift */; };
 		BD7BA16204DEFFFF42A58AB6 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762E40F221E43DC18CFBFD4E /* OnboardingFlowView.swift */; };
 		CAF8C10825CBFE08A80A5FC9 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8379B280A796F61000CD80D /* RootView.swift */; };
 		D4BA22538731EEAFAE5D3590 /* GarageThemes.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA3ADB436C74CA7D6AF3E2F9 /* GarageThemes.swift */; };
@@ -57,6 +58,7 @@
 		B480937AD1D664452DB6D286 /* DiagnosticsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsSupport.swift; sourceTree = "<group>"; };
 		B59F17D759B215A8614E4D5A /* VehicleCompatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleCompatibility.swift; sourceTree = "<group>"; };
 		BF4F32D0C1A1711B51AEB62E /* ConnectReadyObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectReadyObserver.swift; sourceTree = "<group>"; };
+		7C8D9E0F1A2B3C4D5E6F7081 /* ConnectionPriority.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionPriority.swift; sourceTree = "<group>"; };
 		C8379B280A796F61000CD80D /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		CB5FE30A84D7FEC18903C991 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		D5CEDD2EBF7BA01B44B79343 /* SoundKitProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundKitProtocol.swift; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 			isa = PBXGroup;
 			children = (
 				BF4F32D0C1A1711B51AEB62E /* ConnectReadyObserver.swift */,
+				7C8D9E0F1A2B3C4D5E6F7081 /* ConnectionPriority.swift */,
 				E981FEB9EE0CC43755764D99 /* DriveModeEngine.swift */,
 				1AEA6BCFED6E504063333627 /* DriveModeSummary.swift */,
 				3FC6C98126DA3FABE70C0A04 /* QuietWindowEvaluator.swift */,
@@ -313,6 +316,7 @@
 			files = (
 				6582F5A20B41DF957A17C200 /* BLEManager.swift in Sources */,
 				990F60E00967AE380CCC3E4F /* ConnectReadyObserver.swift in Sources */,
+				8D9E0F1A2B3C4D5E6F708192 /* ConnectionPriority.swift in Sources */,
 				131D278A505791ED95165425 /* DiagnosticsStore.swift in Sources */,
 				AFC30C16C71C9FC1B47C7FFB /* DiagnosticsSupport.swift in Sources */,
 				F42BAC52F049A318CF1930D8 /* DiagnosticsView.swift in Sources */,

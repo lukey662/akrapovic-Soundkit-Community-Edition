@@ -432,6 +432,9 @@ private class FakeBleRepositoryForSmoke : BleRepository {
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val valveState = MutableStateFlow(ValveState.Unknown)
     override val receiverStatusMessage = MutableStateFlow<String?>(null)
+    override val connectionYieldState = MutableStateFlow(
+        com.akrapovic.soundkit.community.domain.ConnectionYieldState.None,
+    )
     override val isScanning = MutableStateFlow(false)
 
     override fun startScan() {
@@ -442,8 +445,12 @@ private class FakeBleRepositoryForSmoke : BleRepository {
         isScanning.value = false
     }
 
-    override suspend fun connect(device: SoundKitDevice) {
+    override suspend fun connect(device: SoundKitDevice, userInitiated: Boolean) {
         connectionState.value = ConnectionState.Connecting(device)
+    }
+
+    override suspend fun takeControl(device: SoundKitDevice) {
+        connect(device, userInitiated = true)
     }
 
     override suspend fun disconnect() {
@@ -479,6 +486,10 @@ private class FakeSettingsStoreForSmoke(
 
     override suspend fun setConnectOnLaunch(enabled: Boolean) {
         settings.value = settings.value.copy(connectOnLaunch = enabled)
+    }
+
+    override suspend fun setHeadUnitPriorityEnabled(enabled: Boolean) {
+        settings.value = settings.value.copy(headUnitPriorityEnabled = enabled)
     }
 
     override suspend fun forgetDevice() = Unit

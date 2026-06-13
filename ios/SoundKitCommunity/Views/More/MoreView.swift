@@ -66,6 +66,10 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Toggle("Head unit priority", isOn: binding(\.headUnitPriorityEnabled))
+            Text("When this phone is on Android Auto or CarPlay, it controls the Sound Kit. Other phones won't auto-connect.")
+                .font(.footnote)
+                .foregroundStyle(theme.muted)
             Toggle("Connect on launch", isOn: binding(\.connectOnLaunch))
             Toggle("Auto reconnect", isOn: binding(\.autoReconnect))
             Section("Saved receivers") {

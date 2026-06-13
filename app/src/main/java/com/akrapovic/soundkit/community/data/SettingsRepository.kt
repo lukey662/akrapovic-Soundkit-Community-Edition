@@ -27,6 +27,7 @@ interface SettingsStore {
     suspend fun setDefaultReceiver(address: String)
     suspend fun updateNickname(address: String, nickname: String?)
     suspend fun setConnectOnLaunch(enabled: Boolean)
+    suspend fun setHeadUnitPriorityEnabled(enabled: Boolean)
     suspend fun forgetDevice()
     suspend fun setAutoReconnect(enabled: Boolean)
     suspend fun setDebugLoggingEnabled(enabled: Boolean)
@@ -51,6 +52,7 @@ class SettingsRepository @Inject constructor(
         val RememberedDeviceName = stringPreferencesKey("remembered_device_name")
         val RememberedDeviceAddress = stringPreferencesKey("remembered_device_address")
         val ConnectOnLaunch = booleanPreferencesKey("connect_on_launch")
+        val HeadUnitPriorityEnabled = booleanPreferencesKey("head_unit_priority_enabled")
         val AutoReconnect = booleanPreferencesKey("auto_reconnect")
         val DebugLoggingEnabled = booleanPreferencesKey("debug_logging_enabled")
         val GarageThemeId = stringPreferencesKey("garage_theme_id")
@@ -69,6 +71,7 @@ class SettingsRepository @Inject constructor(
         SoundKitSettings(
             savedReceivers = receivers,
             connectOnLaunch = preferences[Keys.ConnectOnLaunch] ?: true,
+            headUnitPriorityEnabled = preferences[Keys.HeadUnitPriorityEnabled] ?: true,
             autoReconnect = preferences[Keys.AutoReconnect] ?: true,
             debugLoggingEnabled = preferences[Keys.DebugLoggingEnabled] ?: true,
             garageThemeId = preferences[Keys.GarageThemeId] ?: "studio-dark",
@@ -150,6 +153,12 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    override suspend fun setHeadUnitPriorityEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.HeadUnitPriorityEnabled] = enabled
+        }
+    }
+
     override suspend fun forgetDevice() {
         context.settingsDataStore.edit { preferences ->
             writeReceivers(preferences, emptyList())
@@ -201,6 +210,7 @@ class SettingsRepository @Inject constructor(
         context.settingsDataStore.edit { preferences ->
             backup.savedReceiversJson?.let { preferences[Keys.SavedReceiversJson] = it }
             backup.connectOnLaunch?.let { preferences[Keys.ConnectOnLaunch] = it }
+            backup.headUnitPriorityEnabled?.let { preferences[Keys.HeadUnitPriorityEnabled] = it }
             backup.autoReconnect?.let { preferences[Keys.AutoReconnect] = it }
             backup.garageThemeId?.let { preferences[Keys.GarageThemeId] = it }
             backup.selectedVehicleId?.let { preferences[Keys.SelectedVehicleId] = it }

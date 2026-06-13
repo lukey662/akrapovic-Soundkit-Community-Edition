@@ -156,7 +156,9 @@ struct ConnectedDeviceView: View {
 
 struct ScanView: View {
     @EnvironmentObject private var bleManager: BLEManager
+    @EnvironmentObject private var viewModel: SoundKitViewModel
     @Environment(\.garageTheme) private var theme
+    @State private var showTakeControlConfirm = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -164,6 +166,22 @@ struct ScanView: View {
                 .font(.largeTitle.bold())
             Text("Bluetooth only — nothing leaves your phone.")
                 .foregroundStyle(theme.muted)
+
+            if case .yielded = bleManager.connectionYieldState {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Receiver in use")
+                        .font(.headline)
+                    Text(BLEManager.yieldMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(theme.muted)
+                    Button("Take control") { showTakeControlConfirm = true }
+                        .buttonStyle(PrimaryButtonStyle())
+                }
+                .padding(12)
+                .background(theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+
             Button("Scan nearby") { bleManager.startScan() }
                 .buttonStyle(PrimaryButtonStyle())
 
@@ -199,6 +217,16 @@ struct ScanView: View {
             Spacer()
         }
         .padding(24)
+        .confirmationDialog(
+            "Take control?",
+            isPresented: $showTakeControlConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Take control", role: .destructive) { viewModel.takeControl() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This may disconnect the other phone that is using the Sound Kit receiver.")
+        }
     }
 
     private var isConnecting: Bool {
