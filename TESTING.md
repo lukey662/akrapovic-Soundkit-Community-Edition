@@ -38,18 +38,19 @@ Covered areas:
 - `DriveModeEngine` — preferred valve on connect + quiet start; manual toggle wins per session
 - Reconnect backoff **max 8 attempts**
 - Diagnostics report generation and local crash-log round trip
+- **Paparazzi** — README screenshot composables (Audi RS Dark, drive mode, quiet neighbours)
 
 These tests do not need Android BLE hardware.
 
 ## Instrumented Smoke Tests
 
-Run on an emulator or physical Android test phone:
+Run on an emulator or physical Android test phone (local/optional — **not** run in GitHub Actions; API 35 emulators often fail to boot on hosted runners):
 
 ```bash
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-Compose smoke tests currently run on API 35 and below. On Android 16 devices, AndroidX Espresso can fail before app assertions with `InputManager.getInstance`; CI uses an Android 35 emulator for Compose coverage while newer local devices still run manifest/service smoke checks.
+Compose smoke tests run on API 35 and below. On Android 16 devices, AndroidX Espresso can fail before app assertions with `InputManager.getInstance`; use Paparazzi for Compose UI captures on CI and bleeding-edge phones.
 
 Covered areas:
 
@@ -98,14 +99,13 @@ Document whether the launcher failure is on your head unit model and Android Aut
 
 GitHub Actions runs a gated pipeline:
 
-- `:app:testDebugUnitTest`
-- `:app:connectedDebugAndroidTest` on an Android 35 emulator
-- `:app:assembleDebug`
+- `:app:assembleDebug` (runs `:app:testDebugUnitTest` first — JVM tests + Paparazzi screenshot verify)
+
+Instrumented smoke tests (`connectedDebugAndroidTest`) are **local only** — the Android 35 emulator often times out on GitHub-hosted runners.
 
 CI uploads:
 
 - unit test reports
-- instrumented test reports
 - debug APK artifact
 
 ## Physical Receiver Smoke Checklist

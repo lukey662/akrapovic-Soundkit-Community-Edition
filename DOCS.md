@@ -87,7 +87,7 @@ The app uses a consumer-first companion UI built from reusable Compose component
 
 Use `TESTING.md` as the source of truth for unit, regression, instrumented smoke, CI, and physical receiver validation.
 
-Local `:app:assembleDebug` runs `:app:testDebugUnitTest` first. GitHub Actions verifies `./gradlew --version`, runs unit tests, Android 35 emulator smoke tests (`OnboardingFlowTest`, `AkraStatePanelTest`, `ComposeSmokeTest`), then publishes the debug APK only after both test layers pass.
+Local `:app:assembleDebug` runs `:app:testDebugUnitTest` first (JVM tests + Paparazzi README screenshot verify). GitHub Actions runs the same path and publishes the debug APK artifact. Instrumented smoke tests (`connectedDebugAndroidTest`) are local-only — run on a phone or emulator when you change manifest, notifications, or Compose navigation.
 
 ## Diagnostics Export And Crash Logs
 
