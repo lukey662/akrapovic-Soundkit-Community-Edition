@@ -10,6 +10,8 @@ SNAPSHOT_DIR="$ROOT/app/src/test/snapshots/images"
 TEST_CLASS="com.akrapovic.soundkit.community.ui.DocsScreenshotPaparazziTest"
 
 echo "Recording Paparazzi screenshots…"
+rm -f "$SNAPSHOT_DIR"/*DocsScreenshotPaparazziTest*.png
+rm -f "$LOCAL_DIR"/*.png
 ./gradlew :app:recordPaparazziDebug --tests "$TEST_CLASS" --quiet
 
 mkdir -p "$LOCAL_DIR"

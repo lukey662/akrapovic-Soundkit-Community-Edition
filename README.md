@@ -6,30 +6,37 @@ Open-source Android app for the Akrapovič **Car Sound Kit** BLE receiver — a 
 
 ## For Sound Kit owners
 
-**[Install guide → INSTALL.md](INSTALL.md)** — download the APK, grant permissions, scan your receiver. No coding required.
+**[Install guide → INSTALL.md](INSTALL.md)** · **[Download v0.3.0 →](https://github.com/lukey662/akrapovic-Soundkit-Community-Edition/releases/tag/v0.3.0)**
 
-| Step | What you will see |
-|------|-------------------|
-| Setup | Risk notice and vehicle selection |
-| Scan | Find your receiver nearby |
-| Home | Open/close valves when parked |
-| Support | Export diagnostics and email **support@appsforgood.net** |
+| Feature | What it does |
+|---------|----------------|
+| **Auto open / close** | Drive mode applies **Open** or **Closed** whenever you connect |
+| **Quiet neighbours** | Hold valves closed for a few minutes during evening/weekend windows |
+| **Audi RS theme** | Matte black + RS red — suggested when you pick Audi RS3 in setup |
 
 <p align="center">
-  <img src="docs/screenshots/04-home-connected.png" alt="Connected — valve open" width="320" />
+  <img src="docs/screenshots/04-home-connected-audi.png" alt="Audi RS Dark — connected, valves open" width="320" />
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/01-onboarding-risk.png" alt="First-launch setup" width="280" />
+  <img src="docs/screenshots/05-drive-mode-open-on-connect.png" alt="Drive mode — auto open on connect" width="280" />
   &nbsp;&nbsp;
+  <img src="docs/screenshots/07-quiet-neighbours.png" alt="Quiet neighbours — overnight window" width="280" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/06-drive-mode-closed-on-connect.png" alt="Drive mode — auto close on connect" width="280" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/08-audi-rs-dark-theme.png" alt="Audi RS Dark appearance" width="280" />
+</p>
+
+<p align="center">
   <img src="docs/screenshots/03-scan-receivers.png" alt="Scan for receivers" width="280" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/02-vehicle-selection.png" alt="Vehicle selection — Audi RS3" width="280" />
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/05-more-menu.png" alt="More menu" width="280" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/07-diagnostics-support.png" alt="Diagnostics and support" width="280" />
-</p>
+**Support:** More → Advanced → Diagnostics → email **support@appsforgood.net**
 
 ---
 

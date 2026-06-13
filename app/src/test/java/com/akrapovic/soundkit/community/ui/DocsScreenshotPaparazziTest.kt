@@ -8,28 +8,24 @@ import androidx.compose.ui.Modifier
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import com.akrapovic.soundkit.community.domain.ConnectionState
-import com.akrapovic.soundkit.community.domain.DiagnosticsEntry
-import com.akrapovic.soundkit.community.domain.DiagnosticsLevel
-import com.akrapovic.soundkit.community.domain.SoundKitSettings
+import com.akrapovic.soundkit.community.domain.PreferredValveMode
+import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.testDeviceForSmoke
 import com.akrapovic.soundkit.community.ui.control.ConnectedDeviceScreen
-import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
-import com.akrapovic.soundkit.community.ui.more.AdvancedScreen
-import com.akrapovic.soundkit.community.ui.more.MoreScreen
+import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
 import com.akrapovic.soundkit.community.ui.onboarding.OnboardingFlow
 import com.akrapovic.soundkit.community.ui.onboarding.VehicleSelectionContent
 import com.akrapovic.soundkit.community.ui.scan.ScanScreen
+import com.akrapovic.soundkit.community.ui.settings.DriveModeScreen
+import com.akrapovic.soundkit.community.ui.theme.GarageTheme
 import com.akrapovic.soundkit.community.ui.theme.SoundKitTheme
 import org.junit.Rule
 import org.junit.Test
 
 /**
- * JVM screenshot tests for README / docs. Run [scripts/capture-docs-screenshots.sh]
- * to record PNGs into docs/screenshots/ (works without a device or emulator).
- *
- * Uses full [DeviceConfig.PIXEL_6] pixel dimensions (1080×2400) — do not override
- * screenWidth/Height with dp-like values or text and buttons clip badly.
+ * Marketing screenshots for README — Audi RS Dark, drive mode, quiet neighbours.
+ * Run [scripts/capture-docs-screenshots.sh] to refresh [docs/screenshots/].
  */
 class DocsScreenshotPaparazziTest {
     @get:Rule
@@ -83,6 +79,7 @@ class DocsScreenshotPaparazziTest {
                                 rssi = -68,
                             ),
                         ),
+                        settings = demoAudiSettings(),
                     ),
                     permissions = emptyList(),
                     permissionsGranted = true,
@@ -96,16 +93,19 @@ class DocsScreenshotPaparazziTest {
     }
 
     @Test
-    fun homeConnected() {
+    fun homeConnectedAudi() {
         val device = testDeviceForSmoke()
-        paparazzi.snapshot(name = "04-home-connected") {
+        paparazzi.snapshot(name = "04-home-connected-audi") {
             PhoneFrame {
                 ConnectedDeviceScreen(
                     state = SoundKitUiState(
                         connectionState = ConnectionState.Connected(device),
                         valveState = ValveState.Open,
                         protocolVerified = true,
-                        settings = SoundKitSettings(selectedVehicleId = "audi-rs3"),
+                        settings = demoAudiSettings(
+                            preferredValveMode = PreferredValveMode.Open,
+                            quietStart = QuietStartSettings(enabled = false),
+                        ),
                     ),
                     onToggleValve = {},
                     onDisconnect = {},
@@ -115,53 +115,83 @@ class DocsScreenshotPaparazziTest {
     }
 
     @Test
-    fun moreMenu() {
-        paparazzi.snapshot(name = "05-more-menu") {
+    fun driveModeOpenOnConnect() {
+        paparazzi.snapshot(name = "05-drive-mode-open-on-connect") {
             PhoneFrame {
-                MoreScreen(onNavigate = {})
-            }
-        }
-    }
-
-    @Test
-    fun advancedHub() {
-        paparazzi.snapshot(name = "06-advanced-hub") {
-            PhoneFrame {
-                AdvancedScreen(onNavigate = {})
-            }
-        }
-    }
-
-    @Test
-    fun diagnosticsSupport() {
-        paparazzi.snapshot(name = "07-diagnostics-support") {
-            PhoneFrame {
-                WithStubActivityResultRegistry {
-                    DiagnosticsScreen(
-                        entries = listOf(
-                            DiagnosticsEntry(
-                                id = 1L,
-                                timestampMillis = 1_700_000_000_000L,
-                                level = DiagnosticsLevel.Info,
-                                message = "Connected to Akrapovic SoundKit",
-                            ),
-                            DiagnosticsEntry(
-                                id = 2L,
-                                timestampMillis = 1_700_000_001_000L,
-                                level = DiagnosticsLevel.Debug,
-                                message = "Valve state: OPEN",
-                            ),
+                DriveModeScreen(
+                    state = SoundKitUiState(
+                        settings = demoAudiSettings(
+                            preferredValveMode = PreferredValveMode.Open,
+                            quietStart = QuietStartSettings(enabled = false),
                         ),
-                        onBuildReport = { "Sound Kit Community diagnostics report" },
-                    )
-                }
+                    ),
+                    onDriveModeEnabledChanged = {},
+                    onPreferredModeChanged = {},
+                    onQuietStartChanged = {},
+                    onDriveModePausedChanged = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun driveModeClosedOnConnect() {
+        paparazzi.snapshot(name = "06-drive-mode-closed-on-connect") {
+            PhoneFrame {
+                DriveModeScreen(
+                    state = SoundKitUiState(
+                        settings = demoAudiSettings(
+                            preferredValveMode = PreferredValveMode.Closed,
+                            quietStart = QuietStartSettings(enabled = false),
+                        ),
+                    ),
+                    onDriveModeEnabledChanged = {},
+                    onPreferredModeChanged = {},
+                    onQuietStartChanged = {},
+                    onDriveModePausedChanged = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun quietNeighbours() {
+        paparazzi.snapshot(name = "07-quiet-neighbours") {
+            PhoneFrame {
+                DriveModeScreen(
+                    state = SoundKitUiState(
+                        settings = demoAudiSettings(
+                            preferredValveMode = PreferredValveMode.Open,
+                            quietStart = demoQuietNeighboursSettings,
+                        ),
+                    ),
+                    onDriveModeEnabledChanged = {},
+                    onPreferredModeChanged = {},
+                    onQuietStartChanged = {},
+                    onDriveModePausedChanged = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun audiAppearance() {
+        paparazzi.snapshot(name = "08-audi-rs-dark-theme") {
+            PhoneFrame {
+                GarageThemeScreen(
+                    selectedThemeId = AudiRsDarkTheme.id,
+                    onThemeSelected = {},
+                )
             }
         }
     }
 
     @Composable
-    private fun PhoneFrame(content: @Composable () -> Unit) {
-        SoundKitTheme {
+    private fun PhoneFrame(
+        garageTheme: GarageTheme = AudiRsDarkTheme,
+        content: @Composable () -> Unit,
+    ) {
+        SoundKitTheme(garageTheme = garageTheme) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background,
