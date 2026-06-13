@@ -10,7 +10,7 @@ Plain-language guide for Akrapovič Sound Kit owners. No developer tools require
 
 ## Download the app
 
-1. Open the latest **[GitHub Release](https://github.com/lukey662/akra/releases/latest)** for this project.
+1. Open the latest **[GitHub Release](https://github.com/lukey662/akrapovic-Soundkit-Community-Edition/releases/latest)** for this project.
 2. Download **`app-debug.apk`** (or the release APK when signed builds are published).
 3. If you do not see a release yet, ask the maintainer for the latest CI build artifact or use the link on [appsforgood.net](https://appsforgood.net).
 
