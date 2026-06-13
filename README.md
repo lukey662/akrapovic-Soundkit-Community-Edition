@@ -16,17 +16,20 @@ Open-source Android app for the Akrapovič **Car Sound Kit** BLE receiver — a 
 | Support | Export diagnostics and email **support@appsforgood.net** |
 
 <p align="center">
-  <img src="docs/screenshots/01-onboarding-risk.png" alt="Onboarding setup" width="240" />
-  <img src="docs/screenshots/03-scan-receivers.png" alt="Scan for receivers" width="240" />
-  <img src="docs/screenshots/04-home-connected.png" alt="Connected home screen" width="240" />
+  <img src="docs/screenshots/01-onboarding-risk.png" alt="Onboarding setup" width="220" />
+  <img src="docs/screenshots/02-vehicle-selection.png" alt="Vehicle selection" width="220" />
+  <img src="docs/screenshots/03-scan-receivers.png" alt="Scan for receivers" width="220" />
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/05-more-menu.png" alt="More menu" width="240" />
-  <img src="docs/screenshots/07-diagnostics-support.png" alt="Diagnostics and support" width="240" />
+  <img src="docs/screenshots/04-home-connected.png" alt="Connected home screen" width="220" />
+  <img src="docs/screenshots/05-more-menu.png" alt="More menu" width="220" />
+  <img src="docs/screenshots/06-advanced-hub.png" alt="Advanced hub" width="220" />
 </p>
 
-Screenshots are generated from the app UI via `./scripts/capture-docs-screenshots.sh` (Paparazzi — no device needed).
+<p align="center">
+  <img src="docs/screenshots/07-diagnostics-support.png" alt="Diagnostics and support" width="220" />
+</p>
 
 ---
 
