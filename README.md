@@ -156,13 +156,3 @@ See **More → Android Auto** in the app and `DOCS.md` § Android Auto Testing f
 **Play Store listing** for projected Android Auto remains out of scope (policy). Sideload + developer mode is the supported personal path. If the car launcher never lists Sound Kit, use the foreground notification or Quick Settings tile while connected.
 
 This does not use the internet.
-
-## Reverse Engineering
-
-Start with `APK_ANALYSIS.md`. The best APK source must be the original car package:
-
-```text
-si.sunesis.akrapovic.soundkit
-```
-
-Do not use `si.sunesis.akrapovic.soundkitcustom` as the source of truth for the car receiver protocol.
