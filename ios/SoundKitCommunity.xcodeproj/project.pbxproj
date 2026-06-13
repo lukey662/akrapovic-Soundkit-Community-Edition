@@ -1,0 +1,578 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		131D278A505791ED95165425 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413FDC9EB017108622F8E81B /* DiagnosticsStore.swift */; };
+		2BC3D0131D441661FC911F40 /* QuietWindowEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC6C98126DA3FABE70C0A04 /* QuietWindowEvaluator.swift */; };
+		37C63B0E1C47BF4598964766 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB5FE30A84D7FEC18903C991 /* Settings.swift */; };
+		41BC73E90A80982E7AA8AF98 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8532812CA05C5BF382C3B12C /* HomeView.swift */; };
+		4300A0E69F9A17F882A22C1A /* DriveModeSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEA6BCFED6E504063333627 /* DriveModeSummary.swift */; };
+		4B26C3FB6270ADC24F3DAD6D /* SoundKitProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5CEDD2EBF7BA01B44B79343 /* SoundKitProtocol.swift */; };
+		4E6BE3394336EA03AD8B7920 /* DriveModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616771C3F059C4A6400A5432 /* DriveModeView.swift */; };
+		6582F5A20B41DF957A17C200 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460BA18EABBDC7EC554F313C /* BLEManager.swift */; };
+		69C13E558065BD6734E1DD03 /* VehicleCompatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = B59F17D759B215A8614E4D5A /* VehicleCompatibility.swift */; };
+		71F541AC52DFBA2C69DD26CC /* DriveModeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E981FEB9EE0CC43755764D99 /* DriveModeEngine.swift */; };
+		8E1E78EA8792E7D738AF2ED9 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F526E5A87E9565C07A7C4543 /* MoreView.swift */; };
+		990F60E00967AE380CCC3E4F /* ConnectReadyObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4F32D0C1A1711B51AEB62E /* ConnectReadyObserver.swift */; };
+		AA627D91043B7922C059689F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 028101C144E8B54183FFAF1D /* Assets.xcassets */; };
+		AFC30C16C71C9FC1B47C7FFB /* DiagnosticsSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B480937AD1D664452DB6D286 /* DiagnosticsSupport.swift */; };
+		B81889D47D515C890BE79640 /* SoundKitCommunityApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131EBF40677C71C6FD152437 /* SoundKitCommunityApp.swift */; };
+		B9977A4987B5CC649F4C5629 /* SoundKitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7363CE8CCB3F1F35ECCFC7F /* SoundKitViewModel.swift */; };
+		BD7BA16204DEFFFF42A58AB6 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762E40F221E43DC18CFBFD4E /* OnboardingFlowView.swift */; };
+		CAF8C10825CBFE08A80A5FC9 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8379B280A796F61000CD80D /* RootView.swift */; };
+		D4BA22538731EEAFAE5D3590 /* GarageThemes.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA3ADB436C74CA7D6AF3E2F9 /* GarageThemes.swift */; };
+		E3CA8677307FC189FBB6F7A8 /* SoundKitProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14EA887F48A69E8CB935DCD /* SoundKitProtocolTests.swift */; };
+		EF37FC3E0F66D5D1763E2C60 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E604BDEB549412412F91BA97 /* SettingsStore.swift */; };
+		F42BAC52F049A318CF1930D8 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4C7C04306B571BE30D331D /* DiagnosticsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B135C401513222413D4E531B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9EAEA4DEFC4A9F51409264A3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4977C0E83ECBE7FCE0309418;
+			remoteInfo = SoundKitCommunity;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		028101C144E8B54183FFAF1D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		086BF04B0242802D929B11F8 /* SoundKitCommunityTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SoundKitCommunityTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		131EBF40677C71C6FD152437 /* SoundKitCommunityApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundKitCommunityApp.swift; sourceTree = "<group>"; };
+		1AEA6BCFED6E504063333627 /* DriveModeSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriveModeSummary.swift; sourceTree = "<group>"; };
+		3FC6C98126DA3FABE70C0A04 /* QuietWindowEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuietWindowEvaluator.swift; sourceTree = "<group>"; };
+		413FDC9EB017108622F8E81B /* DiagnosticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsStore.swift; sourceTree = "<group>"; };
+		460BA18EABBDC7EC554F313C /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
+		4DEB88FD275FC48492EDDF16 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		616771C3F059C4A6400A5432 /* DriveModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriveModeView.swift; sourceTree = "<group>"; };
+		762E40F221E43DC18CFBFD4E /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
+		8532812CA05C5BF382C3B12C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		A14EA887F48A69E8CB935DCD /* SoundKitProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundKitProtocolTests.swift; sourceTree = "<group>"; };
+		B480937AD1D664452DB6D286 /* DiagnosticsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsSupport.swift; sourceTree = "<group>"; };
+		B59F17D759B215A8614E4D5A /* VehicleCompatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleCompatibility.swift; sourceTree = "<group>"; };
+		BF4F32D0C1A1711B51AEB62E /* ConnectReadyObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectReadyObserver.swift; sourceTree = "<group>"; };
+		C8379B280A796F61000CD80D /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		CB5FE30A84D7FEC18903C991 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		D5CEDD2EBF7BA01B44B79343 /* SoundKitProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundKitProtocol.swift; sourceTree = "<group>"; };
+		DD4C7C04306B571BE30D331D /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
+		E604BDEB549412412F91BA97 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		E7363CE8CCB3F1F35ECCFC7F /* SoundKitViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundKitViewModel.swift; sourceTree = "<group>"; };
+		E981FEB9EE0CC43755764D99 /* DriveModeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriveModeEngine.swift; sourceTree = "<group>"; };
+		EA3ADB436C74CA7D6AF3E2F9 /* GarageThemes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarageThemes.swift; sourceTree = "<group>"; };
+		EDEB8D04C4E6FBA313064619 /* SoundKitCommunity.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SoundKitCommunity.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F526E5A87E9565C07A7C4543 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0A524C55B7173AB3C721225F = {
+			isa = PBXGroup;
+			children = (
+				7985471C5B6C87C6C09F6975 /* SoundKitCommunity */,
+				D4BC94E2751D41317C99782B /* SoundKitCommunityTests */,
+				D037B99CDC879ACAE26B9E2F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1F86931039DA27603D8D231E /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				8532812CA05C5BF382C3B12C /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		3D26068379DF852AAA277195 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				EA3ADB436C74CA7D6AF3E2F9 /* GarageThemes.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		63E3161331089709EC70BD68 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				616771C3F059C4A6400A5432 /* DriveModeView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		6D088EE3DE5FEE4FAF43CF6C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				CB5FE30A84D7FEC18903C991 /* Settings.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7985471C5B6C87C6C09F6975 /* SoundKitCommunity */ = {
+			isa = PBXGroup;
+			children = (
+				028101C144E8B54183FFAF1D /* Assets.xcassets */,
+				B480937AD1D664452DB6D286 /* DiagnosticsSupport.swift */,
+				4DEB88FD275FC48492EDDF16 /* Info.plist */,
+				131EBF40677C71C6FD152437 /* SoundKitCommunityApp.swift */,
+				D5CEDD2EBF7BA01B44B79343 /* SoundKitProtocol.swift */,
+				B59F17D759B215A8614E4D5A /* VehicleCompatibility.swift */,
+				A7AEE0DB098AF6B34CBAC49F /* BLE */,
+				F1A234075DF67E6475D32887 /* Data */,
+				8DBA37812844E287A20C499E /* Domain */,
+				6D088EE3DE5FEE4FAF43CF6C /* Models */,
+				3D26068379DF852AAA277195 /* Theme */,
+				C342B2307A9E6E89F4D98B4D /* ViewModel */,
+				C8A52FAB9CA57700021B0129 /* Views */,
+			);
+			path = SoundKitCommunity;
+			sourceTree = "<group>";
+		};
+		89130B3E906B6AC7B179767F /* More */ = {
+			isa = PBXGroup;
+			children = (
+				F526E5A87E9565C07A7C4543 /* MoreView.swift */,
+			);
+			path = More;
+			sourceTree = "<group>";
+		};
+		8DBA37812844E287A20C499E /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				BF4F32D0C1A1711B51AEB62E /* ConnectReadyObserver.swift */,
+				E981FEB9EE0CC43755764D99 /* DriveModeEngine.swift */,
+				1AEA6BCFED6E504063333627 /* DriveModeSummary.swift */,
+				3FC6C98126DA3FABE70C0A04 /* QuietWindowEvaluator.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		91DB3241D831DBF2EFB9400C /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				762E40F221E43DC18CFBFD4E /* OnboardingFlowView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		A7AEE0DB098AF6B34CBAC49F /* BLE */ = {
+			isa = PBXGroup;
+			children = (
+				460BA18EABBDC7EC554F313C /* BLEManager.swift */,
+			);
+			path = BLE;
+			sourceTree = "<group>";
+		};
+		C342B2307A9E6E89F4D98B4D /* ViewModel */ = {
+			isa = PBXGroup;
+			children = (
+				E7363CE8CCB3F1F35ECCFC7F /* SoundKitViewModel.swift */,
+			);
+			path = ViewModel;
+			sourceTree = "<group>";
+		};
+		C8A52FAB9CA57700021B0129 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				C8379B280A796F61000CD80D /* RootView.swift */,
+				FEF6F49C78A2FA07EE2DBA25 /* Diagnostics */,
+				1F86931039DA27603D8D231E /* Home */,
+				89130B3E906B6AC7B179767F /* More */,
+				91DB3241D831DBF2EFB9400C /* Onboarding */,
+				63E3161331089709EC70BD68 /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D037B99CDC879ACAE26B9E2F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EDEB8D04C4E6FBA313064619 /* SoundKitCommunity.app */,
+				086BF04B0242802D929B11F8 /* SoundKitCommunityTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D4BC94E2751D41317C99782B /* SoundKitCommunityTests */ = {
+			isa = PBXGroup;
+			children = (
+				A14EA887F48A69E8CB935DCD /* SoundKitProtocolTests.swift */,
+			);
+			path = SoundKitCommunityTests;
+			sourceTree = "<group>";
+		};
+		F1A234075DF67E6475D32887 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				413FDC9EB017108622F8E81B /* DiagnosticsStore.swift */,
+				E604BDEB549412412F91BA97 /* SettingsStore.swift */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		FEF6F49C78A2FA07EE2DBA25 /* Diagnostics */ = {
+			isa = PBXGroup;
+			children = (
+				DD4C7C04306B571BE30D331D /* DiagnosticsView.swift */,
+			);
+			path = Diagnostics;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4977C0E83ECBE7FCE0309418 /* SoundKitCommunity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4654E472B1C58359F8D4D3E3 /* Build configuration list for PBXNativeTarget "SoundKitCommunity" */;
+			buildPhases = (
+				1A9A4719073090E49A400EA6 /* Sources */,
+				38F1A606170E796284EBE878 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SoundKitCommunity;
+			packageProductDependencies = (
+			);
+			productName = SoundKitCommunity;
+			productReference = EDEB8D04C4E6FBA313064619 /* SoundKitCommunity.app */;
+			productType = "com.apple.product-type.application";
+		};
+		FB1E8BE6FCF4C2978E8B00E9 /* SoundKitCommunityTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0F162AC46FA37245866AE7BE /* Build configuration list for PBXNativeTarget "SoundKitCommunityTests" */;
+			buildPhases = (
+				F4DFD8273CBCD4E52648A1BB /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DC9E838B8A8403B55F962DFC /* PBXTargetDependency */,
+			);
+			name = SoundKitCommunityTests;
+			packageProductDependencies = (
+			);
+			productName = SoundKitCommunityTests;
+			productReference = 086BF04B0242802D929B11F8 /* SoundKitCommunityTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9EAEA4DEFC4A9F51409264A3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					4977C0E83ECBE7FCE0309418 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = C5EABDE388D151C8B1A0F763 /* Build configuration list for PBXProject "SoundKitCommunity" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0A524C55B7173AB3C721225F;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D037B99CDC879ACAE26B9E2F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4977C0E83ECBE7FCE0309418 /* SoundKitCommunity */,
+				FB1E8BE6FCF4C2978E8B00E9 /* SoundKitCommunityTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		38F1A606170E796284EBE878 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA627D91043B7922C059689F /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1A9A4719073090E49A400EA6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6582F5A20B41DF957A17C200 /* BLEManager.swift in Sources */,
+				990F60E00967AE380CCC3E4F /* ConnectReadyObserver.swift in Sources */,
+				131D278A505791ED95165425 /* DiagnosticsStore.swift in Sources */,
+				AFC30C16C71C9FC1B47C7FFB /* DiagnosticsSupport.swift in Sources */,
+				F42BAC52F049A318CF1930D8 /* DiagnosticsView.swift in Sources */,
+				71F541AC52DFBA2C69DD26CC /* DriveModeEngine.swift in Sources */,
+				4300A0E69F9A17F882A22C1A /* DriveModeSummary.swift in Sources */,
+				4E6BE3394336EA03AD8B7920 /* DriveModeView.swift in Sources */,
+				D4BA22538731EEAFAE5D3590 /* GarageThemes.swift in Sources */,
+				41BC73E90A80982E7AA8AF98 /* HomeView.swift in Sources */,
+				8E1E78EA8792E7D738AF2ED9 /* MoreView.swift in Sources */,
+				BD7BA16204DEFFFF42A58AB6 /* OnboardingFlowView.swift in Sources */,
+				2BC3D0131D441661FC911F40 /* QuietWindowEvaluator.swift in Sources */,
+				CAF8C10825CBFE08A80A5FC9 /* RootView.swift in Sources */,
+				37C63B0E1C47BF4598964766 /* Settings.swift in Sources */,
+				EF37FC3E0F66D5D1763E2C60 /* SettingsStore.swift in Sources */,
+				B81889D47D515C890BE79640 /* SoundKitCommunityApp.swift in Sources */,
+				4B26C3FB6270ADC24F3DAD6D /* SoundKitProtocol.swift in Sources */,
+				B9977A4987B5CC649F4C5629 /* SoundKitViewModel.swift in Sources */,
+				69C13E558065BD6734E1DD03 /* VehicleCompatibility.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F4DFD8273CBCD4E52648A1BB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E3CA8677307FC189FBB6F7A8 /* SoundKitProtocolTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DC9E838B8A8403B55F962DFC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4977C0E83ECBE7FCE0309418 /* SoundKitCommunity */;
+			targetProxy = B135C401513222413D4E531B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		3C659C6CB1B8AA8224DA6AE0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = SoundKitCommunity/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.akrapovic.soundkit.community;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4D8915FE54D9AFEDA826B7E3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		610651CC57CA32B18A743B88 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.akrapovic.soundkit.community.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SoundKitCommunity.app/SoundKitCommunity";
+			};
+			name = Release;
+		};
+		67DE327D72F0B14D56A70B3E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		F9CE3DCA535CA48262D7C37B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.akrapovic.soundkit.community.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SoundKitCommunity.app/SoundKitCommunity";
+			};
+			name = Debug;
+		};
+		FBC3BEF865051E17A6858BB4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = SoundKitCommunity/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.akrapovic.soundkit.community;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0F162AC46FA37245866AE7BE /* Build configuration list for PBXNativeTarget "SoundKitCommunityTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F9CE3DCA535CA48262D7C37B /* Debug */,
+				610651CC57CA32B18A743B88 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4654E472B1C58359F8D4D3E3 /* Build configuration list for PBXNativeTarget "SoundKitCommunity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FBC3BEF865051E17A6858BB4 /* Debug */,
+				3C659C6CB1B8AA8224DA6AE0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C5EABDE388D151C8B1A0F763 /* Build configuration list for PBXProject "SoundKitCommunity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D8915FE54D9AFEDA826B7E3 /* Debug */,
+				67DE327D72F0B14D56A70B3E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9EAEA4DEFC4A9F51409264A3 /* Project object */;
+}

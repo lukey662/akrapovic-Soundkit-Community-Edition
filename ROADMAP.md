@@ -2,7 +2,7 @@
 
 Living plan for **Sound Kit Community**. Nothing here is a commitment or timeline; it records direction so contributors and users know what might come next. All work stays **local-first** (phone BLE only) unless an explicit decision says otherwise.
 
-*Last refreshed: June 2026 — Vehicle onboarding tiers, diagnostics support email, widget/shortcuts, settings backup, iOS scaffold, Wear tile.*
+*Last refreshed: June 2026 — iOS dev v1 parity, vehicle onboarding tiers, diagnostics support email.*
 
 ## Principles
 
@@ -52,7 +52,7 @@ Living plan for **Sound Kit Community**. Nothing here is a commitment or timelin
 | **Receiver not-ready checklist** | Step-by-step help for status `04`. |
 | **RSSI hints** | Weak-signal copy on scan list. |
 | **Drive mode profiles** | Everyday, Quiet street, Track quick presets. |
-| **iOS scaffold** | SwiftUI + CoreBluetooth sources under `ios/SoundKitCommunity/`. |
+| **iOS dev v1** | Committed Xcode project; full BLE GATT, settings, onboarding, drive mode, Audi theme, diagnostics; XCTest + CI build. |
 | **Wear OS tile** | `:wear` module opens phone app for connect. |
 
 ## Up next
@@ -61,13 +61,15 @@ Maintenance driven by owner feedback; no fixed timeline.
 
 | Area | Intent |
 |------|--------|
-| **iOS parity** | Ship TestFlight-quality connect/open/close matching Android safety rules. |
+| **iOS hardware validation** | RS3 parked smoke checklist in `TESTING.md`; ad-hoc builds for 2–3 beta testers. |
+| **iOS public distribution** | TestFlight / App Store after hardware smoke passes (see Later). |
 | **Compatibility matrix** | Promote Beta vehicles as Supported when field-validated. |
 
 ## Later (product)
 
 | Area | Intent |
 |------|--------|
+| **iOS TestFlight / App Store** | Owner-facing install after RS3 smoke + beta ad-hoc validation. |
 | **Assistant intents** | Local voice shortcuts when connected and state-known. |
 | **CarPlay** | Explore in-car surface separate from Android Auto IoT. |
 

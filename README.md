@@ -4,6 +4,8 @@ Open-source Android app for the Akrapovič **Car Sound Kit** BLE receiver — a 
 
 **Not affiliated with Akrapovič.** Local Bluetooth only — no internet, accounts, or telemetry.
 
+**Platform status:** **Android** is the owner-ready build (see `INSTALL.md`). **iOS** dev v1 is in the repo for developers with Xcode and a physical iPhone — not for public owner install yet (`ios/SoundKitCommunity/README.md`).
+
 ## For Sound Kit owners
 
 **[Install guide → INSTALL.md](INSTALL.md)** · **[Download v0.3.0 →](https://github.com/lukey662/akrapovic-Soundkit-Community-Edition/releases/tag/v0.3.0)**
@@ -73,7 +75,7 @@ Testing strategy and the physical receiver smoke checklist are documented in `TE
 
 **Support:** Export diagnostics from **More → Advanced → Diagnostics** and email **support@appsforgood.net** (Apps for Good Product Studio). Nothing uploads automatically.
 
-**iOS:** SwiftUI scaffold under `ios/SoundKitCommunity/` — parity work in progress; see `ROADMAP.md`.
+**iOS:** Dev v1 SwiftUI app under `ios/SoundKitCommunity/` — full BLE parity, drive mode, and Audi theme in code; **developers only** until RS3 hardware smoke passes. Open `ios/SoundKitCommunity.xcodeproj` in Xcode. See `ROADMAP.md` for TestFlight timeline.
 
 ## Documentation
 

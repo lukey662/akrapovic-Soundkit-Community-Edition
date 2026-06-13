@@ -45,7 +45,12 @@ Plain-language guide for Akrapovič Sound Kit owners. No developer tools require
 
 ## iOS
 
-An iPhone companion is in development but **not available for owners yet**. See `ROADMAP.md` in the repository.
+An iPhone companion (**dev v1**) is in the repository for **developers with Xcode and a registered device** — it is **not available for owners** yet (no TestFlight or App Store build).
+
+1. See **`ios/SoundKitCommunity/README.md`** for open → sign → run on device.
+2. Physical receiver testing checklist: **`TESTING.md`** § iOS device smoke.
+
+Public owner install will follow RS3 hardware validation; see `ROADMAP.md`.
 
 ## Disclaimer
 

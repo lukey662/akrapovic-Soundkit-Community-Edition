@@ -306,3 +306,23 @@ Owners asked which cars are supported beyond the RS3 reference install, how to g
 - Motorcycle Sound Kit Custom and remote-only kits stay out of the wizard catalog.
 - Community can promote Beta → Supported via `COMPATIBILITY.md` and catalog updates after field validation.
 - Wear OS tile (`:wear`) opens the phone app rather than duplicating BLE on the watch.
+
+## 2026-06-13: iOS Dev v1 Architecture And Distribution
+
+### Context
+
+Android v0.3.0 ships owner-facing features (drive mode, quiet neighbours, Audi theme). Owners asked for iPhone parity. TestFlight and App Store review add cost and delay before hardware validation on a physical RS3 receiver.
+
+### Decision
+
+- Ship **iOS dev v1** inside the monorepo: committed `SoundKitCommunity.xcodeproj` (XcodeGen from `ios/project.yml`), SwiftUI + single `BLEManager` owner, domain layer mirroring Android (`DriveModeEngine`, `QuietWindowEvaluator`, `ConnectReadyObserver`).
+- Persist settings via **`SettingsStore`** (UserDefaults + JSON Codable for saved receivers) — not SwiftData — to match Android DataStore simplicity and keep the diff reviewable.
+- **Distribution:** Xcode run and ad-hoc IPA for registered devices only. Defer TestFlight, App Store, and `INSTALL_IOS.md` for owners until RS3 device smoke passes.
+- **CI:** macOS workflow builds and runs XCTest on Simulator with `CODE_SIGNING_ALLOWED=NO`; no BLE hardware on CI.
+- Protocol changes remain synchronized across `BLE_PROTOCOL.md`, `SoundKitProtocol.kt`, and `SoundKitProtocol.swift`.
+
+### Consequences
+
+- Developers clone → open Xcode → set Team → run on iPhone without manual project creation.
+- iOS background BLE limitations documented; foreground-first UX acceptable for dev v1.
+- Owner README states Android is the supported platform until iOS hardware validation completes.

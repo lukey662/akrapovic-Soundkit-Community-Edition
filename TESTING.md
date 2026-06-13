@@ -108,6 +108,71 @@ CI uploads:
 - unit test reports
 - debug APK artifact
 
+- debug APK artifact
+
+## iOS unit tests
+
+Run on the Simulator (no BLE hardware required):
+
+```bash
+cd ios
+xcodebuild -project SoundKitCommunity.xcodeproj -scheme SoundKitCommunity \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  CODE_SIGNING_ALLOWED=NO test
+```
+
+Covered areas:
+
+- `SoundKitProtocol` — status parsing, state-gated toggle payload
+- `QuietWindowEvaluator` — overnight windows and active detection
+- `ConnectReadyObserver` — connect-ready transition on first known valve
+- `DriveModeProfile` — Quiet street preset enables quiet start
+
+GitHub Actions **Build iOS** workflow (`.github/workflows/ios-build.yml`) runs the same build + test path on `macos-latest` when `ios/**` changes.
+
+## iOS device smoke
+
+Physical receiver testing on iPhone is required before any owner-facing iOS distribution. The Simulator cannot exercise CoreBluetooth.
+
+**Prerequisites:** parked vehicle, Sound Kit receiver powered, iPhone with app installed via Xcode (see `ios/SoundKitCommunity/README.md`).
+
+Record each step as **Pass / Fail / Not tested** and note iOS version, iPhone model, and app build.
+
+### Discovery and pairing
+
+| # | Step | Pass criteria | Result |
+|---|------|---------------|--------|
+| 1 | Install dev build from Xcode on physical iPhone | App launches | Not tested |
+| 2 | Complete onboarding (risk, vehicle, Bluetooth) | Main tabs visible | Not tested |
+| 3 | Confirm app has no network entitlement in Settings | No cellular/data usage for app | Not tested |
+| 4 | Power on Sound Kit receiver | Receiver advertising | Not tested |
+| 5 | Home → Scan | Receiver appears (`SoundKit` or signature `103`) | Not tested |
+| 6 | Tap receiver → connect | System PIN UI if required; connects | Not tested |
+| 7 | Wait for status notification | Home shows Open or Closed (not Unknown) | Not tested |
+| 8 | More → Advanced → Diagnostics → Share | `.txt` export includes device + BLE events | Not tested |
+
+### Valve commands (parked only)
+
+| # | Step | Pass criteria | Result |
+|---|------|---------------|--------|
+| 9 | Tap Close when Open | Valve closes; UI updates | Not tested |
+| 10 | Tap Open when Closed | Valve opens; UI updates | Not tested |
+| 11 | Tap same state again | No duplicate write (no error) | Not tested |
+| 12 | If status `04` reproducible | Stays connected; buttons disabled; no reconnect storm | Not tested |
+
+### Settings and drive mode
+
+| # | Step | Pass criteria | Result |
+|---|------|---------------|--------|
+| 13 | Connect-on-launch: kill app → relaunch | Auto-connects to saved default receiver | Not tested |
+| 14 | Drive mode → preferred **Open** → reconnect | Valves open when connect-ready | Not tested |
+| 15 | Quiet neighbours: 22:00–07:00, 5 min hold → connect in window | Closed on connect; opens after hold unless manual override | Not tested |
+| 16 | Reconnect cap: power off receiver | Stops after ~8 attempts; tap to retry works | Not tested |
+
+### iOS CI
+
+GitHub Actions runs **build + simulator unit tests** only (`.github/workflows/ios-build.yml`). No BLE integration on CI.
+
 ## Physical Receiver Smoke Checklist
 
 The original APK protocol is now statically verified, but physical receiver testing is still required before a public release because the APK exposes a toggle command rather than separate open and close commands.

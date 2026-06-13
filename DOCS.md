@@ -11,6 +11,12 @@ app/src/main/java/com/akrapovic/soundkit/community/
   domain/       app state and result models
   service/      foreground service, notification, Quick Settings tile
   ui/           Compose screens, theme, ViewModel
+
+ios/SoundKitCommunity/
+  BLE/          CoreBluetooth manager (scan, GATT, reconnect)
+  Data/         SettingsStore, DiagnosticsStore
+  Domain/       DriveModeEngine, QuietWindowEvaluator
+  Views/        SwiftUI screens (Home, onboarding, drive mode, diagnostics)
 ```
 
 ## Local Development
@@ -20,6 +26,34 @@ app/src/main/java/com/akrapovic/soundkit/community/
 3. Open the repository in Android Studio.
 4. Build with `./gradlew :app:assembleDebug` (uses the committed Gradle wrapper).
 5. Install on a physical Android device with BLE support.
+
+## iOS development
+
+**Owners:** iOS is not available for public install yet — see `INSTALL.md`.
+
+**Developers:**
+
+1. Install Xcode 15+ on macOS.
+2. Open `ios/SoundKitCommunity.xcodeproj`.
+3. Set your **Team** under Signing & Capabilities for device runs.
+4. Build and run on a physical iPhone (BLE requires hardware).
+
+Regenerate the project after editing `ios/project.yml`:
+
+```bash
+cd ios && xcodegen generate
+```
+
+Unit tests (Simulator, unsigned):
+
+```bash
+cd ios
+xcodebuild -project SoundKitCommunity.xcodeproj -scheme SoundKitCommunity \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  CODE_SIGNING_ALLOWED=NO test
+```
+
+Physical receiver validation: `TESTING.md` § iOS device smoke. Full iOS layout and dev install: `ios/SoundKitCommunity/README.md`.
 
 ## README screenshots
 

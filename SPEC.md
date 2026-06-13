@@ -109,3 +109,63 @@ Automation polish (map picker, profiles, Room) in `ROADMAP.md` Later.
 - Android instrumented smoke tests cover key Compose screens, notification construction, diagnostics sharing, no-internet manifest behavior, FileProvider declaration, and Android Auto IoT declaration.
 - Physical receiver smoke testing is documented in `TESTING.md` and must pass before public release of valve control.
 
+## iOS companion (dev v1)
+
+Bundle ID: `com.akrapovic.soundkit.community` (matches Android base ID).
+
+### Platform
+
+- Minimum deployment: **iOS 17.0**
+- Swift 5.9+, Xcode 15+
+- CoreBluetooth only — **no internet**, no accounts, no cloud logging
+- Foreground-first UX (no background BLE reconnect in dev v1)
+
+### Architecture
+
+```mermaid
+flowchart TD
+    SwiftUI[SwiftUI Views] --> VM[SoundKitViewModel]
+    VM --> BLE[BLEManager]
+    VM --> Store[SettingsStore]
+    VM --> Drive[DriveModeEngine]
+    Drive --> BLE
+    BLE --> ConnectReady[ConnectReadyObserver]
+    ConnectReady --> Drive
+    BLE --> Receiver[Sound Kit BLE Receiver]
+```
+
+### BLE behavior
+
+Mirrors Android (see `BLE_PROTOCOL.md`):
+
+- Scan filters likely receivers by name hints and advertising signature (`FFFFFF` + ASCII `103`).
+- Connect via `CBCentralManager`; system pairing UI when the receiver requires a PIN.
+- Discover characteristic `0000fff4-0000-1000-8000-00805f9b34fb` across all services.
+- Enable notifications via CCCD `00002902-0000-1000-8000-00805f9b34fb`.
+- Valve state from notifications only: `02`/`07` closed, `03`/`06` open, `04` not ready.
+- Toggle payload `01` with the same state-gated rules as Android `SoundKitProtocol.commandPayload`.
+- Status `04`: remain connected, show not-ready copy, disable valve controls (no reconnect storm).
+- Auto-reconnect capped at **8** attempts with user-visible retry.
+
+### UI behavior
+
+- Tab shell: **Home** (scan or connected valve hero), **More** (Settings, Appearance, Advanced → Diagnostics).
+- Onboarding: risk disclaimer, vehicle picker, Bluetooth permission.
+- Drive mode screen: preferred Open/Closed, quiet neighbours window, quick profiles (Everyday / Quiet street / Track).
+- Garage themes: Studio + Audi RS Dark (default when Audi RS3 selected in onboarding).
+- Diagnostics: local ring-buffer log, share `.txt` export, mailto support@appsforgood.net.
+
+### Persistence
+
+`SettingsStore` (UserDefaults + JSON Codable): onboarding timestamps, selected vehicle, garage theme, up to 8 saved receivers, connect-on-launch, auto-reconnect, drive mode and quiet-start settings.
+
+### Distribution
+
+Developer install via Xcode or ad-hoc IPA only. TestFlight and App Store are deferred until RS3 hardware smoke passes. See `ios/SoundKitCommunity/README.md`.
+
+### Testing
+
+- XCTest unit tests for protocol, quiet window, connect-ready observer, drive mode profiles.
+- CI: macOS runner build + simulator unit tests (no BLE hardware).
+- Physical smoke: `TESTING.md` § iOS device smoke (required before owner distribution).
+

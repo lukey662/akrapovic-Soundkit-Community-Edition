@@ -1,54 +1,95 @@
-# Sound Kit Community — iOS Companion
+# Sound Kit Community — iOS
 
-Minimal SwiftUI scaffold for the Akrapovič Car Sound Kit BLE receiver. Mirrors the Android app protocol constants and safety rules; BLE transport is stubbed for incremental implementation.
+SwiftUI companion for the Akrapovič Car Sound Kit BLE receiver. Mirrors Android safety rules and core features; **developer install only** until hardware validation and public distribution are complete.
 
 ## Requirements
 
-- Xcode 15+ (Swift 5.9+)
-- iOS 17+ deployment target
+- macOS with **Xcode 15+** (Swift 5.9+)
+- **iOS 17.0+** deployment target
 - Physical iPhone with Bluetooth LE (CoreBluetooth)
+- Apple Developer account (free or paid) to sign and run on device
 
-## Setup
+## Quick start (developers)
 
-1. In Xcode: **File → New → Project → iOS → App**
-   - Product name: `SoundKitCommunity`
-   - Interface: SwiftUI
-   - Language: Swift
-   - Minimum deployment: iOS 17.0
-2. Add the Swift sources from this folder to the app target (drag into the project navigator, or **File → Add Files to "SoundKitCommunity"…**).
-3. Replace the template `App` and `ContentView` files if Xcode created duplicates — keep `SoundKitCommunityApp.swift` and `ContentView.swift` from this folder.
-4. Enable the **Bluetooth** capability if you add background modes later; for foreground scan/connect, no special capability is required beyond usage strings.
-5. Add to **Info.plist** (or target **Info** tab → Custom iOS Target Properties):
+1. Open **`ios/SoundKitCommunity.xcodeproj`** in Xcode.
+2. Select the **SoundKitCommunity** scheme and your iPhone as the run destination.
+3. In the app target **Signing & Capabilities**, choose your **Team** (the project ships with an empty team ID for CI).
+4. Build and run (**⌘R**). Grant Bluetooth when prompted during onboarding.
 
-   | Key | Value |
-   | --- | --- |
-   | `NSBluetoothAlwaysUsageDescription` | Sound Kit Community scans for and connects to your Akrapovič Sound Kit receiver to open and close exhaust valves. |
-   | `NSBluetoothPeripheralUsageDescription` | Same as above (legacy key; include for older SDK compatibility). |
+BLE scanning and valve control require a **physical device** — the Simulator cannot exercise CoreBluetooth.
 
-6. Build and run on a device (BLE scanning is limited on the Simulator).
+### Regenerating the Xcode project
 
-## BLE Protocol
+The project is generated from [`project.yml`](../project.yml) via [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
-All GATT UUIDs, toggle payload, status bytes, and state-gated OPEN/CLOSE rules are defined in `SoundKitProtocol.swift` and documented in the repository source of truth:
+```bash
+cd ios && xcodegen generate
+```
+
+Commit both `project.yml` and `SoundKitCommunity.xcodeproj` after structural changes.
+
+## Distribution (dev v1)
+
+| Method | Notes |
+|--------|--------|
+| **Xcode Run** | Fastest path for daily development on a registered device. |
+| **Ad Hoc archive** | Archive → Distribute → Ad Hoc for up to 100 registered UDIDs (no public link). |
+
+**Not in scope for dev v1:** TestFlight, App Store, or owner-facing `INSTALL_IOS.md`.
+
+## BLE protocol
+
+GATT UUIDs, toggle payload, status bytes, and state-gated OPEN/CLOSE rules live in `SoundKitProtocol.swift`. Source of truth for both platforms:
 
 **[BLE_PROTOCOL.md](../../BLE_PROTOCOL.md)**
 
-Do not change protocol constants without updating that file and the Android `SoundKitProtocol.kt`.
+Do not change protocol constants without updating that file and Android `SoundKitProtocol.kt`.
 
-## Project Layout
+## Project layout
 
-| File | Purpose |
-| --- | --- |
-| `SoundKitCommunityApp.swift` | `@main` SwiftUI entry |
-| `ContentView.swift` | Placeholder home: scan, connect, open, close |
-| `SoundKitProtocol.swift` | Verified protocol constants (fff4, toggle `0x01`, status bytes, signature `103`) |
-| `BLEManager.swift` | CoreBluetooth stub with state-gated toggle comments |
-| `VehicleCompatibility.swift` | Vehicle catalog tiers (mirrors Android) |
-| `DiagnosticsSupport.swift` | Support email constant |
+```text
+ios/SoundKitCommunity/
+  BLE/              CoreBluetooth scan, connect, GATT, reconnect cap
+  Data/             SettingsStore (UserDefaults), DiagnosticsStore
+  Domain/           DriveModeEngine, QuietWindowEvaluator, ConnectReadyObserver
+  Models/           SoundKitSettings, SavedReceiver, QuietStartSettings
+  Theme/            GarageThemes (Studio + Audi RS Dark)
+  ViewModel/        SoundKitViewModel
+  Views/            RootView, onboarding, Home, Drive mode, Diagnostics
+  SoundKitProtocol.swift
+  VehicleCompatibility.swift
+  DiagnosticsSupport.swift
+ios/SoundKitCommunityTests/   XCTest unit tests
+```
 
-## Next Steps
+## Features (dev v1)
 
-- Implement `CBCentralManager` scan filtering via `SoundKitProtocol.hasAdvertisingSignature`
-- Discover services, locate characteristic `0000fff4-…`, enable notifications on CCCD `00002902-…`
-- Gate valve writes on known `ValveState` per `SoundKitProtocol.commandPayload`
-- Bond via system pairing when the receiver requires a PIN (see BLE_PROTOCOL.md)
+- Scan (Sound Kit name hints + advertising signature `103`)
+- Connect, system PIN pairing when required, notifications on `fff4`
+- State-gated valve toggle (`0x01` only when state known and differs)
+- Status `0x04` — stay connected, disable valve buttons
+- Onboarding with risk disclaimer and vehicle picker
+- Saved receivers, connect-on-launch, auto-reconnect (max 8 attempts)
+- Drive mode: preferred Open/Closed on connect, quiet neighbours window
+- Audi RS Dark theme (default when Audi RS3 selected)
+- Diagnostics log, share export, mailto **support@appsforgood.net**
+
+## Testing
+
+```bash
+cd ios
+xcodebuild -project SoundKitCommunity.xcodeproj -scheme SoundKitCommunity \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  CODE_SIGNING_ALLOWED=NO test
+```
+
+Physical receiver smoke checklist: **[TESTING.md](../../TESTING.md)** § iOS device smoke.
+
+## Info.plist keys
+
+| Key | Purpose |
+|-----|---------|
+| `NSBluetoothAlwaysUsageDescription` | Foreground BLE scan and connect |
+| `NSBluetoothPeripheralUsageDescription` | Legacy compatibility |
+
+No internet usage; no background BLE modes in dev v1.
