@@ -2,6 +2,11 @@ package com.akrapovic.soundkit.community.ui.onboarding
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,42 +60,79 @@ fun VehicleSelectionContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        selected?.takeIf { it.tier != VehicleSupportTier.Unsupported }?.let { entry ->
+            SelectedVehicleSummary(entry = entry)
+        }
+
         makes.forEach { make ->
             val models = VehicleCompatibilityCatalog.modelsForMake(make)
             val isExpanded = expandedMake == make
+            val selectedInMake = selected?.takeIf { it.make == make }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                    .clickable { expandedMake = if (isExpanded) null else make }
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            expandedMake = if (isExpanded) null else make
+                        }
+                        .padding(vertical = 2.dp)
+                        .semantics {
+                            contentDescription = if (isExpanded) {
+                                "Collapse $make models"
+                            } else if (selectedInMake != null) {
+                                "$make, selected ${selectedInMake.model}. Expand to change"
+                            } else {
+                                "Expand $make models"
+                            }
+                        },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = make,
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = make,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (!isExpanded && selectedInMake != null) {
+                            Text(
+                                text = "${selectedInMake.model} · ${selectedInMake.tierLabel}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = accent,
+                            )
+                        }
+                    }
                     Text(
                         text = if (isExpanded) "▲" else "▼",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (isExpanded) {
-                    models.forEach { entry ->
-                        VehicleOptionRow(
-                            entry = entry,
-                            selected = selected?.id == entry.id,
-                            accent = accent,
-                            onClick = { onSelectVehicle(entry.id) },
-                        )
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut(),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        models.forEach { entry ->
+                            VehicleOptionRow(
+                                entry = entry,
+                                selected = selected?.id == entry.id,
+                                accent = accent,
+                                onClick = {
+                                    onSelectVehicle(entry.id)
+                                    expandedMake = null
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -100,17 +142,19 @@ fun VehicleSelectionContent(
             entry = VehicleCompatibilityCatalog.unsupportedEntry(),
             selected = selected?.id == VehicleCompatibilityCatalog.NO_SOUND_KIT_ID,
             accent = accent,
-            onClick = { onSelectVehicle(VehicleCompatibilityCatalog.NO_SOUND_KIT_ID) },
+            onClick = {
+                onSelectVehicle(VehicleCompatibilityCatalog.NO_SOUND_KIT_ID)
+                expandedMake = null
+            },
         )
-
-        selected?.let { entry ->
-            TierBadge(entry = entry)
-        }
 
         FindSoundKitHelp()
 
         TextButton(
-            onClick = { onSelectVehicle(VehicleCompatibilityCatalog.OTHER_SOUND_KIT_ID) },
+            onClick = {
+                onSelectVehicle(VehicleCompatibilityCatalog.OTHER_SOUND_KIT_ID)
+                expandedMake = null
+            },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Other car with Sound Kit (Beta)")
@@ -128,6 +172,34 @@ fun VehicleSelectionContent(
                 Text("Learn about Akrapovič Sound Kit")
             }
         }
+    }
+}
+
+@Composable
+private fun SelectedVehicleSummary(entry: VehicleCompatibilityEntry) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = "Selected",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = entry.displayName,
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = entry.tierDescription,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -171,29 +243,6 @@ private fun VehicleOptionRow(
                 },
             )
         }
-    }
-}
-
-@Composable
-private fun TierBadge(entry: VehicleCompatibilityEntry) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = entry.displayName,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = entry.tierDescription,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

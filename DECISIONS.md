@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-07-11: Onboarding vehicle picker collapses after selection
+
+### Context
+
+Expanding a make list during onboarding left a long model list on screen after a choice, pushing the next step and continue control out of view.
+
+### Decision
+
+- Make groups expand only from the header; selecting a model collapses the group and clears `expandedMake`.
+- Show the choice in a top “Selected” summary and as a subtitle under the make when collapsed.
+- Apply the same pattern on Android (`VehicleSelectionStep`) and iOS (`OnboardingFlowView`).
+
+### Consequences
+
+- After a pick, the list stays short and the next onboarding step stays visible.
+- Changing the car requires re-expanding that make (or another).
+
 ## 2026-07-11: CI executes platform-specific safety gates explicitly
 
 ### Context
