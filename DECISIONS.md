@@ -1,5 +1,77 @@
 # Decisions
 
+## 2026-07-11: CI executes platform-specific safety gates explicitly
+
+### Context
+
+Valve-control command admission is shared across phone, notification, Quick Settings, widget, Wear, and car surfaces. A combined Android build could obscure an omitted screenshot or Wear gate, while unpinned simulator selection can drift with hosted runner images.
+
+### Decision
+
+- Android CI runs unit tests, `:app:verifyPaparazziDebug`, phone debug assembly, and Wear debug assembly as distinct steps.
+- CI publishes only unit-test reports and debug APKs; it never handles release signing inputs or keystores.
+- iOS CI uses `macos-15` and the `iPhone 16, OS=18.6` simulator destination, including shared protocol and decision document changes in its trigger set.
+- Dependabot opens limited monthly Gradle and GitHub Actions update pull requests for review through the same gates.
+
+### Consequences
+
+- A failure identifies the affected test, visual, phone, or Wear gate directly.
+- Hosted iOS runtime drift is reduced, but the workflow must be updated when GitHub retires that runner image or simulator runtime.
+- Dependency updates remain reviewable without introducing a credentialed or heavyweight SCA service.
+
+## 2026-07-11: iOS settings parity keeps receiver identifiers local
+
+### Context
+
+iOS CoreBluetooth identifies peripherals with UUIDs, while Android backups contain MAC-style addresses. Importing either identifier across platforms could cause a connection attempt to an unintended or unavailable receiver.
+
+### Decision
+
+- iOS persists up to eight receivers with rename, default, and confirmed forget operations.
+- `connectInCar` is independent from `connectOnLaunch` and defaults to enabled.
+- Settings backups are versioned, size-bounded, validated before mutation, and committed atomically.
+- Portable preferences import from the Android v1 flat backup and iOS envelope; foreign receiver identifiers are discarded and the user is directed to scan again.
+- Detailed BLE logging is opt-in, local-only, and remains part of user-initiated diagnostics export.
+
+### Consequences
+
+- Cross-platform transfers preserve connection preferences and drive-mode configuration without trusting platform-bound BLE addresses.
+- Failed or malformed imports leave existing settings unchanged.
+- CarPlay auto-connect respects the user's separate in-car preference while command routing remains through `ValveControlCoordinator`.
+
+## 2026-07-11: Harden release artifacts and platform declarations
+
+### Context
+
+Release signing material, in-car host validation, local diagnostics, iOS privacy
+metadata, and CarPlay declarations cross trust boundaries. A release must not
+silently use debug/unsigned credentials, accept an arbitrary car host, restore
+crash data to another device, or claim Apple capabilities that its provisioning
+profile cannot authorize.
+
+### Decision
+
+- Android release packaging reads keystore location and credentials exclusively
+  from environment variables and fails before release artifact execution when
+  they are incomplete or the keystore is unreadable.
+- Production Car App builds use a project-owned allowlist of the official
+  Android Auto and Automotive host signing certificates. `ALLOW_ALL` remains
+  available only to debuggable DHU/developer builds.
+- Exclude persistent crash/diagnostic paths from Android backup; transient
+  `cache/diagnostics/` exports remain excluded by the platform cache policy.
+- Ship an iOS privacy manifest that declares no tracking/collection and the
+  app's `UserDefaults` required-reason API use. Align iOS marketing/build
+  versions to Android 0.3.0/3.
+- Remove the CarPlay scene from normal builds. `CARPLAY_ENABLED` is `NO` until
+  Apple approves the driving-task entitlement and a matching profile exists;
+  enabling it requires an intentional plist/entitlement change.
+
+### Consequences
+
+- CI must inject four Android signing variables from a restricted secret store.
+- Android Auto host certificate rotations must update the local XML allowlist.
+- App Store builds no longer advertise an unavailable CarPlay scene.
+
 ## 2026-07-11: Centralize Android valve-command admission
 
 ### Context
@@ -29,6 +101,23 @@ iOS treats a completed GATT write as transport acknowledgement only. A valve com
 
 - The app never presents an unconfirmed toggle as successful.
 - The BLE link is not exposed as connected until discovery and notification subscription complete.
+
+## 2026-07-11: Guard Android voice and shortcut fulfillment
+
+### Context
+
+Android launcher or Assistant entry points are untrusted process boundaries. Accepting an address or dispatching an exported service command would let a caller select a receiver or bypass the central valve admission policy. Google Assistant does not offer a reliable custom App Action declaration for this IoT-specific valve operation.
+
+### Decision
+
+- Ship internal static shortcuts for Open, Close, and Status, fulfilled by a non-exported `AssistantActionActivity` and `VoiceValveActionRouter`.
+- The router takes only a closed action enum, requires completed onboarding and a saved default receiver, reconnects only that receiver within an 8-second deadline, and routes Open/Close only through `ValveCommandCoordinator`.
+- Do not claim Google Assistant custom App Action support. Future verified Assistant fulfillment must invoke this same router; no exported service action or BLE address parameter is permitted.
+
+### Consequences
+
+- Shortcuts fail with actionable copy instead of issuing a blind command.
+- Android voice fulfillment remains safe and testable without publishing unsupported Assistant claims.
 
 ## 2026-07-11: Gate CarPlay, ship Siri independently
 
@@ -339,6 +428,24 @@ Ship a minimal procedural **`ValveVisual`**: carbon outer rim stroke, titanium l
 - Fast, crisp, and maintainable in Compose; works on all devices without large assets.
 - Does not attempt photoreal titanium/carbon; adjacent status text carries precision for a11y.
 - Public `ValveVisual` API unchanged; command-in-flight ring and success ripple preserved.
+
+## 2026-07-11: Exhaust-Tip Valve Hero and Launcher Mark
+
+### Context
+
+The minimal ring-and-disc hero was clear but did not match the photoreal exhaust-tip launcher mark users preferred. Home needed the same hinged-flap language as the icon without shipping large sprite sheets.
+
+### Decision
+
+- Evolve **`ValveVisual`** to a procedural exhaust tip: carbon sleeve, titanium lip, dark bore, hinged disc on a horizontal axis (face-on closed → edge-on open), amber heat glow proportional to open amount.
+- Ship the photoreal tip as Android adaptive foreground mipmaps and iOS `AppIcon.png`; keep a vector monochrome silhouette for themed icons.
+- Expose a Developer **Valve visual states** gallery for closed / open / checking / busy without sending BLE commands.
+
+### Consequences
+
+- Home and launcher share one product mark; a11y still relies on adjacent status text.
+- Optional Blender experiments remain out of the app binary.
+- Paparazzi and `ValveGapMath` tests cover open-amount mapping; reduced motion still freezes infinite animations.
 
 ## 2026-06-13: Connect-Ready Edge Trigger, Quiet Hours UI, Dark Primary Contrast
 

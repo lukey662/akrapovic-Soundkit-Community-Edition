@@ -10,8 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.ui.AppScreen
 import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
+import com.akrapovic.soundkit.community.ui.components.AkraListDivider
 import com.akrapovic.soundkit.community.ui.components.AkraListGroup
+import com.akrapovic.soundkit.community.ui.components.AkraListRow
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
 import com.akrapovic.soundkit.community.ui.components.AkraSwitchRow
 
@@ -20,6 +23,7 @@ fun DeveloperScreen(
     modifier: Modifier = Modifier,
     debugLoggingEnabled: Boolean,
     onDebugLoggingChanged: (Boolean) -> Unit,
+    onNavigate: (AppScreen) -> Unit = {},
 ) {
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
@@ -35,6 +39,13 @@ fun DeveloperScreen(
                 subtitle = "Extra connection detail in Diagnostics",
                 checked = debugLoggingEnabled,
                 onCheckedChange = onDebugLoggingChanged,
+            )
+            AkraListDivider()
+            AkraListRow(
+                title = "Valve visual states",
+                subtitle = "Preview closed, open, checking, and busy",
+                showChevron = true,
+                onClick = { onNavigate(AppScreen.ValveVisualPreview) },
             )
         }
 

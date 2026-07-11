@@ -49,6 +49,7 @@ import com.akrapovic.soundkit.community.ui.more.AdvancedScreen
 import com.akrapovic.soundkit.community.ui.more.AndroidAutoSetupScreen
 import com.akrapovic.soundkit.community.ui.more.DeveloperScreen
 import com.akrapovic.soundkit.community.ui.more.MoreScreen
+import com.akrapovic.soundkit.community.ui.more.ValveStatesPreviewScreen
 import com.akrapovic.soundkit.community.ui.onboarding.OnboardingFlow
 import com.akrapovic.soundkit.community.ui.roadmap.RoadmapScreen
 import com.akrapovic.soundkit.community.ui.settings.DriveModeScreen
@@ -213,6 +214,10 @@ fun SoundKitApp(
                         modifier = modifier,
                         debugLoggingEnabled = state.settings.debugLoggingEnabled,
                         onDebugLoggingChanged = viewModel::setDebugLogging,
+                        onNavigate = { destination -> subScreen = destination },
+                    )
+                    AppScreen.ValveVisualPreview -> ValveStatesPreviewScreen(
+                        modifier = modifier,
                     )
                 }
             }
@@ -338,6 +343,7 @@ private fun AppScreen.topBarTitle(): String = when (this) {
     AppScreen.AndroidAutoSetup -> "Android Auto"
     AppScreen.Advanced -> "Advanced"
     AppScreen.Developer -> "Developer"
+    AppScreen.ValveVisualPreview -> "Valve visual"
 }
 
 private fun AppScreen.label(): String {

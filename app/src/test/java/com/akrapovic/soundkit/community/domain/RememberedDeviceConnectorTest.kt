@@ -93,6 +93,33 @@ class RememberedDeviceConnectorTest {
     }
 
     @Test
+    fun carConnectionPolicyRequiresAnEligibleConnectionStateAndDefaultReceiver() {
+        val settings = SoundKitSettings(
+            connectInCar = true,
+            savedReceivers = listOf(
+                SavedReceiver(address = "00:11:22:33:44:55", name = "Kit", isDefault = true),
+            ),
+        )
+        val activeDevice = testDevice()
+
+        assertTrue(
+            RememberedDeviceConnector.shouldConnectInCar(
+                ConnectionState.Error("timed out", recoverable = true),
+                settings,
+            ),
+        )
+        assertFalse(
+            RememberedDeviceConnector.shouldConnectInCar(ConnectionState.Connected(activeDevice), settings),
+        )
+        assertFalse(
+            RememberedDeviceConnector.shouldConnectInCar(
+                ConnectionState.Disconnected,
+                settings.copy(savedReceivers = emptyList()),
+            ),
+        )
+    }
+
+    @Test
     fun shouldNotAutoConnectWhenAlreadyActive() {
         val settings = SoundKitSettings(
             savedReceivers = listOf(

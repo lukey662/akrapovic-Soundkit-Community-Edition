@@ -35,7 +35,9 @@ Commit both `project.yml` and `SoundKitCommunity.xcodeproj` after structural cha
 | **Xcode Run** | Fastest path for daily development on a registered device. |
 | **Ad Hoc archive** | Archive → Distribute → Ad Hoc for up to 100 registered UDIDs (no public link). |
 
-**Not in scope for dev v1:** TestFlight, App Store, or owner-facing `INSTALL_IOS.md`.
+[INSTALL_IOS.md](../../INSTALL_IOS.md) documents Ad Hoc and TestFlight
+preparation only; it does not claim a TestFlight or App Store release. Both
+require Apple Developer access and physical iPhone/receiver smoke evidence.
 
 ## BLE protocol
 
@@ -99,4 +101,23 @@ No internet usage. Background restoration never authorizes a blind valve write; 
 
 ## CarPlay entitlement
 
-Before enabling CarPlay distribution, request `com.apple.developer.carplay-driving-task`. Approval is high-risk for valve control because it can affect noise, emissions, and driving safety. The project includes a scene declaration but keeps the entitlement key commented under `CARPLAY_ENABLED`; add it only after Apple approves the request and the provisioning profile carries it. If rejected, ship Siri and phone UI only—there is no entitlement workaround.
+CarPlay is disabled: normal builds set `CARPLAY_ENABLED=NO` and contain neither
+the CarPlay scene declaration nor
+`com.apple.developer.carplay-driving-task`. Do not enable, advertise, or
+submit the CarPlay scene without Apple approval and a provisioning profile
+containing that entitlement.
+
+An Apple Developer Account holder must submit an entitlement-request package
+with the driving-task use case, safety controls (parked-only, state-gated,
+notification-confirmed commands), phone-only setup/diagnostics design,
+supported vehicles and regions, physical hardware evidence, privacy
+disclosures, and App Review contact/demo instructions. Approval is high-risk
+for valve control because it can affect noise, emissions, and driving safety;
+approval also does not guarantee App Store acceptance.
+
+If approval is absent or rejected, distribute the phone UI and Siri App
+Intents only. Siri has no entitlement workaround either: it must fail safely
+when a ready receiver cannot be restored and tell the user to unlock and open
+the app. See [DOCS.md](../../DOCS.md) and
+[INSTALL_IOS.md](../../INSTALL_IOS.md) for the complete boundaries and
+distribution preparation.

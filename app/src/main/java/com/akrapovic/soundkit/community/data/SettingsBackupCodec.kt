@@ -128,20 +128,25 @@ object SettingsBackupCodec {
 
         return SettingsBackupPayload(
             savedReceiversJson = savedReceiversJson,
-            connectOnLaunch = if (root.has("connectOnLaunch")) root.getBoolean("connectOnLaunch") else null,
-            connectInCar = if (root.has("connectInCar")) root.getBoolean("connectInCar") else null,
-            headUnitPriorityEnabled = if (root.has("headUnitPriorityEnabled")) {
-                root.getBoolean("headUnitPriorityEnabled")
-            } else {
-                null
-            },
-            autoReconnect = if (root.has("autoReconnect")) root.getBoolean("autoReconnect") else null,
+            connectOnLaunch = optionalBoolean(root, "connectOnLaunch"),
+            connectInCar = optionalBoolean(root, "connectInCar"),
+            headUnitPriorityEnabled = optionalBoolean(root, "headUnitPriorityEnabled"),
+            autoReconnect = optionalBoolean(root, "autoReconnect"),
             garageThemeId = garageThemeId,
             selectedVehicleId = selectedVehicleId,
-            driveModeEnabled = if (root.has("driveModeEnabled")) root.getBoolean("driveModeEnabled") else null,
+            driveModeEnabled = optionalBoolean(root, "driveModeEnabled"),
             preferredValveMode = preferredValveMode,
             quietStartJson = quietStartJson,
         )
+    }
+
+    private fun optionalBoolean(root: JSONObject, key: String): Boolean? {
+        if (!root.has(key)) return null
+        return try {
+            root.getBoolean(key)
+        } catch (_: Exception) {
+            throw SettingsBackupException("Invalid $key in settings backup")
+        }
     }
 
     private fun requireBounded(value: String, label: String) {

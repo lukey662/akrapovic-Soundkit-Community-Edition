@@ -77,6 +77,23 @@ class CarScreenPresenterTest {
         assertFalse(model.showControls)
     }
 
+    @Test
+    fun reportsDisconnectedAndErrorStatesWithoutExposingControls() {
+        val disconnected = CarScreenPresenter.present(
+            true, true, true, ConnectionState.Disconnected, ValveState.Open,
+            null, CommandPhase.Idle,
+        ) as CarScreenModel.Controls
+        val error = CarScreenPresenter.present(
+            true, true, true, ConnectionState.Error("Timed out", recoverable = true), ValveState.Closed,
+            null, CommandPhase.Idle,
+        ) as CarScreenModel.Controls
+
+        assertEquals("Receiver disconnected", disconnected.status)
+        assertFalse(disconnected.showControls)
+        assertEquals("Connection failed", error.status)
+        assertFalse(error.showControls)
+    }
+
     private fun present(valveState: ValveState): CarScreenModel.Controls {
         return CarScreenPresenter.present(
             true, true, true, ConnectionState.Connected(device), valveState, null, CommandPhase.Idle,

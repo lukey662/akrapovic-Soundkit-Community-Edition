@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D4C6837D32761BBB84E61BF /* ReceiverNotReadyChecklist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638AF5394CD6E0ADFA2CD9EB /* ReceiverNotReadyChecklist.swift */; };
 		131D278A505791ED95165425 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413FDC9EB017108622F8E81B /* DiagnosticsStore.swift */; };
 		2BC3D0131D441661FC911F40 /* QuietWindowEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC6C98126DA3FABE70C0A04 /* QuietWindowEvaluator.swift */; };
 		37C63B0E1C47BF4598964766 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB5FE30A84D7FEC18903C991 /* Settings.swift */; };
@@ -19,6 +20,7 @@
 		6582F5A20B41DF957A17C200 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460BA18EABBDC7EC554F313C /* BLEManager.swift */; };
 		69C13E558065BD6734E1DD03 /* VehicleCompatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = B59F17D759B215A8614E4D5A /* VehicleCompatibility.swift */; };
 		71F541AC52DFBA2C69DD26CC /* DriveModeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E981FEB9EE0CC43755764D99 /* DriveModeEngine.swift */; };
+		8A5D84551BDEEC17D46C8329 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C4AFDB8A8A67C371D5B4B632 /* PrivacyInfo.xcprivacy */; };
 		8ADE278CBF95E051DA34D30B /* ConnectionPriority.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8681380EFF0E19D6E4FE32BC /* ConnectionPriority.swift */; };
 		8E1E78EA8792E7D738AF2ED9 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F526E5A87E9565C07A7C4543 /* MoreView.swift */; };
 		94DB47D9D36BE0A960C2FE05 /* ValveControlCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C09EE4F6EC1C4943102DE2C /* ValveControlCoordinator.swift */; };
@@ -58,6 +60,7 @@
 		460BA18EABBDC7EC554F313C /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
 		4DEB88FD275FC48492EDDF16 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		616771C3F059C4A6400A5432 /* DriveModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriveModeView.swift; sourceTree = "<group>"; };
+		638AF5394CD6E0ADFA2CD9EB /* ReceiverNotReadyChecklist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiverNotReadyChecklist.swift; sourceTree = "<group>"; };
 		692F46DF043A25FCB9EC8C8E /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
 		762E40F221E43DC18CFBFD4E /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 		8532812CA05C5BF382C3B12C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -67,6 +70,7 @@
 		B480937AD1D664452DB6D286 /* DiagnosticsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsSupport.swift; sourceTree = "<group>"; };
 		B59F17D759B215A8614E4D5A /* VehicleCompatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleCompatibility.swift; sourceTree = "<group>"; };
 		BF4F32D0C1A1711B51AEB62E /* ConnectReadyObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectReadyObserver.swift; sourceTree = "<group>"; };
+		C4AFDB8A8A67C371D5B4B632 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		C8379B280A796F61000CD80D /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		CB5FE30A84D7FEC18903C991 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		D5CEDD2EBF7BA01B44B79343 /* SoundKitProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundKitProtocol.swift; sourceTree = "<group>"; };
@@ -102,6 +106,7 @@
 			isa = PBXGroup;
 			children = (
 				8532812CA05C5BF382C3B12C /* HomeView.swift */,
+				638AF5394CD6E0ADFA2CD9EB /* ReceiverNotReadyChecklist.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -144,6 +149,7 @@
 				028101C144E8B54183FFAF1D /* Assets.xcassets */,
 				B480937AD1D664452DB6D286 /* DiagnosticsSupport.swift */,
 				4DEB88FD275FC48492EDDF16 /* Info.plist */,
+				C4AFDB8A8A67C371D5B4B632 /* PrivacyInfo.xcprivacy */,
 				9E5DDEA8BE74AED08BAB8CD0 /* SoundKitCommunity.entitlements */,
 				131EBF40677C71C6FD152437 /* SoundKitCommunityApp.swift */,
 				D5CEDD2EBF7BA01B44B79343 /* SoundKitProtocol.swift */,
@@ -334,6 +340,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA627D91043B7922C059689F /* Assets.xcassets in Resources */,
+				8A5D84551BDEEC17D46C8329 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -359,6 +366,7 @@
 				8E1E78EA8792E7D738AF2ED9 /* MoreView.swift in Sources */,
 				BD7BA16204DEFFFF42A58AB6 /* OnboardingFlowView.swift in Sources */,
 				2BC3D0131D441661FC911F40 /* QuietWindowEvaluator.swift in Sources */,
+				0D4C6837D32761BBB84E61BF /* ReceiverNotReadyChecklist.swift in Sources */,
 				CAF8C10825CBFE08A80A5FC9 /* RootView.swift in Sources */,
 				37C63B0E1C47BF4598964766 /* Settings.swift in Sources */,
 				EF37FC3E0F66D5D1763E2C60 /* SettingsStore.swift in Sources */,
@@ -414,6 +422,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CARPLAY_ENABLED = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -444,6 +453,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -462,6 +472,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.3.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -494,6 +505,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CARPLAY_ENABLED = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -524,6 +536,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -536,6 +549,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.3.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -1,3 +1,15 @@
+import org.gradle.api.GradleException
+
+val releaseSigningInputs = mapOf(
+    "ANDROID_RELEASE_STORE_FILE" to providers.environmentVariable("ANDROID_RELEASE_STORE_FILE").orNull,
+    "ANDROID_RELEASE_STORE_PASSWORD" to providers.environmentVariable("ANDROID_RELEASE_STORE_PASSWORD").orNull,
+    "ANDROID_RELEASE_KEY_ALIAS" to providers.environmentVariable("ANDROID_RELEASE_KEY_ALIAS").orNull,
+    "ANDROID_RELEASE_KEY_PASSWORD" to providers.environmentVariable("ANDROID_RELEASE_KEY_PASSWORD").orNull,
+)
+val missingReleaseSigningInputs = releaseSigningInputs
+    .filterValues { it.isNullOrBlank() }
+    .keys
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -26,6 +38,15 @@ android {
 
     signingConfigs {
         getByName("debug")
+        create("release") {
+            // Values are supplied only by the release environment; never add them to source control.
+            if (missingReleaseSigningInputs.isEmpty()) {
+                storeFile = file(requireNotNull(releaseSigningInputs.getValue("ANDROID_RELEASE_STORE_FILE")))
+                storePassword = requireNotNull(releaseSigningInputs.getValue("ANDROID_RELEASE_STORE_PASSWORD"))
+                keyAlias = requireNotNull(releaseSigningInputs.getValue("ANDROID_RELEASE_KEY_ALIAS"))
+                keyPassword = requireNotNull(releaseSigningInputs.getValue("ANDROID_RELEASE_KEY_PASSWORD"))
+            }
+        }
     }
 
     buildTypes {
@@ -36,6 +57,7 @@ android {
         }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -66,6 +88,28 @@ android {
         }
     }
 
+}
+
+gradle.taskGraph.whenReady {
+    val releaseArtifactRequested = allTasks.any { task ->
+        task.project == project &&
+            task.name in setOf("assembleRelease", "bundleRelease", "packageRelease")
+    }
+    if (!releaseArtifactRequested) return@whenReady
+
+    if (missingReleaseSigningInputs.isNotEmpty()) {
+        throw GradleException(
+            "Release signing requires environment variables: " +
+                missingReleaseSigningInputs.joinToString(", "),
+        )
+    }
+
+    val keystore = file(requireNotNull(releaseSigningInputs.getValue("ANDROID_RELEASE_STORE_FILE")))
+    if (!keystore.isFile) {
+        throw GradleException(
+            "ANDROID_RELEASE_STORE_FILE does not point to a readable keystore: ${keystore.absolutePath}",
+        )
+    }
 }
 
 kapt {

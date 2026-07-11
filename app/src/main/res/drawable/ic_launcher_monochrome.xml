@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed-icon (Android 13+) variant of the valve glyph. White-only,
-     matching the foreground geometry. -->
+<!-- Themed-icon (Android 13+) monochrome: white silhouette of the exhaust tip. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- Outer ring -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M54,22 a32,32 0 1,1 0,64 a32,32 0 1,1 0,-64 z M54,28 a26,26 0 1,0 0,52 a26,26 0 1,0 0,-52 z" />
+        android:pathData="M54,20 a34,34 0 1,1 0,68 a34,34 0 1,1 0,-68 z M54,26 a28,28 0 1,0 0,56 a28,28 0 1,0 0,-56 z" />
 
+    <!-- Titanium lip ring -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M32.0,42.0 A26,26 0 0,1 76.0,42.0 L70.6,46.6 A20,20 0 0,0 37.4,46.6 Z" />
+        android:pathData="M54,26 a28,28 0 1,1 0,56 a28,28 0 1,1 0,-56 z M54,31 a23,23 0 1,0 0,46 a23,23 0 1,0 0,-46 z" />
 
+    <!-- Disc body with open crescent cut -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M32.0,66.0 A26,26 0 0,0 76.0,66.0 L70.6,61.4 A20,20 0 0,1 37.4,61.4 Z" />
+        android:fillType="evenOdd"
+        android:pathData="M54,33.5 a20.5,20.5 0 1,1 0,41 a20.5,20.5 0 1,1 0,-41 z M36.5,62.5 A20.5,20.5 0 0,0 71.5,62.5 A16,10 0 0,1 36.5,62.5 Z" />
 
+    <!-- Pivot -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M54,54 m-5,0 a5,5 0,1 1,10,0 a5,5 0,1 1,-10,0 z" />
+        android:pathData="M54,54 m-2.4,0 a2.4,2.4 0,1 1,4.8,0 a2.4,2.4 0,1 1,-4.8,0 z" />
 </vector>

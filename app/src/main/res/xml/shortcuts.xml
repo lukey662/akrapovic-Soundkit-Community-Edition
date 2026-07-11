@@ -7,8 +7,8 @@
         android:shortcutLongLabel="@string/shortcut_open_valves_long"
         android:shortcutShortLabel="@string/shortcut_open_valves">
         <intent
-            android:action="com.akrapovic.soundkit.community.action.SHORTCUT_OPEN"
-            android:targetClass="com.akrapovic.soundkit.community.MainActivity" />
+            android:action="com.akrapovic.soundkit.community.action.VOICE_OPEN"
+            android:targetClass="com.akrapovic.soundkit.community.AssistantActionActivity" />
     </shortcut>
     <shortcut
         android:enabled="true"
@@ -17,17 +17,17 @@
         android:shortcutLongLabel="@string/shortcut_close_valves_long"
         android:shortcutShortLabel="@string/shortcut_close_valves">
         <intent
-            android:action="com.akrapovic.soundkit.community.action.SHORTCUT_CLOSE"
-            android:targetClass="com.akrapovic.soundkit.community.MainActivity" />
+            android:action="com.akrapovic.soundkit.community.action.VOICE_CLOSE"
+            android:targetClass="com.akrapovic.soundkit.community.AssistantActionActivity" />
     </shortcut>
     <shortcut
         android:enabled="true"
         android:icon="@drawable/ic_valve_tile"
-        android:shortcutId="connect_home"
-        android:shortcutLongLabel="@string/shortcut_connect_long"
-        android:shortcutShortLabel="@string/shortcut_connect">
+        android:shortcutId="valve_status"
+        android:shortcutLongLabel="@string/shortcut_valve_status_long"
+        android:shortcutShortLabel="@string/shortcut_valve_status">
         <intent
-            android:action="com.akrapovic.soundkit.community.action.SHORTCUT_CONNECT"
-            android:targetClass="com.akrapovic.soundkit.community.MainActivity" />
+            android:action="com.akrapovic.soundkit.community.action.VOICE_STATUS"
+            android:targetClass="com.akrapovic.soundkit.community.AssistantActionActivity" />
     </shortcut>
 </shortcuts>

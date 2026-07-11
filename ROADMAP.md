@@ -1,110 +1,75 @@
 # Roadmap
 
-Living plan for **Sound Kit Community**. Nothing here is a commitment or timeline; it records direction so contributors and users know what might come next. All work stays **local-first** (phone BLE only) unless an explicit decision says otherwise.
+Living direction for **Sound Kit Community**. It distinguishes code present in this repository from releases and hardware/platform access that have actually been validated. Nothing here commits to a timeline. The product remains local-first: phone-to-receiver BLE, no accounts, cloud control, or telemetry.
 
-*Last refreshed: June 2026 — iOS dev v1 parity, vehicle onboarding tiers, diagnostics support email.*
+*Last verified: 2026-07-11.*
+
+## Reading this roadmap
+
+- **Shipped in code** means the implementation and its automated coverage are in the repository. It does not imply store distribution, physical-device validation, or a third-party platform approval.
+- **Validated release gates** records evidence needed before a feature can be represented as ready for its intended audience.
+- **Manual/external gates** cannot be passed by CI and remain blocked until their listed evidence or approval exists.
 
 ## Principles
 
-- **Safety first** — No silent automation that could surprise a driver. Clear manual override and visible “why did the valve change?” affordances where automation exists.
-- **State-gated writes** — Manual OPEN/CLOSE only sends the verified toggle when receiver state is known and differs from the target. Future automation must follow the same rule.
-- **Privacy** — Geofencing and location-backed rules need **opt-in**, plain-language disclosure, and minimal retention. No selling or sharing location data (there is no backend today).
-- **Accessibility** — Target **WCAG 2.1 AA** for contrast, semantics, touch targets (≥48dp), and screen reader labels as screens are touched.
+- **Safety first** — Every valve write is state-gated, serialized, and confirmed by a receiver status notification. Manual control wins for the current connection session.
+- **Honest capability claims** — A scaffold, simulator build, or sideload route is not described as public platform availability.
+- **Privacy** — No internet permission, accounts, telemetry, location automation, or background geofencing.
+- **Accessible, low-distraction UI** — Preserve explicit state text, large targets, reduced-motion behavior, and phone-only setup for car surfaces.
 
-## Done
+## Shipped in code
 
-| Area | What shipped |
-|------|----------------|
-| **BLE protocol** | APK-verified toggle (`0x01`), advertising signature scan, notification-driven valve state, state-gated OPEN/CLOSE, pairing flow. |
-| **BLE stability (status `04`)** | Idle `0x04` stays connected with “receiver not ready” copy; no auto-reconnect storm; honest reconnect attempt counter. |
-| **Physical receiver** | Real-car validation: connect, pair, open/close accepted by receiver. |
-| **Unified Home** | Single primary tab: scan when disconnected, valve control when connected (no separate Find / Control tabs). |
-| **Valve control card** | Combined valve visual + one Open/Close action button on the control surface. |
-| **Consumer UI** | Calm Home / More / Settings / Diagnostics; protocol hidden from primary journey. |
-| **Themes** | Brand-inspired families with Light/Dark variants, gradients, local brand marks; default **Studio Blue** (navy + electric blue). |
-| **Onboarding & legal** | Unified first-run flow: risk, Bluetooth, notifications, battery (skippable); `onboardingCompletedAt` in DataStore. |
-| **Empty / error states** | Shared `AkraStatePanel` on scan, control reconnect, diagnostics; retry connection from Home. |
-| **Theme polish** | Stronger Studio/Audi light contrast; larger labeled color swatches on Appearance. |
-| **CI reliability** | Committed `gradle-wrapper.jar`; GitHub Actions runs `./gradlew`. |
-| **Accessibility pass** | Headings, content descriptions on onboarding and primary actions; smoke/instrumented coverage. |
-| **Diagnostics export** | Copy, Save-to-file (SAF), file-only Share (no email subject/body autofill). |
-| **Launcher** | Adaptive valve-glyph icon (foreground, background, monochrome). |
-| **Android Auto / Automotive** | IoT Car App service, manifest descriptor, DHU testing. |
-| **Projected AA (sideload)** | Car auto-reconnect, toggle + status-04 on template, Open on phone, notification/QS fallback docs. |
-| **Confirmations** | Disconnect and Forget receiver confirmation dialogs. |
-| **Favorites** | Up to 8 saved receivers, nicknames, default star, connect on launch; shared `RememberedDeviceConnector`. |
-| **Smarter notifications** | `NotificationCopy` gating; nickname title; not-ready copy; valve actions disabled when unsafe. |
-| **Quick Settings polish** | `QsTilePresenter`; not-ready inactive state; open app when disconnected. |
-| **Rules engine (design)** | Domain models, `RuleEvaluator`, ADR/SPEC — no BLE execution or persistence yet. |
-| **Rules execution (Beta)** | Persisted rules, `RuleExecutionEngine`, activity log, state-gated BLE writes. |
-| **Time automation (Beta)** | Schedule triggers via WorkManager + evaluate on connect when ready. |
-| **Geofencing (Beta)** | Up to 4 zones, opt-in location, enter/exit triggers via Geofencing API. |
-| **Automation notifications (Beta)** | Pause/resume automation + last-run cause in foreground notification. |
-| **Drive mode** | Preferred Open/Closed on connect; optional quiet-start window (hold closed N min); Settings + Home shortcut; replaces Beta rules/geofencing. |
-| **Reconnect cap** | Auto-reconnect stops after 8 attempts (~2 min); honest “Couldn't reach receiver — tap to retry” UI. |
-| **Quiet neighbours hours** | Editable start/end times, overnight windows (e.g. 22:00–06:00), 3 min default hold; manual override respected per connect session. |
-| **Theme contrast** | Audi RS Dark and dark primary buttons readable on Home; low-contrast gradient guard on action buttons. |
-| **More screen** | Settings and Appearance on More; Advanced hub for Diagnostics, Android Auto, Roadmap, and Developer. |
-| **Vehicle onboarding** | Car picker with Supported (Tier 1) and Beta (Tier 2) labels; persisted for diagnostics. |
-| **Diagnostics support** | support@appsforgood.net copy/email from Diagnostics; user-initiated export only. |
-| **Home widget and shortcuts** | Widget and launcher shortcuts for open/close/connect. |
-| **Settings backup** | Local JSON export/import via Files. |
-| **Receiver not-ready checklist** | Step-by-step help for status `04`. |
-| **RSSI hints** | Weak-signal copy on scan list. |
-| **Drive mode profiles** | Everyday, Quiet street, Track quick presets. |
-| **iOS dev v1** | Committed Xcode project; full BLE GATT, settings, onboarding, drive mode, Audi theme, diagnostics; XCTest + CI build. |
-| **Wear OS tile** | `:wear` module opens phone app for connect. |
-| **Head-unit priority** | Android Auto session = primary BLE controller; secondary phones defer auto-connect, yield on contention, Take control UX; iOS yield parity + CarPlay hook placeholder. |
+| Area | Current implementation |
+|---|---|
+| **BLE safety and stability** | APK-verified toggle (`0x01`), advertising signature scan, pairing, notification-derived state, state-gated OPEN/CLOSE, five-second confirmation, status `04` connected-not-ready handling, and an eight-attempt reconnect cap. |
+| **Central command authority** | `ValveCommandCoordinator` serializes phone, notification, Quick Settings, widget, drive-mode, Android Auto, and shortcut commands; disconnected, unknown, and not-ready requests fail closed. |
+| **Core Android experience** | Unified Home, consumer-focused More/Settings/Diagnostics, onboarding/risk acknowledgement, recovery states, themes, vehicle tiers, RSSI hints, receiver-not-ready checklist, and local diagnostics export. |
+| **Exhaust-tip visual and launcher mark** | Procedural carbon/titanium exhaust-tip `ValveVisual`, state gallery, visual regression coverage, Android adaptive icon assets, and matching iOS app icon asset. |
+| **Saved receivers and connection policies** | Up to eight receivers, nickname/default/forget, local backup import/export, independent `connectOnLaunch` and `connectInCar`, head-unit priority, contention yield, and Take control. |
+| **Drive mode** | Preferred Open/Closed on first connect-ready, quiet-neighbours window with editable/overnight times, profiles, notification pause/resume, and manual override per session. It replaced the former rules, schedules, and geofencing experiment. |
+| **Android companion surfaces** | Notification and Quick Settings safety gating, widget/launcher shortcuts, Wear handoff tile, and an IoT Car App `GridTemplate` with separate Open/Close actions. |
+| **Android shortcuts, not custom Assistant App Actions** | Internal Open, Close, and Status launcher shortcuts use a closed action enum, saved default receiver, eight-second reconnect bound, and `ValveCommandCoordinator`. No custom Google Assistant App Action is declared or claimed. |
+| **iOS dev v1 parity** | Committed SwiftUI/CoreBluetooth project with GATT lifecycle, state-confirmed commands, onboarding, receiver/settings management, drive mode, diagnostics, backups, theme, status `04` help, and XCTest/CI coverage. |
+| **iOS Siri** | Open, Close, and status App Intents route through `ValveControlCoordinator`; success is spoken only after notification confirmation. Siri does not depend on CarPlay approval. |
+| **CarPlay scaffold** | A shallow, coordinator-routed `CPGridTemplate` and car-session hook exist behind `CARPLAY_ENABLED=NO`. Normal builds declare neither the scene nor driving-task entitlement. |
 
-## Up next
+## Validated release gates
 
-Maintenance driven by owner feedback; no fixed timeline.
+| Surface | Evidence | Current state |
+|---|---|---|
+| **Android automated build** | JVM tests, Paparazzi, debug phone/Wear builds, and iOS Simulator XCTest are recorded in `TESTING.md`. | Automated gates passed for the documented 2026-07-11 evidence. |
+| **Android receiver behavior** | Parked real-car connection, pairing, and Open/Close acceptance have been recorded. | Validated for the reference hardware exercise; repeat the physical smoke checklist for every public release candidate. |
+| **Android public release** | Automated matrix, instrumented smoke, parked receiver smoke, reviewed diagnostics, and release signing. | Release-candidate gate; do not infer it from a debug APK or CI artifact. |
+| **iOS developer builds** | Xcode device install and Simulator XCTest path are documented. | Developer-only route; Simulator does not validate CoreBluetooth, Siri readiness, or background behavior. |
 
-| Area | Intent |
-|------|--------|
-| **iOS hardware validation** | RS3 parked smoke checklist in `TESTING.md`; ad-hoc builds for 2–3 beta testers. |
-| **iOS public distribution** | TestFlight / App Store after hardware smoke passes (see Later). |
-| **Compatibility matrix** | Promote Beta vehicles as Supported when field-validated. |
+## Manual and external gates
 
-## Later (product)
+| Area | Gate and truthful status |
+|---|---|
+| **iOS hardware smoke** | **Blocked pending hardware smoke.** Run the parked RS3/iPhone checklist in `TESTING.md`, including discovery, pairing, status `04`, commands, reconnect, and drive mode. |
+| **TestFlight / App Store** | **Blocked pending iOS hardware smoke and Apple developer/distribution access.** No TestFlight or public iOS distribution is claimed. |
+| **Siri release** | Can ship independently of CarPlay once its physical iPhone/locked-phone smoke is passed and the normal iOS distribution gate is available. |
+| **CarPlay** | **Entitlement-gated.** Apple must approve `com.apple.developer.carplay-driving-task`, and a provisioning profile must carry it. Approval and hardware validation are required before enabling, marketing, or submitting the scene. |
+| **DHU / real Android Auto** | **Manual gate.** The IoT template has automated presenter coverage, but DHU and a compatible real Automotive OS/projected sideload session must be exercised locally while parked. |
+| **Compatibility matrix** | Promote Tier 2/Beta vehicles only after parked field validation of the matching receiver protocol. |
 
-| Area | Intent |
-|------|--------|
-| **iOS TestFlight / App Store** | Owner-facing install after RS3 smoke + beta ad-hoc validation. |
-| **Assistant intents** | Local voice shortcuts when connected and state-known. |
-| **CarPlay** | Explore in-car surface separate from Android Auto IoT. |
+## Next work
 
-## Non-goals (for now)
+Maintenance follows owner feedback and gate evidence rather than a fixed timeline:
 
-- **Cloud** accounts, remote control over the internet, or telemetry backends.
-- **Official Akrapovič integration** or warranty support.
-- **Play Store listing in projected Android Auto.** Policy categories (navigation, media, messaging, etc.) do not fit a valve controller. **Sideload + developer mode** for projected AA and **IoT** for Automotive OS / DHU remain in scope — see `DOCS.md` § Android Auto Testing.
+1. Complete and record iOS physical receiver, Siri, DHU, and real-head-unit smoke results.
+2. Obtain the appropriate Apple developer access before considering TestFlight; pursue CarPlay entitlement only if its review risk is acceptable.
+3. Expand `COMPATIBILITY.md` only with field-validated receiver/vehicle evidence.
 
-## Dependency sketch
+## Non-goals
 
-```mermaid
-flowchart LR
-  subgraph done [Shipped]
-    Proto[Verified_BLE]
-    Status04[Status_04_handling]
-    Home[Unified_Home]
-    UX[Consumer_UI_and_themes]
-    Onboard[Unified_onboarding]
-    Car[Automotive_IoT_surface]
-  end
-  subgraph later [Product]
-    Fav[Favorites]
-    Rules[Rules_engine]
-    Time[Time_triggers]
-    Geo[Geofence_triggers]
-  end
-  Proto --> Fav
-  Fav --> Rules
-  Rules --> Time
-  Rules --> Geo
-  UX --> Onboard
-```
+- Cloud accounts, remote valve control, telemetry backends, or location/geofence automation.
+- Returning to the retired rules, schedule, WorkManager, or geofencing automation system.
+- Claiming custom Google Assistant App Actions before a supported, verified fulfillment contract exists.
+- Claiming CarPlay availability before entitlement approval and provisioning.
+- Google Play distribution for projected Android Auto. Sideload + developer mode and Automotive OS/DHU testing remain manual routes.
+- Official Akrapovič integration, warranty support, ECU coding, or factory sound-mode wiring.
 
 ## Contributing
 
-Open issues or PRs with a short **safety/privacy** note for any feature that moves metal (valve) or uses location in the background.
+For any change affecting valve movement, persistence, background behavior, or a platform declaration, include the relevant safety boundary, automated test, and manual/external gate update in `DECISIONS.md`, `SPEC.md`, `TESTING.md`, and this roadmap.

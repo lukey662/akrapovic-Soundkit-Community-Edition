@@ -26,6 +26,10 @@ enum ConnectionPriorityPolicy {
         return true
     }
 
+    static func shouldAutoConnectInCar(settings: SoundKitSettings) -> Bool {
+        settings.connectInCar && settings.defaultReceiver != nil
+    }
+
     static func shouldAutoReconnect(
         settings: SoundKitSettings,
         carSessionActive: Bool,

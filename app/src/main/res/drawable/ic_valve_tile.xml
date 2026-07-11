@@ -1,11 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Compact exhaust-tip glyph for notifications, shortcuts, and car tiles. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Outer carbon ring -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M3,10h6l3,-4l3,4h6v4h-6l-3,4l-3,-4H3v-4z" />
+        android:pathData="M12,2.5 a9.5,9.5 0 1,1 0,19 a9.5,9.5 0 1,1 0,-19 z M12,4.5 a7.5,7.5 0 1,0 0,15 a7.5,7.5 0 1,0 0,-15 z" />
+    <!-- Lip -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,5.2 a6.8,6.8 0 1,1 0,13.6 a6.8,6.8 0 1,1 0,-13.6 z M12,6.6 a5.4,5.4 0 1,0 0,10.8 a5.4,5.4 0 1,0 0,-10.8 z" />
+    <!-- Disc (slightly open ellipse) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,8.2 a4.6,3.2 0 1,1 0,6.4 a4.6,3.2 0 1,1 0,-6.4 z" />
+    <!-- Pivot dots -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M6.6,12 m-0.7,0 a0.7,0.7 0,1 1,1.4,0 a0.7,0.7 0,1 1,-1.4,0 z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M17.4,12 m-0.7,0 a0.7,0.7 0,1 1,1.4,0 a0.7,0.7 0,1 1,-1.4,0 z" />
 </vector>
-

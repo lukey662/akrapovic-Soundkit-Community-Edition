@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   DataStore preferences live under files/datastore/, not sharedpref/.
-  Exclude receiver IDs, settings, and automation logs from cloud backup.
+  Exclude receiver IDs, settings, crash logs, and diagnostics from cloud backup.
+  Android excludes cache/ by design; diagnostics exports currently use
+  cache/diagnostics/ and files/diagnostics/ is excluded for any future move.
 -->
 <full-backup-content>
     <exclude
@@ -10,4 +12,10 @@
     <exclude
         domain="sharedpref"
         path="soundkit_settings.preferences_pb" />
+    <exclude
+        domain="file"
+        path="crashes/" />
+    <exclude
+        domain="file"
+        path="diagnostics/" />
 </full-backup-content>

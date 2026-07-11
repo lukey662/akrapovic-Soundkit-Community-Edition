@@ -44,7 +44,10 @@ final class SoundKitViewModel: ObservableObject {
         }
         ble.carSessionProvider = { CarSessionTracker.shared.isCarSessionActive }
         ble.onDiagnostics = { [weak diagnosticsStore = self.diagnosticsStore] message in
-            Task { @MainActor in diagnosticsStore?.debug(message) }
+            Task { @MainActor in
+                guard self.settingsStore.settings.debugLoggingEnabled else { return }
+                diagnosticsStore?.debug(message)
+            }
         }
         ble.onConnectReady = { [weak engine = self.driveModeEngine] sessionId in
             Task { @MainActor in engine?.onConnectReady(sessionId: sessionId) }
@@ -81,6 +84,17 @@ final class SoundKitViewModel: ObservableObject {
         )
     }
 
+    func tryConnectInCar() {
+        guard !bleManager.connectionPhase.isConnectingOrConnected else { return }
+        guard ConnectionPriorityPolicy.shouldAutoConnectInCar(settings: settingsStore.settings),
+              let receiver = settingsStore.settings.defaultReceiver else { return }
+        bleManager.connectToRemembered(
+            id: receiver.address,
+            name: receiver.displayName(),
+            userInitiated: false
+        )
+    }
+
     func takeControl() {
         bleManager.takeControl()
     }
@@ -105,13 +119,17 @@ final class SoundKitViewModel: ObservableObject {
     func rememberConnectedDevice() {
         guard case .connected(let device) = bleManager.connectionPhase else { return }
         let nickname = VehicleCompatibilityCatalog.findById(settingsStore.settings.selectedVehicleId)?.defaultNickname
-        settingsStore.rememberDevice(
+        switch settingsStore.rememberDevice(
             id: device.id,
             name: device.name,
             nickname: nickname,
             setDefault: true
-        )
-        diagnosticsStore.info("Saved receiver \(device.name)")
+        ) {
+        case .success:
+            diagnosticsStore.info("Saved receiver \(device.name)")
+        case .failure(let error):
+            diagnosticsStore.warning("Receiver was not saved: \(error.localizedDescription)")
+        }
     }
 
     func applyProfile(_ profile: DriveModeProfile) {

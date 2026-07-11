@@ -161,6 +161,29 @@ class ComposeSmokeTest {
     }
 
     @Test
+    fun controlScreenExposesValveStateAndActionSemantics() {
+        val device = testDeviceForSmoke()
+        composeRule.setContent {
+            SoundKitTheme {
+                ConnectedDeviceScreen(
+                    state = SoundKitUiState(
+                        connectionState = ConnectionState.Connected(device),
+                        valveState = ValveState.Closed,
+                        protocolVerified = true,
+                    ),
+                    onToggleValve = {},
+                    onDisconnect = {},
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithContentDescription("Closed. Quiet mode — valves are closed.")
+            .assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Open exhaust valves").assertIsDisplayed()
+    }
+
+    @Test
     fun diagnosticsScreenShowsExportActionsAndHandlesDuplicateTimestamps() {
         composeRule.setContent {
             SoundKitTheme {

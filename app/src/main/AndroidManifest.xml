@@ -56,6 +56,14 @@
                 android:resource="@xml/shortcuts" />
         </activity>
 
+        <!-- Internal only: static shortcuts are fulfilled by the app, never by an exported service. -->
+        <activity
+            android:name=".AssistantActionActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:theme="@style/Theme.SoundKitCommunity" />
+
         <receiver
             android:name=".widget.SoundKitWidgetProvider"
             android:exported="true"

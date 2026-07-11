@@ -97,6 +97,18 @@ final class ConnectionPriorityPolicyTests: XCTestCase {
             carSessionActive: false
         ))
     }
+
+    func testConnectInCarIsIndependentFromLaunchPreference() {
+        var settings = SoundKitSettings()
+        settings.connectOnLaunch = false
+        settings.connectInCar = true
+        settings.savedReceivers = [
+            SavedReceiver(address: UUID().uuidString, name: "SoundKit", isDefault: true),
+        ]
+        XCTAssertTrue(ConnectionPriorityPolicy.shouldAutoConnectInCar(settings: settings))
+        settings.connectInCar = false
+        XCTAssertFalse(ConnectionPriorityPolicy.shouldAutoConnectInCar(settings: settings))
+    }
 }
 
 final class BleContentionDetectorTests: XCTestCase {
@@ -191,5 +203,77 @@ final class ReconnectAttemptPolicyTests: XCTestCase {
             current: attempt,
             maximum: BLEManager.maxReconnectAttempts
         ))
+    }
+}
+
+@MainActor
+final class SettingsStoreTests: XCTestCase {
+    private func makeStore() -> SettingsStore {
+        let defaults = UserDefaults(suiteName: "SettingsStoreTests.\(UUID().uuidString)")!
+        return SettingsStore(defaults: defaults)
+    }
+
+    func testReceiverCrudMaintainsOneDefault() {
+        let store = makeStore()
+        let firstId = UUID().uuidString
+        let secondId = UUID().uuidString
+        XCTAssertNoThrow(try store.rememberDevice(id: firstId, name: "First", nickname: nil, setDefault: true).get())
+        XCTAssertNoThrow(try store.rememberDevice(id: secondId, name: "Second", nickname: nil, setDefault: false).get())
+
+        store.renameReceiver(id: secondId, nickname: "Track car")
+        store.setDefaultReceiver(id: secondId)
+        XCTAssertEqual(store.settings.defaultReceiver?.address, secondId)
+        XCTAssertEqual(store.settings.savedReceivers.first { $0.address == secondId }?.nickname, "Track car")
+
+        store.forgetReceiver(id: secondId)
+        XCTAssertEqual(store.settings.defaultReceiver?.address, firstId)
+    }
+
+    func testSettingsValidationRejectsMoreThanEightReceivers() {
+        var settings = SoundKitSettings()
+        settings.savedReceivers = (0...8).map {
+            SavedReceiver(address: UUID().uuidString, name: "Receiver \($0)")
+        }
+        XCTAssertThrowsError(try settings.validated()) { error in
+            XCTAssertEqual(error as? SettingsValidationError, .tooManyReceivers)
+        }
+    }
+
+    func testBackupImportRejectsInvalidDataWithoutReplacingSettings() {
+        let store = makeStore()
+        store.update { $0.connectInCar = false }
+        let result = store.importBackup(Data("{\"version\":1,\"connectInCar\":\"no\"}".utf8))
+        guard case .failure = result else { return XCTFail("Expected invalid backup rejection") }
+        XCTAssertFalse(store.settings.connectInCar)
+    }
+
+    func testForeignBackupPreservesPreferencesAndDiscardsReceiverIdentifiers() throws {
+        let store = makeStore()
+        let foreign = """
+        {
+          "version": 1,
+          "platform": "android",
+          "settings": {
+            "savedReceivers": [{"address":"AA:BB:CC:DD:EE:FF","name":"Android receiver","isDefault":true}],
+            "connectOnLaunch": false,
+            "connectInCar": true,
+            "headUnitPriorityEnabled": true,
+            "autoReconnect": true,
+            "debugLoggingEnabled": false,
+            "garageThemeId":"studio-dark",
+            "riskNoticeAcceptedAt":0,
+            "onboardingCompletedAt":0,
+            "automationPaused":false,
+            "driveModeEnabled":true,
+            "preferredValveMode":"Open",
+            "quietStart":{"enabled":false,"daysOfWeek":[0,1,2,3,4,5,6],"windowStartMinute":360,"windowEndMinute":540,"holdClosedMinutes":3}
+          }
+        }
+        """
+        let outcome = try store.importBackup(Data(foreign.utf8)).get()
+        XCTAssertTrue(outcome.discardedPlatformBoundReceivers)
+        XCTAssertFalse(store.settings.connectOnLaunch)
+        XCTAssertTrue(store.settings.connectInCar)
+        XCTAssertTrue(store.settings.savedReceivers.isEmpty)
     }
 }

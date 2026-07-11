@@ -58,6 +58,21 @@ class NotificationCopyTest {
     }
 
     @Test
+    fun unknownValveStateDisablesValveActionsUntilStatusArrives() {
+        val presentation = NotificationCopy.build(
+            connectionState = ConnectionState.Connected(testDevice()),
+            valveState = ValveState.Unknown,
+            receiverStatusMessage = null,
+            defaultReceiver = null,
+        )
+
+        assertFalse(presentation.openValveEnabled)
+        assertFalse(presentation.closeValveEnabled)
+        assertTrue(presentation.disconnectEnabled)
+        assertTrue(presentation.contentText.contains("Checking valves"))
+    }
+
+    @Test
     fun driveModePausedShownInContent() {
         val presentation = NotificationCopy.build(
             connectionState = ConnectionState.Disconnected,

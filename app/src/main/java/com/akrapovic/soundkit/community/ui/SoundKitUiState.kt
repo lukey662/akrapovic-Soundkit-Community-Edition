@@ -31,5 +31,6 @@ enum class AppScreen {
     AndroidAutoSetup,
     Advanced,
     Developer,
+    ValveVisualPreview,
 }
 

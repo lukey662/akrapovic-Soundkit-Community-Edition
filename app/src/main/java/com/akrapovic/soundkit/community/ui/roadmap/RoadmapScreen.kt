@@ -57,7 +57,7 @@ fun RoadmapScreen(
         AkraHeroHeader(
             eyebrow = "Roadmap",
             title = "Roadmap",
-            subtitle = "What's already in the app.",
+            subtitle = "Code shipped here and the gates still required.",
         )
 
         RoadmapSummaryStrip(shippedCount = shippedItems.size)
@@ -437,111 +437,41 @@ private data class RoadmapItem(
 )
 
 private val shippedItems = listOf(
-    RoadmapItem("BLE protocol", "Verified toggle, advertising scan, notifications, state-gated OPEN/CLOSE, pairing."),
-    RoadmapItem("BLE stability", "Status 0x04 handled without reconnect storms; honest retry counter."),
-    RoadmapItem("Physical receiver", "Real-car connect, pair, and open/close validated."),
-    RoadmapItem("Unified Home", "One tab for scan and valve control — no separate Find / Control."),
-    RoadmapItem("Valve control card", "Animated visual plus a single Open / Close action."),
-    RoadmapItem("Consumer UI", "Calm Home, More, Settings, and Diagnostics flows."),
-    RoadmapItem("Themes", "Brand families with Light/Dark variants and Studio Blue default."),
-    RoadmapItem("Unified onboarding", "Risk, Bluetooth, notifications, and battery steps in one first-run flow."),
-    RoadmapItem("Empty and error states", "AkraStatePanel recovery on scan, reconnect, and diagnostics."),
-    RoadmapItem("Theme polish", "Studio/Audi light contrast and labeled Appearance swatches."),
-    RoadmapItem("CI reliability", "Gradle wrapper JAR committed; Actions use ./gradlew."),
-    RoadmapItem("Accessibility pass", "Semantics and instrumented tests on Home and onboarding."),
-    RoadmapItem("Diagnostics export", "Copy, Save-to-file, and file-only Share."),
-    RoadmapItem("Launcher icon", "Adaptive valve-glyph icon set."),
-    RoadmapItem("Android Auto base", "IoT Car App service, manifest descriptor, and DHU testing path."),
-    RoadmapItem(
-        "Projected AA sideload",
-        "Auto-reconnect on car entry, toggle on template, status-04 copy, notification/QS fallback.",
-    ),
-    RoadmapItem("Confirmations", "Disconnect and Forget receiver dialogs."),
-    RoadmapItem(
-        "Favorites",
-        "Up to eight saved receivers, default star, nicknames, and connect on launch.",
-    ),
-    RoadmapItem(
-        "Smarter notifications",
-        "Gated Open/Close, nickname titles, and honest not-ready copy on status 04.",
-    ),
-    RoadmapItem(
-        "Drive mode",
-        "Preferred Open/Closed on connect; quiet neighbours with editable hours and overnight windows.",
-    ),
-    RoadmapItem(
-        "Reconnect cap",
-        "Auto-reconnect stops after eight attempts with honest retry copy.",
-    ),
-    RoadmapItem(
-        "Quiet neighbours hours",
-        "Start/end time pickers, overnight windows, and manual override per connect session.",
-    ),
-    RoadmapItem(
-        "Theme contrast",
-        "Readable primary buttons on dark garage themes, especially Audi RS Dark.",
-    ),
-    RoadmapItem(
-        "More screen",
-        "Settings and Appearance on More; Advanced hub for Diagnostics, Android Auto, Roadmap, and Developer.",
-    ),
-    RoadmapItem(
-        "Vehicle onboarding",
-        "Car picker with Supported and Beta tiers; persisted for diagnostics and theme hints.",
-    ),
-    RoadmapItem(
-        "Diagnostics support",
-        "support@appsforgood.net from Diagnostics — copy email and mailto triage; no auto-upload.",
-    ),
-    RoadmapItem(
-        "Widget and shortcuts",
-        "Home-screen widget and launcher shortcuts for open, close, and connect.",
-    ),
-    RoadmapItem(
-        "Settings backup",
-        "Export and import local JSON backup for receivers and drive mode.",
-    ),
-    RoadmapItem(
-        "Drive mode profiles",
-        "Everyday, Quiet street, and Track quick presets.",
-    ),
-    RoadmapItem(
-        "iOS scaffold",
-        "SwiftUI + CoreBluetooth sources under ios/SoundKitCommunity/.",
-    ),
-    RoadmapItem(
-        "Wear OS tile",
-        "Wear module tile opens Sound Kit on the paired phone.",
-    ),
-    RoadmapItem(
-        "Rules engine (design)",
-        "Evaluator and precedence spec only — execution and persistence come later.",
-    ),
-    RoadmapItem(
-        "Beta automation",
-        "Rules, schedules, geofences, execution log, and notification pause — under Settings.",
-    ),
+    RoadmapItem("BLE safety", "Verified toggle, receiver-confirmed state, status 04 handling, and bounded reconnect."),
+    RoadmapItem("Command coordinator", "Every Android command surface shares state-gated, serialized valve admission."),
+    RoadmapItem("Core Android", "Home, onboarding, receiver settings, drive mode, diagnostics, and accessible recovery states."),
+    RoadmapItem("Exhaust-tip visual", "Procedural carbon/titanium valve hero, state gallery, visual tests, and matching launcher assets."),
+    RoadmapItem("Connection preferences", "Saved receivers plus independent phone-launch and in-car connection settings."),
+    RoadmapItem("Android companion surfaces", "Notification, Quick Settings, widget, Wear handoff, and IoT car template."),
+    RoadmapItem("Guarded Android shortcuts", "Open, Close, and Status shortcuts use only the saved default receiver; no custom Assistant App Action is claimed."),
+    RoadmapItem("iOS dev v1", "SwiftUI/CoreBluetooth parity, local settings, drive mode, diagnostics, and XCTest coverage."),
+    RoadmapItem("Siri App Intents", "Open, Close, and Status route through the notification-confirmed iOS coordinator."),
+    RoadmapItem("CarPlay scaffold", "Low-distraction grid and connection hook are present but disabled pending Apple entitlement approval."),
 )
 
 private val upNextItems = listOf(
     RoadmapItem(
-        "iOS parity",
-        "TestFlight-quality connect/open/close on SwiftUI + CoreBluetooth.",
+        "iOS hardware smoke",
+        "Blocked until the parked iPhone/RS3 checklist passes. Simulator coverage cannot validate CoreBluetooth.",
     ),
     RoadmapItem(
-        "Compatibility matrix",
-        "Promote Beta vehicles to Supported after field validation.",
+        "TestFlight and public iOS",
+        "Blocked pending hardware smoke and Apple developer/distribution access.",
+    ),
+    RoadmapItem(
+        "DHU and real Android Auto",
+        "Manual parked validation gate; the template code and automated coverage are not head-unit evidence.",
     ),
 )
 
 private val laterItems = listOf(
     RoadmapItem(
-        "Assistant intents",
-        "Local voice shortcuts when connected and valve state is known.",
+        "CarPlay approval",
+        "Requires Apple driving-task entitlement approval, matching provisioning, and hardware validation before it can be enabled.",
     ),
     RoadmapItem(
-        "CarPlay",
-        "Explore in-car surface separate from Android Auto IoT.",
+        "Compatibility matrix",
+        "Promote Beta vehicles only after field validation of the matching receiver protocol.",
     ),
 )
 

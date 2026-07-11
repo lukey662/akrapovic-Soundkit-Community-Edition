@@ -34,6 +34,7 @@ final class DiagnosticsStore: ObservableObject {
             "exportedAt=\(ISO8601DateFormatter().string(from: Date()))",
             "vehicleId=\(settings.selectedVehicleId ?? "none")",
             "themeId=\(settings.garageThemeId)",
+            "detailedLogging=\(settings.debugLoggingEnabled)",
             "",
         ]
         let formatter = DateFormatter()

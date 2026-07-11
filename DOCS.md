@@ -30,13 +30,18 @@ ios/SoundKitCommunity/
 ### Android packages, build variants, and diagnostics
 
 - The release application ID is `com.akrapovic.soundkit.community`; the debug build adds `.debug` and `-debug`. There are no product flavors.
-- Before handing off an APK, run `./gradlew :app:testDebugUnitTest :app:assembleDebug`; run `:app:verifyPaparazziDebug` when the task is present and UI snapshots changed.
+- Before handing off an APK, run `./gradlew :app:testDebugUnitTest :app:verifyPaparazziDebug :app:assembleDebug :wear:assembleDebug`.
 - The Android foreground service owns connection lifetime. Every command surface—including the Compose UI, notification, Quick Settings, widget, drive mode, and Car App—uses `ValveCommandCoordinator`; only `BleConnectionManager` performs GATT discovery, subscription, and transport.
+- Android launcher shortcuts provide **Open valves**, **Close valves**, and **Valve status** through the internal `AssistantActionActivity` and `VoiceValveActionRouter`. The router accepts no BLE address or command extras, resolves only the saved default receiver, reconnects only to that receiver for at most 8 seconds, and delegates mutations exclusively to `ValveCommandCoordinator`. A command is successful only after the coordinator's notification-confirmed hardware result.
+- Google Assistant custom App Actions are not declared: this IoT valve case has no reliable supported built-in intent/fulfillment contract. The shipped, honest integration is guarded launcher-shortcut fulfillment; a future Assistant integration must call the same internal router after its platform verification requirements are established. It must not expose a service action or arbitrary receiver identifier.
 - **More → Advanced → Diagnostics** records package/build identifiers, Car App readiness, local BLE events, and the GATT profile. Export remains user-initiated and file-only; do not add telemetry or upload paths.
+- Release artifacts require environment-backed signing. Set `ANDROID_RELEASE_STORE_FILE`, `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`, and `ANDROID_RELEASE_KEY_PASSWORD` in the build environment; `assembleRelease`, `bundleRelease`, and `packageRelease` fail clearly when any input is missing or the keystore is unreadable. Never commit keystores or credentials. The reproducible owner-release sequence is `./gradlew :app:testDebugUnitTest :app:verifyPaparazziDebug :app:assembleRelease`, then SHA-256 `app/build/outputs/apk/release/app-release.apk`, physically smoke that exact artifact, and have a repository owner upload it and its checksum to a GitHub Release from the reviewed version tag. See `INSTALL.md` for the full procedure and publication restrictions.
+- Release Car App connections accept only the project-owned signed Android Auto/Automotive host allowlist; `ALLOW_ALL_HOSTS_VALIDATOR` is limited to debuggable builds. Keep the certificate digests current with AndroidX host-rotation guidance.
+- `files/crashes/` and any future `files/diagnostics/` are excluded from Android backup and device transfer. Current share exports are in `cache/diagnostics/`, which Android excludes from backup by design.
 
 ## iOS development
 
-**Owners:** iOS is not available for public install yet — see `INSTALL.md`.
+**Owners:** iOS is not available for public install yet. Distribution preparation and its explicit blockers are in `INSTALL_IOS.md`; do not treat it as evidence of TestFlight completion.
 
 **Developers:**
 
@@ -56,17 +61,27 @@ Unit tests (Simulator, unsigned):
 ```bash
 cd ios
 xcodebuild -project SoundKitCommunity.xcodeproj -scheme SoundKitCommunity \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' \
   CODE_SIGNING_ALLOWED=NO test
 ```
 
 Physical receiver validation: `TESTING.md` § iOS device smoke. Full iOS layout and dev install: `ios/SoundKitCommunity/README.md`.
 
+### iOS settings and local diagnostics
+
+- **More → Settings** manages up to eight iOS receiver UUIDs. Each receiver can be renamed, made default, or forgotten after confirmation.
+- **Connect in CarPlay** is separate from **Connect on launch** and defaults on. CarPlay invokes only the existing connection path; valve requests still route through `ValveControlCoordinator`.
+- Exported settings are JSON. Import validates the complete payload before saving. Android v1 backups retain portable preferences, but their MAC-style receiver addresses are discarded; scan again on iPhone.
+- Turn on **Detailed local BLE logging** only while diagnosing a beta issue. Logs stay on-device and are included only in a user-initiated diagnostics export.
+- Status `04` is a connected-not-ready state: stay parked, follow Home's readiness checklist, then retry after the receiver is ready.
+
 ### CarPlay entitlement and Siri
 
-CarPlay is **not available or marketed** until Apple approves the driving-task entitlement. Before requesting distribution, request `com.apple.developer.carplay-driving-task`; valve control has a high approval risk because it can affect noise, emissions, and safe driving. The committed entitlement file deliberately keeps that key commented under `CARPLAY_ENABLED`. After written approval, add the key and use a provisioning profile that contains it—never bypass entitlement signing.
+CarPlay is **not available or marketed** until Apple approves the driving-task entitlement. `CARPLAY_ENABLED` defaults to `NO` in `ios/project.yml`, and normal builds contain no CarPlay scene declaration or driving-task entitlement. Keep it disabled for all current distributions.
 
-If Apple rejects the request, ship Siri App Intents and the phone UI only. There is no entitlement workaround and the CarPlay scene must remain unavailable.
+The entitlement-request package must be prepared by an Apple Developer Account holder and include: the requested `com.apple.developer.carplay-driving-task` entitlement; the intended use case and why it is appropriate while driving; safety controls (parked-only, state-gated commands, notification-confirmed results, and no blind background writes); the phone-only setup/diagnostics design; supported regions and vehicles; hardware test evidence; App Review contact and demo instructions; and the current privacy disclosure. Approval alone is insufficient: only then may an approved build set `CARPLAY_ENABLED=YES`, restore `CPTemplateApplicationSceneSessionRoleApplication` in `Info.plist`, and use a provisioning profile containing the entitlement—never bypass entitlement signing.
+
+If Apple rejects or has not approved the request, ship Siri App Intents and the phone UI only. There is no entitlement workaround and the CarPlay scene must remain unavailable. The committed `PrivacyInfo.xcprivacy` declares no tracking or collected data and documents the `UserDefaults` required-reason API use (`CA92.1`).
 
 Once approved and correctly provisioned, the CarPlay scene is a shallow `CPGridTemplate`: Open, Close, and a non-interactive status. It shares the app's `ValveControlCoordinator`, updates only on BLE/coordinator events, and directs setup, permissions, diagnostics, and receiver selection to the phone.
 
@@ -77,6 +92,13 @@ Siri shortcuts are independent of CarPlay approval:
 - “Get valve status in Sound Kit Community”
 
 They run without opening the app where iOS permits it, but never start an unsafe blind command: a result is spoken as successful only after the notification-confirmed coordinator result. If Bluetooth state cannot restore or become ready in time, Siri tells the user to unlock the phone and open the app.
+
+### Release versions
+
+Android and iOS marketing versions are aligned at **0.3.0**. Android uses
+`versionCode` 3; iOS uses `CURRENT_PROJECT_VERSION` 3. Update both platform
+marketing versions together for a coordinated release, while incrementing each
+platform’s build number according to its store requirements.
 
 ## README screenshots
 
@@ -138,13 +160,13 @@ The app uses a consumer-first companion UI built from reusable Compose component
 
 ### Valve hero rendering
 
-`ValveVisual` (the Home hero) is a **minimal ring-and-disc** animation: carbon rim stroke, titanium lip, dark bore, flat disc at 80% fill when closed; disc clears and lip brightens when open. No glow or air effects. Prototype: `design/valve-simple-animations.html` (Option 5). Optional Blender experiments live under `design/blender/` but are not used in-app.
+`ValveVisual` (the Home hero) is a procedural **exhaust tip**: carbon sleeve, titanium lip, dark bore, hinged disc on a horizontal axis, and amber heat when open. Closed = face-on sealed disc; open = edge-on disc with heat glow. Preview all states under **More → Advanced → Developer → Valve visual states**. The launcher uses the matching photoreal tip mark (`mipmap-*/ic_launcher_foreground.png`, iOS `AppIcon`). Optional Blender experiments live under `design/blender/` but are not used in-app.
 
 ## Testing
 
 Use `TESTING.md` as the source of truth for unit, regression, instrumented smoke, CI, and physical receiver validation.
 
-Local `:app:assembleDebug` runs `:app:testDebugUnitTest` first (JVM tests + Paparazzi README screenshot verify). GitHub Actions runs the same path and publishes the debug APK artifact. Instrumented smoke tests (`connectedDebugAndroidTest`) are local-only — run on a phone or emulator when you change manifest, notifications, or Compose navigation.
+Local `:app:assembleDebug` runs `:app:testDebugUnitTest` first. GitHub Actions runs unit tests, explicit Paparazzi verification, phone debug assembly, and Wear debug assembly, publishing only unit-test reports plus phone and Wear debug APKs. The iOS workflow pins the iPhone 16 / iOS 18.6 simulator and also runs for shared protocol/decision changes. Dependabot proposes limited monthly Gradle and GitHub Actions updates for review through this matrix. Instrumented smoke tests (`connectedDebugAndroidTest`) are local-only — run on a phone or emulator when you change manifest, notifications, or Compose navigation.
 
 ## Diagnostics Export And Crash Logs
 
@@ -154,7 +176,10 @@ If the app crashes, `CrashReporter` writes `files/crashes/last_crash.txt` synchr
 
 ## Roadmap
 
-Planned features, UX direction, and non-goals are tracked in `ROADMAP.md`.
+`ROADMAP.md` distinguishes implementation shipped in the repository from
+validated release gates and manual/external platform gates. Do not describe a
+developer build, simulator result, CarPlay scaffold, or sideload route as
+public availability without the corresponding gate evidence.
 
 ## Protocol Enablement Workflow
 

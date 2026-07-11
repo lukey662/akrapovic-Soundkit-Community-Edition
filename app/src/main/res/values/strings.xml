@@ -16,7 +16,7 @@
     <string name="shortcut_open_valves_long">Open exhaust valves</string>
     <string name="shortcut_close_valves">Close valves</string>
     <string name="shortcut_close_valves_long">Close exhaust valves</string>
-    <string name="shortcut_connect">Connect</string>
-    <string name="shortcut_connect_long">Open Sound Kit and connect</string>
+    <string name="shortcut_valve_status">Valve status</string>
+    <string name="shortcut_valve_status_long">Get exhaust valve status</string>
 </resources>
 

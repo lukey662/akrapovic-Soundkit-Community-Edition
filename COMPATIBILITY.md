@@ -45,4 +45,24 @@ Include your vehicle tier from onboarding if possible. Reports may contain BLE M
 
 ## Promoting Beta → Supported
 
-When a Tier 2 platform is validated (connect, pair, open/close, status notifications match `BLE_PROTOCOL.md`), open a PR updating this file and the in-app catalog in `VehicleCompatibility.kt`.
+Tier 2 entries remain Beta until field evidence is reviewed; shared names,
+advertising hints, or an assumed protocol are not enough to promote them.
+
+For a proposed promotion, capture a parked physical-receiver test on the
+specific make/model/platform and include:
+
+1. Device and app build details, receiver identity (redact the MAC address
+   before publication), and the vehicle/platform.
+2. Successful discovery, pairing where applicable, connection, and GATT
+   profile evidence matching `BLE_PROTOCOL.md`.
+3. Notification evidence for the expected valve states and status `04`
+   readiness behavior.
+4. One state-gated Open and Close physical smoke result, plus the relevant
+   safety checks from `TESTING.md`; stop and report any unexpected movement.
+5. A reviewed, user-approved diagnostics export or equivalent reproducible
+   field record.
+
+Then open a PR that links or attaches the redacted evidence, updates this file
+and the in-app catalog in `VehicleCompatibility.kt`, and states the evidence
+scope and remaining limitations. Do not promote a Tier 2 vehicle based on a
+report that lacks this field evidence.

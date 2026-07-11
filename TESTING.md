@@ -54,9 +54,10 @@ Run the relevant rows for every change, and all rows before release:
 | Area | Required verification |
 |---|---|
 | Android domain/data/service changes | `./gradlew :app:testDebugUnitTest :app:assembleDebug` |
-| Compose or screenshot changes | `./gradlew :app:verifyPaparazziDebug` when the Paparazzi task is available |
+| Compose or screenshot changes | `./gradlew :app:verifyPaparazziDebug` |
+| Wear changes | `./gradlew :wear:assembleDebug` |
 | Android UI, manifest, notification, or Car App changes | `./gradlew :app:connectedDebugAndroidTest` on a supported local device/emulator |
-| iOS Swift, App Intents, lifecycle, or CarPlay changes | `cd ios && xcodebuild -project SoundKitCommunity.xcodeproj -scheme SoundKitCommunity -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO test` |
+| iOS Swift, App Intents, lifecycle, or CarPlay changes | `cd ios && xcodebuild -project SoundKitCommunity.xcodeproj -scheme SoundKitCommunity -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' CODE_SIGNING_ALLOWED=NO test` |
 | Car integration changes | Automated presenter/unit coverage plus DHU and physical head-unit checks below |
 
 ## Instrumented Smoke Tests
@@ -116,16 +117,22 @@ Document whether the launcher failure is on your head unit model and Android Aut
 
 GitHub Actions runs a gated pipeline:
 
-- `:app:assembleDebug` (runs `:app:testDebugUnitTest` first — JVM tests + Paparazzi screenshot verify)
+- `:app:testDebugUnitTest`
+- `:app:verifyPaparazziDebug`
+- `:app:assembleDebug`
+- `:wear:assembleDebug`
 
 Instrumented smoke tests (`connectedDebugAndroidTest`) are **local only** — the Android 35 emulator often times out on GitHub-hosted runners.
 
 CI uploads:
 
 - unit test reports
-- debug APK artifact
+- phone debug APK
+- Wear debug APK
 
-- debug APK artifact
+The iOS workflow runs on `macos-15` against the pinned `iPhone 16, OS=18.6` simulator. It triggers for `ios/**`, its workflow file, and shared contract/decision documents (`BLE_PROTOCOL.md`, `SPEC.md`, and `DECISIONS.md`) so protocol-contract changes are tested on both platforms.
+
+Dependency update monitoring is intentionally lightweight: `.github/dependabot.yml` opens monthly Gradle and GitHub Actions update pull requests. Review each update with this matrix; no credentials, build artifacts, or release-signing inputs are exposed to CI.
 
 ## iOS unit tests
 
@@ -134,7 +141,7 @@ Run on the Simulator (no BLE hardware required):
 ```bash
 cd ios
 xcodebuild -project SoundKitCommunity.xcodeproj -scheme SoundKitCommunity \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' \
   CODE_SIGNING_ALLOWED=NO test
 ```
 
@@ -145,7 +152,7 @@ Covered areas:
 - `ConnectReadyObserver` — connect-ready transition on first known valve
 - `DriveModeProfile` — Quiet street preset enables quiet start
 
-GitHub Actions **Build iOS** workflow (`.github/workflows/ios-build.yml`) runs the same build + test path on `macos-latest` when `ios/**` changes.
+GitHub Actions **Build iOS** workflow (`.github/workflows/ios-build.yml`) runs the same build + test path on `macos-15` when iOS or shared protocol-contract files change.
 
 ## iOS device smoke
 
@@ -229,11 +236,12 @@ These checks cannot be established by simulator or JVM tests. Record device mode
 | `./gradlew :app:testDebugUnitTest` | Passed |
 | `./gradlew :app:assembleDebug` | Passed |
 | `./gradlew :app:verifyPaparazziDebug` | Passed |
-| iOS `xcodebuild … name=iPhone 16,OS=18.6 … test` | Passed (19 tests) |
-| `connectedDebugAndroidTest` | Manual / local device required |
-| DHU / real Android Auto | Manual release gate |
+| iOS `xcodebuild … name=iPhone 16,OS=18.6 … test` | Passed (24 tests after parity expansion) |
+| `./gradlew :app:connectedDebugAndroidTest` on Pixel 10 Pro Fold | Passed (11 tests) |
+| `./gradlew :wear:assembleDebug` | Passed |
+| DHU / real Android Auto | Manual release gate — not run (no DHU/head-unit access this session) |
 | Locked-phone Siri / CarPlay entitlement | Manual; CarPlay not approved |
-| Parked physical receiver smoke | Manual release gate |
+| Parked physical receiver smoke (open/close on vehicle) | Manual release gate — requires parked vehicle + receiver; install latest debug APK and run checklist below |
 
 ## Physical Receiver Smoke Checklist
 
@@ -270,7 +278,7 @@ If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel app
 9. **Vehicle onboarding:** select Audi RS3 (Supported) or another platform (Beta); confirm tier copy and theme hint.
 10. **Diagnostics support:** export report → **Email support** or **Copy email** for support@appsforgood.net.
 11. **Reconnect cap:** turn receiver off → confirm reconnect stops after ~8 attempts and Home shows “Couldn't reach receiver — tap to retry”.
-12. **Notification pause:** Pause automation from notification → confirm no further log entries until Resume.
+12. **Drive mode pause:** Pause drive mode from the notification → reconnect or wait for its next eligible apply → confirm no drive-mode action occurs until Resume.
 
 ### Command Smoke Pass
 
@@ -324,4 +332,39 @@ Before a public release that enables real valve commands:
 - Physical receiver smoke checklist passes.
 - No internet permission is present.
 - Diagnostics export from the hardware test is reviewed.
+
+### Distribution-gate checklist
+
+Record the release tag, artifact checksum, tester, device/OS, and outcome for
+each applicable item.
+
+**Signed Android owner release**
+
+- [ ] The reviewed release commit has a matching version tag.
+- [ ] `ANDROID_RELEASE_STORE_FILE`, `ANDROID_RELEASE_STORE_PASSWORD`,
+  `ANDROID_RELEASE_KEY_ALIAS`, and `ANDROID_RELEASE_KEY_PASSWORD` are present
+  only in the secure release environment.
+- [ ] `./gradlew :app:testDebugUnitTest :app:verifyPaparazziDebug :app:assembleRelease`
+  passes.
+- [ ] The SHA-256 for `app/build/outputs/apk/release/app-release.apk` is
+  recorded.
+- [ ] That exact signed APK passes the parked physical receiver and
+  DHU/Android Auto manual gates.
+- [ ] A repository owner publishes only the APK and checksum to the GitHub
+  Release; no signing material, secret-bearing logs, or unreviewed diagnostics
+  are attached.
+
+**iOS and CarPlay status**
+
+- [ ] Blocked until an authorized Apple Developer Account holder can sign and
+  prepare distribution, and a physical iPhone plus receiver smoke passes.
+- [ ] TestFlight is not claimed complete until App Store Connect processing and
+  tester availability are confirmed.
+- [ ] CarPlay remains disabled and unmarketed while
+  `com.apple.developer.carplay-driving-task` is unapproved or absent from the
+  provisioning profile.
+- [ ] Without that entitlement, validate and distribute only the phone UI and
+  Siri fallback; Siri must fail safely when BLE is not ready.
+- [ ] DHU/Android Auto remains a manual gate; a projected Play listing is not
+  a supported release target.
 

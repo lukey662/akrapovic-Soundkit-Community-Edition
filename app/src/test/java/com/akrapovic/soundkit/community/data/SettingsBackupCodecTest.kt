@@ -63,4 +63,22 @@ class SettingsBackupCodecTest {
             SettingsBackupCodec.decode("{not-json")
         }
     }
+
+    @Test
+    fun rejectsNonBooleanConnectionPoliciesBeforeImport() {
+        assertThrows(SettingsBackupException::class.java) {
+            SettingsBackupCodec.decode("""{"version":1,"connectInCar":{"enabled":true}}""")
+        }
+    }
+
+    @Test
+    fun rejectsOversizedSavedReceiverPayloadBeforeImport() {
+        val oversizedReceivers = "x".repeat(8_193)
+
+        assertThrows(SettingsBackupException::class.java) {
+            SettingsBackupCodec.decode(
+                """{"version":1,"savedReceiversJson":"$oversizedReceivers"}""",
+            )
+        }
+    }
 }

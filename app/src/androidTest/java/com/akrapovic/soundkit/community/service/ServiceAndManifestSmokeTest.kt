@@ -28,8 +28,9 @@ class ServiceAndManifestSmokeTest {
         val notification = factory.build(ConnectionState.Disconnected, ValveState.Unknown)
 
         assertEquals("Sound Kit Community", notification.extras.getString("android.title"))
-        assertFalse(notification.actions.any { it.title.toString() == "Open" })
-        assertFalse(notification.actions.any { it.title.toString() == "Close" })
+        val actions = notification.actions.orEmpty().toList()
+        assertFalse(actions.any { it.title.toString() == "Open" })
+        assertFalse(actions.any { it.title.toString() == "Close" })
     }
 
     @Test
@@ -49,8 +50,9 @@ class ServiceAndManifestSmokeTest {
             ),
         )
 
-        assertTrue(notification.actions.any { it.title.toString() == "Open" })
-        assertTrue(notification.actions.any { it.title.toString() == "Disconnect" })
+        val actions = notification.actions.orEmpty().toList()
+        assertTrue(actions.any { it.title.toString() == "Open" })
+        assertTrue(actions.any { it.title.toString() == "Disconnect" })
     }
 
     @Test
@@ -66,7 +68,8 @@ class ServiceAndManifestSmokeTest {
             driveModePaused = false,
         )
 
-        assertTrue(notification.actions.any { it.title.toString() == "Pause drive mode" })
+        val actions = notification.actions.orEmpty().toList()
+        assertTrue(actions.any { it.title.toString() == "Pause drive mode" })
     }
 
     @Test

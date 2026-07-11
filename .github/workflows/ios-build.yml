@@ -4,15 +4,22 @@ on:
   push:
     paths:
       - "ios/**"
+      - "BLE_PROTOCOL.md"
+      - "SPEC.md"
+      - "DECISIONS.md"
       - ".github/workflows/ios-build.yml"
   pull_request:
     paths:
       - "ios/**"
+      - "BLE_PROTOCOL.md"
+      - "SPEC.md"
+      - "DECISIONS.md"
       - ".github/workflows/ios-build.yml"
 
 jobs:
   build:
-    runs-on: macos-latest
+    # macos-15 includes the iOS 18.6 runtime used by the pinned destination below.
+    runs-on: macos-15
     steps:
       - name: Check out
         uses: actions/checkout@v4
@@ -29,6 +36,6 @@ jobs:
         run: |
           xcodebuild -project SoundKitCommunity.xcodeproj \
             -scheme SoundKitCommunity \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' \
             CODE_SIGNING_ALLOWED=NO \
             build test

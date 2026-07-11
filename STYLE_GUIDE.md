@@ -31,6 +31,7 @@
 - Update `BLE_PROTOCOL.md` and tests with every protocol change.
 - Isolate deprecated Android BLE calls behind SDK checks with comments explaining why they are unavoidable.
 - iOS voice and car surfaces must invoke `ValveControlCoordinator`, never `BLEManager` writes. A spoken or CarPlay success state requires receiver-notification confirmation, not a GATT write acknowledgement.
+- Android shortcut or future Assistant fulfillment must accept a closed action enum only, resolve only the saved default receiver, and invoke `VoiceValveActionRouter` rather than a BLE service or address-bearing intent.
 - Keep CarPlay templates shallow and event-driven; setup, diagnostics, permissions, and device selection belong on the phone.
 
 ## Security
@@ -40,6 +41,14 @@
 - Shareable files must use a non-exported `FileProvider` with narrow cache/files paths.
 - Persist only minimal local settings.
 - Prefer fail-closed behavior for protocol mismatches, missing permissions, unknown receiver services, unknown valve state, and receiver error status.
+- Keep release credentials and keystores out of source control. Release signing
+  reads only environment-provided secrets and must fail closed when incomplete.
+- Production Android car surfaces use a project-owned signed-host allowlist;
+  `ALLOW_ALL` is debug-only. Treat host certificate rotations as a security
+  update.
+- Do not declare unavailable platform entitlements or scenes in normal
+  distribution builds. Privacy manifests must reflect actual collection and
+  required-reason API use.
 
 ## Documentation
 
@@ -64,6 +73,6 @@
 - Prefer theme color roles (`MaterialTheme.colorScheme.onSurface`, `onSurfaceVariant`, etc.) over fixed white/gray text.
 - **Avoid**: screen + card double gradients, 10dp shadows on every block, uppercase eyebrow labels on every screen, decorative pill bottom nav.
 - Optional accent gradients belong on Home hero glow or theme preview strips — not default card treatment.
-- **`ValveVisual`** is the minimal Home hero: carbon rim stroke, titanium lip, dark bore, flat disc (80% fill, no tilt when closed). Open = disc clears, lip brightens. It may animate only for unknown/busy state and is static when reduced motion is enabled. Uses [`ExhaustTipPalette`](app/src/main/java/com/akrapovic/soundkit/community/ui/components/ExhaustTipPalette.kt). Layout: `fillMaxWidth()` × ~168dp on Home. Prototype: `design/valve-simple-animations.html`.
-- Launcher artwork should use the same dark carbon / titanium / amber vocabulary and remain vector-based.
+- **`ValveVisual`** is the Home exhaust-tip hero: carbon sleeve, titanium lip, dark bore, hinged disc on a horizontal axis (face-on when closed, edge-on when open), amber heat glow when open. It may animate only for unknown/busy state and is static when reduced motion is enabled. Uses [`ExhaustTipPalette`](app/src/main/java/com/akrapovic/soundkit/community/ui/components/ExhaustTipPalette.kt). Layout: `fillMaxWidth()` × ~168dp on Home. Preview all states via **More → Advanced → Developer → Valve visual states**.
+- Launcher artwork uses the photoreal exhaust-tip mark (`mipmap-*/ic_launcher_foreground.png` + dark adaptive background). Monochrome remains a vector silhouette. iOS ships the matching 1024px `AppIcon`.
 

@@ -14,6 +14,10 @@ Provide a modern Android app that locally controls an Akrapovic Sound Kit BLE re
 - Target SDK: 35
 - Android 12+ runtime Bluetooth permissions
 - Android 8-11 location permission for BLE scanning compatibility
+- Android release artifacts are signed only when `ANDROID_RELEASE_STORE_FILE`,
+  `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`, and
+  `ANDROID_RELEASE_KEY_PASSWORD` are supplied by the build environment.
+- Android and iOS marketing version: 0.3.0 (build/version code: 3).
 
 ## Architecture
 
@@ -33,6 +37,21 @@ flowchart TD
     Repository --> ConnectionManager[BleConnectionManager]
     ConnectionManager --> Receiver[Sound Kit BLE Receiver]
 ```
+
+## Release and privacy boundaries
+
+- Release Android Car App sessions validate the official Android Auto and
+  Automotive host package signing certificates from
+  `soundkit_car_app_hosts_allowlist`; debuggable builds alone allow all hosts
+  for DHU development.
+- Android excludes `files/crashes/` and `files/diagnostics/` from cloud backup
+  and device transfer. User-created diagnostics exports use
+  `cache/diagnostics/`, which Android does not back up.
+- iOS ships `PrivacyInfo.xcprivacy`: no tracking, no collected data, and
+  `UserDefaults` access declared for local app settings (`CA92.1`).
+- iOS normal builds set `CARPLAY_ENABLED=NO` and have no CarPlay scene or
+  driving-task entitlement. CarPlay is an explicit post-approval release
+  configuration, never an inferred capability.
 
 ## BLE Behavior
 
@@ -69,6 +88,7 @@ flowchart TD
 
 - A foreground service maintains the BLE connection and persistent notification.
 - UI, notification, Quick Settings, widget, drive mode, and Android Auto commands use the process-wide `ValveCommandCoordinator`. It serializes requests, returns no-op success for a matching known state, and rejects disconnected, unknown, and not-ready state before a repository call.
+- Android Open/Close/Status launcher-shortcut fulfillment is internal-only: `AssistantActionActivity` accepts a fixed action only, and `VoiceValveActionRouter` resolves the saved default receiver without accepting a BLE address. It reconnects only that receiver within 8 seconds and sends Open/Close through `ValveCommandCoordinator`; status reports only a known receiver notification state. Google Assistant custom App Actions are deliberately not advertised because no reliable IoT fulfillment contract is declared.
 - GATT discovery and notification subscription establish readiness; write acknowledgement is transport-only and a target-state notification confirms a command result.
 - Quick Settings tile opens the app when disconnected and toggles the last known valve state when connected.
 - Android Auto exposes minimal low-distraction controls through the IoT category. It is testable on DHU, compatible Automotive OS targets, and sideloaded projected debug paths with Android Auto developer settings. Google Play projected distribution remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
@@ -121,12 +141,15 @@ flowchart TD
 
 ## Future scope
 
-Automation polish (map picker, profiles, Room) in `ROADMAP.md` Later.
+Field validation and external-platform gates are tracked in `ROADMAP.md`. The
+retired rules, schedule, WorkManager, and geofencing automation system is not
+future scope; drive mode is the supported local automation model.
 
 ## Testing
 
-- JVM unit tests cover protocol guardrails, permission policy, retry policy, repository state transitions, and ViewModel state reduction.
-- Android instrumented smoke tests cover key Compose screens, notification construction, diagnostics sharing, no-internet manifest behavior, FileProvider declaration, and Android Auto IoT declaration.
+- JVM unit tests cover protocol guardrails, command de-duplication, widget/Quick Settings and notification gating, settings-backup validation, in-car connection policy, car-screen state reduction, and theme text contrast.
+- Android instrumented smoke tests cover key Compose screens and accessibility semantics, notification construction, diagnostics sharing, no-internet manifest behavior, FileProvider declaration, and Android Auto IoT declaration.
+- Android CI explicitly runs JVM tests, Paparazzi verification, phone debug assembly, and Wear debug assembly. iOS CI uses the pinned iPhone 16 / iOS 18.6 simulator for build and unit tests when iOS or shared protocol-contract files change.
 - Physical receiver smoke testing is documented in `TESTING.md` and must pass before public release of valve control.
 
 ## iOS companion (dev v1)
@@ -179,12 +202,15 @@ Mirrors Android (see `BLE_PROTOCOL.md`):
 - Drive mode screen: preferred Open/Closed, quiet neighbours window, quick profiles (Everyday / Quiet street / Track).
 - Garage themes: Studio + Audi RS Dark (default when Audi RS3 selected in onboarding).
 - Diagnostics: local ring-buffer log, share `.txt` export, mailto support@appsforgood.net.
+- Settings: receiver rename/default/confirmed forget, an eight-device cap, independent default-on `connectInCar`, and opt-in detailed local BLE logging.
+- Status `04`: Home keeps the connection, disables control, and presents a parked-use readiness checklist rather than retrying blindly.
+- Scan cards pair raw RSSI with a friendly signal-strength hint; connection, retry, preparation, and failure states remain explicit on Home.
 - Siri: Open, Close, and status intents use the single `ValveControlCoordinator`. Open/Close speak success only after a notification confirms the requested state.
 - CarPlay: entitlement-gated, shallow Open/Close/status `CPGridTemplate`; all setup, permissions, diagnostics, and receiver selection remain phone-only. The scene is unavailable until Apple approves `com.apple.developer.carplay-driving-task` and provisioning includes it.
 
 ### Persistence
 
-`SettingsStore` (UserDefaults + JSON Codable): onboarding timestamps, selected vehicle, garage theme, up to 8 saved receivers, connect-on-launch, auto-reconnect, drive mode and quiet-start settings.
+`SettingsStore` (UserDefaults + JSON Codable): onboarding timestamps, selected vehicle, garage theme, up to 8 saved receivers, independent connect-on-launch/connect-in-CarPlay preferences, auto-reconnect, drive mode, quiet-start, and detailed local logging. Versioned exports are validated and atomically imported; Android v1 preferences map to iOS fields, but foreign BLE identifiers are discarded and require a re-scan.
 
 ### Distribution
 
@@ -192,7 +218,7 @@ Developer install via Xcode or ad-hoc IPA only. TestFlight and App Store are def
 
 ### Testing
 
-- XCTest unit tests for protocol, quiet window, connect-ready observer, drive mode profiles, and Siri dialog/result mapping.
+- XCTest unit tests for protocol, quiet window, connect-ready observer, drive mode profiles, Siri dialog/result mapping, settings validation/receiver CRUD, in-car connection policy, and backup import rejection.
 - CI: macOS runner build + simulator unit tests (no BLE hardware).
 - Physical smoke: `TESTING.md` § iOS device smoke (required before owner distribution).
 

@@ -8,11 +8,13 @@ final class AppCommandEnvironment {
 
     private weak var coordinator: ValveControlCoordinator?
     private let coordinatorSubject = CurrentValueSubject<ValveControlCoordinator?, Never>(nil)
+    private var carConnectionAction: (() -> Void)?
 
     private init() {}
 
-    func configure(coordinator: ValveControlCoordinator) {
+    func configure(coordinator: ValveControlCoordinator, carConnectionAction: @escaping () -> Void) {
         self.coordinator = coordinator
+        self.carConnectionAction = carConnectionAction
         coordinatorSubject.send(coordinator)
     }
 
@@ -30,6 +32,10 @@ final class AppCommandEnvironment {
 
     func valveState() -> ValveState {
         coordinator?.currentStatus ?? .unknown
+    }
+
+    func connectInCarIfEnabled() {
+        carConnectionAction?()
     }
 }
 

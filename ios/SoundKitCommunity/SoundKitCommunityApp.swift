@@ -7,7 +7,10 @@ struct SoundKitCommunityApp: App {
     init() {
         let viewModel = SoundKitViewModel()
         _viewModel = StateObject(wrappedValue: viewModel)
-        AppCommandEnvironment.shared.configure(coordinator: viewModel.valveControl)
+        AppCommandEnvironment.shared.configure(
+            coordinator: viewModel.valveControl,
+            carConnectionAction: { viewModel.tryConnectInCar() }
+        )
     }
 
     var body: some Scene {

@@ -26,10 +26,18 @@ jobs:
       - name: Verify Gradle wrapper
         run: ./gradlew --version
 
-      # Keep the required Android JVM matrix explicit; assembleDebug also depends on these tests.
       # Instrumented tests need a device/emulator — run locally via connectedDebugAndroidTest.
-      - name: Verify Android unit tests and build debug APK
-        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
+      - name: Run Android unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
+      - name: Verify Paparazzi screenshots
+        run: ./gradlew :app:verifyPaparazziDebug --no-daemon
+
+      - name: Assemble phone debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Assemble Wear debug APK
+        run: ./gradlew :wear:assembleDebug --no-daemon
 
       - name: Upload unit test reports
         if: always()
@@ -43,3 +51,9 @@ jobs:
         with:
           name: soundkit-community-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+
+      - name: Upload Wear debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: soundkit-community-wear-debug-apk
+          path: wear/build/outputs/apk/debug/*.apk

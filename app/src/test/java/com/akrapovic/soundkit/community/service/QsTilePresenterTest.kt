@@ -41,6 +41,21 @@ class QsTilePresenterTest {
     }
 
     @Test
+    fun unknownStateBlocksWidgetAndQuickSettingsValveActions() {
+        val presentation = QsTilePresenter.present(
+            connectionState = ConnectionState.Connected(testDevice()),
+            valveState = ValveState.Unknown,
+            receiverStatusMessage = null,
+            defaultReceiver = null,
+        )
+
+        assertEquals("waiting", presentation.subtitle)
+        assertFalse(presentation.active)
+        assertFalse(presentation.clickOpensApp)
+        assertNull(presentation.valveAction)
+    }
+
+    @Test
     fun connectedClosedOffersOpenWithNickname() {
         val device = testDevice(name = "Akra")
         val presentation = QsTilePresenter.present(

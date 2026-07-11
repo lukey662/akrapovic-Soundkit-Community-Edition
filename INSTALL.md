@@ -60,8 +60,55 @@ An iPhone companion (**dev v1**) is in the repository for **developers with Xcod
 
 1. See **`ios/SoundKitCommunity/README.md`** for open → sign → run on device.
 2. Physical receiver testing checklist: **`TESTING.md`** § iOS device smoke.
+3. Distribution preparation and current blockers: **[INSTALL_IOS.md](INSTALL_IOS.md)**.
 
 Public owner install will follow RS3 hardware validation; see `ROADMAP.md`.
+
+## Signed Android owner release (maintainers)
+
+Release signing credentials and keystores are never committed. Before running
+`./gradlew :app:assembleRelease` (or `:app:bundleRelease`), provide these
+environment variables through a CI secret store or a secure local shell:
+
+- `ANDROID_RELEASE_STORE_FILE` — absolute path to the keystore file
+- `ANDROID_RELEASE_STORE_PASSWORD` — keystore password
+- `ANDROID_RELEASE_KEY_ALIAS` — signing key alias
+- `ANDROID_RELEASE_KEY_PASSWORD` — signing key password
+
+The release build stops before execution with a clear error if any value is
+missing or the keystore path is not a readable file. Do not put keystores,
+passwords, aliases, or environment exports in `gradle.properties`, source
+files, GitHub Actions logs, or the repository.
+
+1. Start from a clean, reviewed release commit and set the four variables in
+   the same shell that will run Gradle.
+2. Run the release verification gates:
+
+   ```bash
+   ./gradlew :app:testDebugUnitTest :app:verifyPaparazziDebug :app:assembleRelease
+   ```
+
+3. Collect only the signed artifact at
+   `app/build/outputs/apk/release/app-release.apk`. Generate and retain a
+   SHA-256 checksum with the release record:
+
+   ```bash
+   shasum -a 256 app/build/outputs/apk/release/app-release.apk
+   ```
+
+4. Install that exact APK on a physical Android phone and complete the parked
+   receiver smoke and DHU/Android Auto gates in `TESTING.md`. Never substitute
+   a debug APK as owner-release evidence.
+5. A repository owner creates a GitHub Release from the reviewed version tag,
+   uploads `app-release.apk`, and publishes its SHA-256 value in the release
+   notes. State the vehicle evidence, known compatibility tier, and any
+   remaining manual gates. Do not upload a keystore, `gradle.properties`, CI
+   logs containing environment values, or any diagnostics with receiver
+   identifiers.
+
+Owners should download the APK and checksum only from the project's GitHub
+Releases page. A GitHub Actions artifact is not an owner release unless an
+owner has verified, signed, and published it as above.
 
 ## Disclaimer
 

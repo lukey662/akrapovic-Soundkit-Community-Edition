@@ -1,34 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stylized valve glyph — geometry shared with valve_ring.xml, valve_blade_*.xml -->
+<!--
+  Launcher foreground: exhaust tip (carbon rim + titanium lip + bore + disc).
+  Matches ValveVisual / ExhaustTipPalette vocabulary. Geometry stays inside the
+  adaptive safe zone (~22–86 of 108).
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer ring (titanium light gray) -->
+    <!-- Soft amber heat bloom behind the tip (reads as open valves) -->
     <path
-        android:fillColor="#FFEAECEF"
-        android:pathData="M54,22 a32,32 0 1,1 0,64 a32,32 0 1,1 0,-64 z M54,28 a26,26 0 1,0 0,52 a26,26 0 1,0 0,-52 z" />
+        android:pathData="M54,54 m-28,0 a28,28 0,1 1,56,0 a28,28 0,1 1,-56,0 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="58"
+                android:gradientRadius="28"
+                android:startColor="#66D6BD73"
+                android:endColor="#00BFA35A" />
+        </aapt:attr>
+    </path>
 
-    <!-- Top plate: arc from -150° to -30° (left of vertical to right of vertical, top half).
-         Drawn as a thick rounded segment using two arcs. -->
+    <!-- Outer carbon sleeve -->
     <path
-        android:fillColor="#FFEAECEF"
-        android:pathData="M32.0,42.0 A26,26 0 0,1 76.0,42.0 L70.6,46.6 A20,20 0 0,0 37.4,46.6 Z" />
+        android:pathData="M54,20 a34,34 0 1,1 0,68 a34,34 0 1,1 0,-68 z M54,26 a28,28 0 1,0 0,56 a28,28 0 1,0 0,-56 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="28"
+                android:startY="22"
+                android:endX="82"
+                android:endY="86"
+                android:startColor="#FF2A2A2C"
+                android:endColor="#FF0A0A0A" />
+        </aapt:attr>
+    </path>
 
-    <!-- Bottom plate: mirrored across center -->
+    <!-- Thin bright rim highlight on the carbon sleeve -->
     <path
-        android:fillColor="#FFEAECEF"
-        android:pathData="M32.0,66.0 A26,26 0 0,0 76.0,66.0 L70.6,61.4 A20,20 0 0,1 37.4,61.4 Z" />
+        android:fillColor="#33FFFFFF"
+        android:pathData="M54,20 a34,34 0 1,1 0,68 a34,34 0 1,1 0,-68 z M54,21.6 a32.4,32.4 0 1,0 0,64.8 a32.4,32.4 0 1,0 0,-64.8 z" />
 
-    <!-- Soft amber glow around the center dot -->
+    <!-- Titanium lip -->
     <path
-        android:fillColor="#55C9A24A"
-        android:pathData="M54,54 m-9,0 a9,9 0,1 1,18,0 a9,9 0,1 1,-18,0 z" />
+        android:pathData="M54,26 a28,28 0 1,1 0,56 a28,28 0 1,1 0,-56 z M54,31 a23,23 0 1,0 0,46 a23,23 0 1,0 0,-46 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="30"
+                android:startY="28"
+                android:endX="78"
+                android:endY="80"
+                android:startColor="#FFE8E8EA"
+                android:centerColor="#FF9A9A9E"
+                android:endColor="#FF4A4A4E" />
+        </aapt:attr>
+    </path>
 
-    <!-- Amber accent dot (active / open state) -->
+    <!-- Bore interior -->
     <path
-        android:fillColor="#FFC9A24A"
-        android:pathData="M54,54 m-5,0 a5,5 0,1 1,10,0 a5,5 0,1 1,-10,0 z" />
+        android:pathData="M54,31 a23,23 0 1,1 0,46 a23,23 0 1,1 0,-46 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="50"
+                android:centerY="46"
+                android:gradientRadius="24"
+                android:startColor="#FF1A1A1C"
+                android:endColor="#FF050505" />
+        </aapt:attr>
+    </path>
+
+    <!-- Valve disc (slightly open — gap at bottom reveals amber) -->
+    <path
+        android:pathData="M54,33.5 a20.5,20.5 0 1,1 0,41 a20.5,20.5 0 1,1 0,-41 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="36"
+                android:startY="34"
+                android:endX="72"
+                android:endY="74"
+                android:startColor="#FF3A3A3C"
+                android:centerColor="#FF1C1C1E"
+                android:endColor="#FF0E0E10" />
+        </aapt:attr>
+    </path>
+
+    <!-- Open crescent gap (bottom) with amber heat -->
+    <path
+        android:pathData="M36.5,62.5 A20.5,20.5 0 0,0 71.5,62.5 A16,10 0 0,1 36.5,62.5 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="66"
+                android:gradientRadius="18"
+                android:startColor="#FFD6BD73"
+                android:endColor="#FF8A6E2E" />
+        </aapt:attr>
+    </path>
+
+    <!-- Disc edge highlight -->
+    <path
+        android:fillColor="#55FFFFFF"
+        android:pathData="M54,33.5 a20.5,20.5 0 0,1 0,0.01 a20.5,20.5 0 0,1 18.2,10.8 a19.2,19.2 0 0,0 -18.2,-9.6 a19.2,19.2 0 0,0 -18.2,9.6 A20.5,20.5 0 0,1 54,33.5 Z" />
+
+    <!-- Center pivot pin -->
+    <path
+        android:fillColor="#FFB8B8BC"
+        android:pathData="M54,54 m-2.4,0 a2.4,2.4 0,1 1,4.8,0 a2.4,2.4 0,1 1,-4.8,0 z" />
+    <path
+        android:fillColor="#FF2C2C2E"
+        android:pathData="M54,54 m-1.1,0 a1.1,1.1 0,1 1,2.2,0 a1.1,1.1 0,1 1,-2.2,0 z" />
 </vector>

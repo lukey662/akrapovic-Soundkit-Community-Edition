@@ -54,6 +54,9 @@ struct ConnectedDeviceView: View {
             VStack(spacing: 24) {
                 statusLine
                 valveHero
+                if bleManager.receiverNotReady {
+                    ReceiverNotReadyChecklistView()
+                }
                 if case .error = bleManager.connectionPhase {
                     Button("Retry connection") { bleManager.retryConnection() }
                         .buttonStyle(PrimaryButtonStyle())
@@ -94,6 +97,9 @@ struct ConnectedDeviceView: View {
     private var statusLine: some View {
         HStack(spacing: 8) {
             Circle().fill(connectionColor).frame(width: 8, height: 8)
+            if isConnectionInProgress {
+                ProgressView().controlSize(.small)
+            }
             Text(connectionTitle)
                 .font(.subheadline)
                 .foregroundStyle(theme.muted)
@@ -181,6 +187,9 @@ struct ConnectedDeviceView: View {
         case .reconnecting(let device, let attempt):
             return "\(device.name) · Reconnecting (attempt \(attempt))"
         case .error:
+            if case .error(let message) = bleManager.connectionPhase {
+                return "Connection error · \(message)"
+            }
             return "Connection needs attention"
         case .disconnected, .scanning:
             return "Disconnected"
@@ -217,6 +226,13 @@ struct ConnectedDeviceView: View {
         case .disconnected, .scanning: return theme.muted
         }
     }
+
+    private var isConnectionInProgress: Bool {
+        switch bleManager.connectionPhase {
+        case .connecting, .preparing, .reconnecting: return true
+        default: return false
+        }
+    }
 }
 
 private struct ValveVisual: View {
@@ -236,25 +252,115 @@ private struct ValveVisual: View {
                 visual(at: .distantPast)
             }
         }
-        .frame(width: 160, height: 160)
+        .frame(width: 168, height: 168)
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder
     private func visual(at date: Date) -> some View {
-        let phase = date == .distantPast ? 0.0 : (sin(date.timeIntervalSinceReferenceDate * 3) + 1) / 2
-        let openAmount = state == .open ? 1.0 : state == .unknown ? 0.8 + phase * 0.1 : 0.0
-        ZStack {
-            Circle().fill(surface)
-            Circle().stroke(accent.opacity(0.45 + openAmount * 0.45), lineWidth: 3)
-            if openAmount < 0.99 {
-                Circle()
-                    .fill(accent.opacity(0.7))
-                    .scaleEffect(1 - openAmount)
+        let phase = date == .distantPast ? 0.0 : (sin(date.timeIntervalSinceReferenceDate * 2.2) + 1) / 2
+        let targetOpen: Double = {
+            switch state {
+            case .open: return 1
+            case .closed: return 0
+            case .unknown: return reduceMotion ? 0.28 : 0.18 + phase * 0.2
             }
+        }()
+        let discHeight = cos(targetOpen * .pi / 2) * 0.96 + 0.04
+        let heat = targetOpen * 0.92
+        let busyPulse = commandInFlight && !reduceMotion ? 0.55 + phase * 0.45 : 1.0
+
+        ZStack {
+            // Outer bloom
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            accent.opacity(0.28 * heat * busyPulse),
+                            accent.opacity(0.08 * heat),
+                            .clear,
+                        ],
+                        center: .center,
+                        startRadius: 10,
+                        endRadius: 90
+                    )
+                )
+                .scaleEffect(1.12)
+
+            // Carbon sleeve
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(white: 0.18), Color(white: 0.07), .black],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            Circle()
+                .stroke(Color.white.opacity(0.16 * busyPulse), lineWidth: 1.5)
+
+            // Titanium lip
+            Circle()
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(white: 0.9), Color(white: 0.55), Color(white: 0.28)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 10
+                )
+                .padding(14)
+
+            // Bore
+            Circle()
+                .fill(Color.black.opacity(0.92))
+                .padding(28)
+
+            // Heat
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            accent.opacity(0.75 * heat * busyPulse),
+                            accent.opacity(0.35 * heat),
+                            .clear,
+                        ],
+                        center: .init(x: 0.5, y: 0.62),
+                        startRadius: 4,
+                        endRadius: 58
+                    )
+                )
+                .padding(30)
+
+            // Hinged disc
+            Ellipse()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(white: 0.32), Color(white: 0.12), Color(white: 0.05)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 104, height: 104 * discHeight)
+                .overlay(
+                    Ellipse()
+                        .stroke(Color.white.opacity(0.2 * discHeight), lineWidth: 1)
+                )
+
+            // Pivot pins
+            HStack {
+                Circle().fill(Color(white: 0.78)).frame(width: 7, height: 7)
+                Spacer()
+                Circle().fill(Color(white: 0.78)).frame(width: 7, height: 7)
+            }
+            .padding(.horizontal, 34)
+
             if commandInFlight {
-                Circle().stroke(accent.opacity(0.35 + phase * 0.45), lineWidth: 3)
+                Circle()
+                    .stroke(accent.opacity(0.35 + phase * 0.4), lineWidth: 2)
             }
         }
+        .opacity(state == .unknown ? 0.88 : 1)
     }
 }
 
@@ -306,8 +412,12 @@ struct ScanView: View {
                                     .foregroundStyle(theme.muted)
                             }
                             Spacer()
-                            Text("\(device.rssi) dBm")
-                                .font(.caption.monospacedDigit())
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(rssiHint(for: device.rssi))
+                                    .font(.caption.weight(.medium))
+                                Text("\(device.rssi) dBm")
+                                    .font(.caption2.monospacedDigit())
+                            }
                                 .foregroundStyle(theme.muted)
                         }
                         .padding(12)
@@ -337,6 +447,16 @@ struct ScanView: View {
         switch bleManager.connectionPhase {
         case .connecting, .reconnecting: return true
         default: return false
+        }
+    }
+
+    private func rssiHint(for rssi: Int) -> String {
+        switch rssi {
+        case -55...0: return "Excellent signal"
+        case -67 ... -56: return "Good signal"
+        case -80 ... -68: return "Fair signal"
+        case ..<(-80): return "Weak signal — move closer"
+        default: return "Signal unknown"
         }
     }
 }

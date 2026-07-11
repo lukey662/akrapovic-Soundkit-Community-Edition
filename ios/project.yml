@@ -8,6 +8,12 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     TARGETED_DEVICE_FAMILY: "1"
+    MARKETING_VERSION: "0.3.0"
+    CURRENT_PROJECT_VERSION: "3"
+    # Normal builds must not advertise a CarPlay scene or entitlement.
+    # Change to YES only after Apple grants the driving-task entitlement and
+    # the distribution profile contains it; follow DOCS.md before doing so.
+    CARPLAY_ENABLED: NO
 targets:
   SoundKitCommunity:
     type: application
@@ -16,6 +22,9 @@ targets:
       - path: SoundKitCommunity
         excludes:
           - README.md
+          - PrivacyInfo.xcprivacy
+      - path: SoundKitCommunity/PrivacyInfo.xcprivacy
+        buildPhase: resources
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.akrapovic.soundkit.community
       INFOPLIST_FILE: SoundKitCommunity/Info.plist

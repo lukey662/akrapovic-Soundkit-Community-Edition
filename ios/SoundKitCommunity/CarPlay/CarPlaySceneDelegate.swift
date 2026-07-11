@@ -15,6 +15,7 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
     ) {
         self.interfaceController = interfaceController
         CarSessionTracker.shared.beginSession()
+        AppCommandEnvironment.shared.connectInCarIfEnabled()
 
         bind(to: AppCommandEnvironment.shared.currentCoordinator)
         environmentCancellable = AppCommandEnvironment.shared.coordinatorPublisher

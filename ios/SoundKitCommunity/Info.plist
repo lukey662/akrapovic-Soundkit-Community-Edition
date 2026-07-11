@@ -17,9 +17,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.4.0-dev</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
@@ -32,23 +32,14 @@
 	<array>
 		<string>bluetooth-central</string>
 	</array>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UISceneConfigurations</key>
-		<dict>
-			<key>CPTemplateApplicationSceneSessionRoleApplication</key>
-			<array>
-				<dict>
-					<key>UISceneClassName</key>
-					<string>CPTemplateApplicationScene</string>
-					<key>UISceneConfigurationName</key>
-					<string>CarPlay</string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
-				</dict>
-			</array>
-		</dict>
-	</dict>
+	<!--
+		CARPLAY_ENABLED defaults to NO in project.yml. Normal and App Store
+		builds intentionally contain no CarPlay scene declaration. Only after
+		Apple grants com.apple.developer.carplay-driving-task and the
+		provisioning profile contains it may a release owner set
+		CARPLAY_ENABLED=YES, enable the entitlement, and restore the
+		CPTemplateApplicationSceneSessionRoleApplication scene declaration.
+	-->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

@@ -119,6 +119,28 @@ class ValveCommandCoordinatorTest {
     }
 
     @Test
+    fun duplicateConcurrentOpenDoesNotWriteTwice() = runTest {
+        val ble = FakeBleRepository()
+        ble.connectionState.value = ConnectionState.Connected(testDevice())
+        ble.valveState.value = ValveState.Closed
+        val openGate = CompletableDeferred<CommandResult>()
+        ble.openResult = openGate
+        val coordinator = ValveCommandCoordinator(ble)
+
+        val first = async { coordinator.open() }
+        runCurrent()
+        val duplicate = async { coordinator.open() }
+        runCurrent()
+
+        openGate.complete(CommandResult.Success(ValveState.Open))
+        runCurrent()
+
+        assertTrue(first.await() is CommandResult.Success)
+        assertTrue(duplicate.await() is CommandResult.Success)
+        assertEquals(1, ble.openValveCount)
+    }
+
+    @Test
     fun transportFailureSurfacesAsFailedPhase() = runTest {
         val ble = FakeBleRepository()
         ble.connectionState.value = ConnectionState.Connected(testDevice())

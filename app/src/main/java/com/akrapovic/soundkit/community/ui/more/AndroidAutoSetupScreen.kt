@@ -29,7 +29,8 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
             SetupStep(
                 number = 1,
                 title = "Connect on the phone first",
-                body = "Pair to your Sound Kit receiver once on Home so a default receiver is saved.",
+                body = "Finish onboarding, grant Bluetooth permission, connect once on Home, and choose a default receiver. " +
+                    "In Settings, keep “Connect in car” on if the car screen should reconnect that receiver.",
             )
             SetupStep(
                 number = 2,
@@ -55,13 +56,15 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
             SetupStep(
                 number = 6,
                 title = "Reconnect to the car",
-                body = "USB or wireless Android Auto, then open Sound Kit from the car launcher while parked.",
+                body = "USB or wireless Android Auto, then open Sound Kit from the car launcher while parked. " +
+                    "The car screen provides separate Open and Close controls; it never uses a toggle.",
             )
         }
 
         Spacer(Modifier.height(12.dp))
         Text(
-            text = "If Sound Kit never appears in the car launcher, use the foreground notification or Quick Settings tile while connected on the phone.",
+            text = "If onboarding, Bluetooth permission, or a default receiver is missing, the car shows a phone-directed setup message instead of controls. " +
+                "Finish setup on the phone, then reconnect to the car.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp),
