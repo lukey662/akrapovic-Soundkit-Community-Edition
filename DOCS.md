@@ -114,15 +114,15 @@ This runs `DocsScreenshotPaparazziTest`, writes goldens under `app/src/test/snap
 
 ## First-run onboarding
 
-Until `onboardingCompletedAt` is set in DataStore, the app shows a single scrollable setup screen (not the main tabs) with a breadcrumb progress strip and inline sections:
+Until `onboardingCompletedAt` is set in DataStore, the app shows a single scrollable setup screen (not the main tabs) with a breadcrumb progress strip. Sections unlock in order:
 
-1. **Risk** — short summary plus expandable full disclaimer; checkbox to accept.
-2. **Vehicle** — make groups expand to pick a model, then collapse and show the selection so the next step stays visible.
-3. **Bluetooth** — inline **Grant** when needed (API 31+ uses `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`; older APIs use location).
-4. **Notifications** — inline grant on API 33+ when needed.
-5. **Battery** — optional **Open battery settings** (same intent as Settings).
+1. **Risk** — short summary plus expandable full disclaimer; checkbox to accept. Collapses to “Accepted” + Review when done.
+2. **Vehicle** — appears after risk is accepted. Make groups expand to pick a model; after a choice the list hides and shows Selected + Change car.
+3. **Bluetooth** — appears after a compatible car is selected. Inline **Grant** when needed (API 31+ uses `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`; older APIs use location).
+4. **Notifications** — appears after Bluetooth is granted. Inline grant on API 33+ when needed.
+5. **Battery** — appears when required steps are done. Optional **Open battery settings** (same intent as Settings).
 
-**Get started** (bottom bar) finishes setup when risk is accepted, a compatible vehicle is selected, and required permissions are granted.
+**Get started** (bottom bar) finishes setup when risk is accepted, a compatible vehicle is selected, and required permissions are granted. The active section scrolls into view as each step completes.
 
 Clearing app data resets onboarding. Existing installs see the full screen again until they tap **Get started**.
 
@@ -155,7 +155,7 @@ The app uses a consumer-first companion UI built from reusable Compose component
 
 **More tab:** **Settings** and **Appearance** are the primary destinations. **Advanced** opens a hub for Diagnostics, Android Auto setup, Roadmap, and Developer (detailed logs).
 
-**First launch:** After the risk disclaimer, onboarding includes a **vehicle picker** (Supported vs Beta tiers). Choosing a model collapses that make list and shows a “Selected” summary. Selection is stored in DataStore and included in diagnostics exports.
+**First launch:** Onboarding unlocks Risk → Vehicle → Bluetooth → Notifications → Battery. Choosing a model hides the make list and shows a “Selected” summary with Change car. Selection is stored in DataStore and included in diagnostics exports.
 
 **Support:** Diagnostics includes **Copy email** and **Email support** for **support@appsforgood.net** — user attaches exported `.txt` manually; no auto-upload.
 

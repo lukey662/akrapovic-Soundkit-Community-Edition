@@ -198,7 +198,7 @@ Mirrors Android (see `BLE_PROTOCOL.md`):
 ### UI behavior
 
 - Tab shell: **Home** (scan or connected valve hero), **More** (Settings, Appearance, Advanced → Diagnostics).
-- Onboarding: risk disclaimer, vehicle picker, Bluetooth permission. Vehicle make groups expand to pick a model, then collapse and show the selection (summary + make subtitle) so the next step stays visible.
+- Onboarding: risk disclaimer, vehicle picker, Bluetooth permission. Steps unlock in order; completed sections collapse to a short summary (Review / Change car). After a model is chosen the make list hides so the next permission step stays on screen.
 - Drive mode screen: preferred Open/Closed, quiet neighbours window, quick profiles (Everyday / Quiet street / Track).
 - Garage themes: Studio + Audi RS Dark (default when Audi RS3 selected in onboarding).
 - Diagnostics: local ring-buffer log, share `.txt` export, mailto support@appsforgood.net.

@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -51,17 +52,47 @@ fun VehicleSelectionContent(
     val accent = LocalAkraTheme.current.accent
     val makes = VehicleCompatibilityCatalog.makes()
     var expandedMake by rememberSaveable { mutableStateOf<String?>(null) }
+    var editing by rememberSaveable { mutableStateOf(false) }
     val selected = VehicleCompatibilityCatalog.findById(selectedVehicleId)
+    val selectionComplete = isVehicleSelectionComplete(selectedVehicleId)
+    val showPicker = !selectionComplete || editing
+
+    LaunchedEffect(selectedVehicleId) {
+        if (selectionComplete) {
+            editing = false
+            expandedMake = null
+        }
+    }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (!showPicker && selected != null) {
+            SelectedVehicleSummary(
+                entry = selected,
+                onChange = { editing = true },
+            )
+            return@Column
+        }
+
         Text(
             text = "Pick the car with your Akrapovič Sound Kit. We use this for support and optional theme suggestions — not to limit what you can connect to.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        selected?.takeIf { it.tier != VehicleSupportTier.Unsupported }?.let { entry ->
-            SelectedVehicleSummary(entry = entry)
+        if (selectionComplete && selected != null) {
+            SelectedVehicleSummary(
+                entry = selected,
+                onChange = null,
+            )
+            TextButton(
+                onClick = {
+                    editing = false
+                    expandedMake = null
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Done")
+            }
         }
 
         makes.forEach { make ->
@@ -130,6 +161,7 @@ fun VehicleSelectionContent(
                                 onClick = {
                                     onSelectVehicle(entry.id)
                                     expandedMake = null
+                                    editing = false
                                 },
                             )
                         }
@@ -154,6 +186,7 @@ fun VehicleSelectionContent(
             onClick = {
                 onSelectVehicle(VehicleCompatibilityCatalog.OTHER_SOUND_KIT_ID)
                 expandedMake = null
+                editing = false
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -176,7 +209,10 @@ fun VehicleSelectionContent(
 }
 
 @Composable
-private fun SelectedVehicleSummary(entry: VehicleCompatibilityEntry) {
+private fun SelectedVehicleSummary(
+    entry: VehicleCompatibilityEntry,
+    onChange: (() -> Unit)?,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -200,6 +236,16 @@ private fun SelectedVehicleSummary(entry: VehicleCompatibilityEntry) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (onChange != null) {
+            TextButton(
+                onClick = onChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = "Change selected car" },
+            ) {
+                Text("Change car")
+            }
+        }
     }
 }
 

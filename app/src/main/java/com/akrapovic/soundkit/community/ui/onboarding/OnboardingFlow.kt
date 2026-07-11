@@ -5,7 +5,13 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings as AndroidSettings
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +28,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
@@ -31,8 +39,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +60,7 @@ import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
 import com.akrapovic.soundkit.community.ui.components.AkraStatusPill
 import com.akrapovic.soundkit.community.ui.theme.LocalAkraTheme
+import kotlinx.coroutines.delay
 
 private data class OnboardingStep(
     val id: String,
@@ -65,6 +76,7 @@ private val onboardingSteps = listOf(
     OnboardingStep("battery", "Battery", "Battery onboarding step"),
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingFlow(
     blePermissionsGranted: Boolean,
@@ -82,6 +94,7 @@ fun OnboardingFlow(
 
     var riskAccepted by rememberSaveable { mutableStateOf(false) }
     var riskExpanded by rememberSaveable { mutableStateOf(false) }
+    var riskReviewing by rememberSaveable { mutableStateOf(false) }
 
     val stepComplete = listOf(
         riskAccepted,
@@ -92,6 +105,12 @@ fun OnboardingFlow(
     )
     val readyToFinish = stepComplete[0] && stepComplete[1] && stepComplete[2] && stepComplete[3]
     val activeStepIndex = stepComplete.indexOfFirst { !it }.let { if (it < 0) onboardingSteps.lastIndex else it }
+    val activeStepRequester = remember { BringIntoViewRequester() }
+
+    LaunchedEffect(activeStepIndex, riskAccepted, selectedVehicleId, blePermissionsGranted, notificationsGranted) {
+        delay(80)
+        activeStepRequester.bringIntoView()
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -111,9 +130,9 @@ fun OnboardingFlow(
                             !riskAccepted -> "Accept the disclaimer to continue."
                             !isVehicleSelectionComplete(selectedVehicleId) ->
                                 "Select your car (or Other car with Sound Kit) to continue."
-                            !blePermissionsGranted -> "Bluetooth access is required to find your receiver."
+                            !blePermissionsGranted -> "Next: grant Bluetooth access."
                             needsNotificationPermission && !notificationsGranted ->
-                                "Allow notifications so the connection can stay active."
+                                "Next: allow notifications so the connection can stay active."
                             else -> ""
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -148,7 +167,7 @@ fun OnboardingFlow(
             AkraHeroHeader(
                 eyebrow = "First launch",
                 title = "Set up Sound Kit",
-                subtitle = "Everything on one screen — grant what you need, then tap Get started.",
+                subtitle = "Finish one step at a time — each section unlocks the next.",
                 titleModifier = Modifier.semantics {
                     heading()
                     contentDescription = "Onboarding"
@@ -161,11 +180,20 @@ fun OnboardingFlow(
                 activeIndex = activeStepIndex,
             )
 
+            val riskFocused = activeStepIndex == 0 || (riskAccepted && riskReviewing)
             OnboardingSection(
                 stepNumber = 1,
                 title = "Use at your own risk",
                 titleSemantics = "Risk notice",
                 complete = riskAccepted,
+                focused = riskFocused,
+                collapsedSummary = if (riskAccepted) "Accepted" else null,
+                onExpandCollapsed = { riskReviewing = true },
+                modifier = if (activeStepIndex == 0) {
+                    Modifier.bringIntoViewRequester(activeStepRequester)
+                } else {
+                    Modifier
+                },
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
@@ -191,7 +219,13 @@ fun OnboardingFlow(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                            .clickable { riskAccepted = !riskAccepted }
+                            .clickable {
+                                riskAccepted = !riskAccepted
+                                if (riskAccepted) {
+                                    onAcceptRisk()
+                                    riskReviewing = false
+                                }
+                            }
                             .padding(horizontal = 4.dp, vertical = 4.dp)
                             .semantics { contentDescription = "Accept risk disclaimer" },
                     ) {
@@ -199,7 +233,10 @@ fun OnboardingFlow(
                             checked = riskAccepted,
                             onCheckedChange = {
                                 riskAccepted = it
-                                if (it) onAcceptRisk()
+                                if (it) {
+                                    onAcceptRisk()
+                                    riskReviewing = false
+                                }
                             },
                             colors = CheckboxDefaults.colors(checkedColor = accent),
                         )
@@ -209,90 +246,137 @@ fun OnboardingFlow(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
+                    if (riskAccepted && riskReviewing) {
+                        TextButton(
+                            onClick = { riskReviewing = false },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Done")
+                        }
+                    }
                 }
             }
 
-            OnboardingSection(
-                stepNumber = 2,
-                title = "Your car",
-                titleSemantics = "Vehicle selection step",
-                complete = stepComplete[1],
-            ) {
-                VehicleSelectionContent(
-                    selectedVehicleId = selectedVehicleId,
-                    onSelectVehicle = onSelectVehicle,
-                )
-            }
-
-            OnboardingSection(
-                stepNumber = 3,
-                title = "Bluetooth",
-                titleSemantics = "Bluetooth onboarding step",
-                complete = blePermissionsGranted,
-            ) {
-                Text(
-                    text = "Find and control your receiver nearby. Nothing leaves this phone.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                PermissionStatusPill(granted = blePermissionsGranted)
-                if (!blePermissionsGranted) {
-                    AkraActionButton(
-                        label = "Grant Bluetooth access",
-                        contentDescription = "Grant Bluetooth permissions",
-                        onClick = onRequestBlePermissions,
+            if (riskAccepted) {
+                OnboardingSection(
+                    stepNumber = 2,
+                    title = "Your car",
+                    titleSemantics = "Vehicle selection step",
+                    complete = stepComplete[1],
+                    focused = true,
+                    modifier = if (activeStepIndex == 1) {
+                        Modifier.bringIntoViewRequester(activeStepRequester)
+                    } else {
+                        Modifier
+                    },
+                ) {
+                    VehicleSelectionContent(
+                        selectedVehicleId = selectedVehicleId,
+                        onSelectVehicle = onSelectVehicle,
                     )
                 }
             }
 
-            OnboardingSection(
-                stepNumber = 4,
-                title = "Notifications",
-                titleSemantics = "Notifications onboarding step",
-                complete = stepComplete[3],
-            ) {
-                Text(
-                    text = "A small foreground alert keeps the BLE session alive while connected.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (needsNotificationPermission) {
-                    PermissionStatusPill(granted = notificationsGranted)
-                    if (!notificationsGranted) {
+            if (stepComplete[1]) {
+                OnboardingSection(
+                    stepNumber = 3,
+                    title = "Bluetooth",
+                    titleSemantics = "Bluetooth onboarding step",
+                    complete = blePermissionsGranted,
+                    focused = activeStepIndex == 2,
+                    collapsedSummary = if (blePermissionsGranted) "Granted" else null,
+                    modifier = if (activeStepIndex == 2) {
+                        Modifier.bringIntoViewRequester(activeStepRequester)
+                    } else {
+                        Modifier
+                    },
+                ) {
+                    Text(
+                        text = "Find and control your receiver nearby. Nothing leaves this phone.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    PermissionStatusPill(granted = blePermissionsGranted)
+                    if (!blePermissionsGranted) {
                         AkraActionButton(
-                            label = "Allow notifications",
-                            contentDescription = "Grant notification permission",
-                            onClick = onRequestNotificationPermission,
+                            label = "Grant Bluetooth access",
+                            contentDescription = "Grant Bluetooth permissions",
+                            onClick = onRequestBlePermissions,
                         )
                     }
-                } else {
-                    AkraStatusPill(text = "NOT REQUIRED", color = MaterialTheme.colorScheme.primary)
                 }
             }
 
-            OnboardingSection(
-                stepNumber = 5,
-                title = "Background connection",
-                titleSemantics = "Battery onboarding step",
-                complete = true,
-                optional = true,
-            ) {
-                Text(
-                    text = "Optional — helps Android keep BLE alive when the screen is off. You can change this anytime in Settings.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                AkraActionButton(
-                    label = "Open battery settings",
-                    filled = false,
-                    contentDescription = "Open battery optimization settings",
-                    onClick = {
-                        val intent = Intent(AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                        }
-                        context.startActivity(intent)
+            if (blePermissionsGranted) {
+                OnboardingSection(
+                    stepNumber = 4,
+                    title = "Notifications",
+                    titleSemantics = "Notifications onboarding step",
+                    complete = stepComplete[3],
+                    focused = activeStepIndex == 3,
+                    collapsedSummary = when {
+                        !needsNotificationPermission -> "Not required on this Android version"
+                        notificationsGranted -> "Allowed"
+                        else -> null
                     },
-                )
+                    modifier = if (activeStepIndex == 3) {
+                        Modifier.bringIntoViewRequester(activeStepRequester)
+                    } else {
+                        Modifier
+                    },
+                ) {
+                    Text(
+                        text = "A small foreground alert keeps the BLE session alive while connected.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (needsNotificationPermission) {
+                        PermissionStatusPill(granted = notificationsGranted)
+                        if (!notificationsGranted) {
+                            AkraActionButton(
+                                label = "Allow notifications",
+                                contentDescription = "Grant notification permission",
+                                onClick = onRequestNotificationPermission,
+                            )
+                        }
+                    } else {
+                        AkraStatusPill(text = "NOT REQUIRED", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+
+            if (stepComplete[3]) {
+                OnboardingSection(
+                    stepNumber = 5,
+                    title = "Background connection",
+                    titleSemantics = "Battery onboarding step",
+                    complete = true,
+                    focused = activeStepIndex == 4,
+                    optional = true,
+                    collapsedSummary = "Optional — open anytime in Settings",
+                    modifier = if (activeStepIndex == 4) {
+                        Modifier.bringIntoViewRequester(activeStepRequester)
+                    } else {
+                        Modifier
+                    },
+                ) {
+                    Text(
+                        text = "Optional — helps Android keep BLE alive when the screen is off. You can change this anytime in Settings.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    AkraActionButton(
+                        label = "Open battery settings",
+                        filled = false,
+                        contentDescription = "Open battery optimization settings",
+                        onClick = {
+                            val intent = Intent(AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                            }
+                            context.startActivity(intent)
+                        },
+                    )
+                }
             }
 
             Spacer(Modifier.height(8.dp))
@@ -406,15 +490,25 @@ private fun OnboardingSection(
     title: String,
     titleSemantics: String,
     complete: Boolean,
+    focused: Boolean = true,
     optional: Boolean = false,
+    collapsedSummary: String? = null,
+    onExpandCollapsed: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     val accent = LocalAkraTheme.current.accent
+    val showContent = focused || collapsedSummary == null || !complete
     AkraCard(
-        accent = if (complete) accent else MaterialTheme.colorScheme.outline,
+        modifier = modifier.animateContentSize(),
+        accent = when {
+            focused && !complete -> accent
+            complete -> accent
+            else -> MaterialTheme.colorScheme.outline
+        },
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(
@@ -448,9 +542,39 @@ private fun OnboardingSection(
                         AkraStatusPill(text = "OPTIONAL", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Spacer(Modifier.height(4.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    content()
+                AnimatedVisibility(
+                    visible = !showContent,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = collapsedSummary.orEmpty(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (onExpandCollapsed != null) {
+                            TextButton(
+                                onClick = onExpandCollapsed,
+                                modifier = Modifier.semantics {
+                                    contentDescription = "Review $title"
+                                },
+                            ) {
+                                Text("Review")
+                            }
+                        }
+                    }
+                }
+                AnimatedVisibility(
+                    visible = showContent,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Spacer(Modifier.height(4.dp))
+                        content()
+                    }
                 }
             }
         }

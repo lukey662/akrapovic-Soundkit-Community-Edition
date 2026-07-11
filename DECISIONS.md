@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-07-11: Onboarding reveals one step at a time
+
+### Context
+
+Showing every make list and every later permission section at once left first-run users oriented on a long picker instead of the next required action (Bluetooth). Collapsing only the open make accordion was not enough.
+
+### Decision
+
+- Unlock sections in order: Risk → Vehicle → Bluetooth → Notifications → Battery.
+- Completed Risk / permission sections collapse to a one-line summary with Review.
+- After a car is chosen, hide the make list and show Selected + Change car.
+- Scroll the newly active section into view when the active step advances.
+
+### Consequences
+
+- The viewport focuses on the current job; changing a prior choice requires Review / Change.
+- Screenshot and manual QA should cover mid-flow states (risk done, car selected, Bluetooth pending).
+
 ## 2026-07-11: Onboarding vehicle picker collapses after selection
 
 ### Context
@@ -14,8 +32,7 @@ Expanding a make list during onboarding left a long model list on screen after a
 
 ### Consequences
 
-- After a pick, the list stays short and the next onboarding step stays visible.
-- Changing the car requires re-expanding that make (or another).
+- Superseded for first-run orientation by progressive step reveal (see above); keep collapse-on-select inside the vehicle picker while editing.
 
 ## 2026-07-11: CI executes platform-specific safety gates explicitly
 
