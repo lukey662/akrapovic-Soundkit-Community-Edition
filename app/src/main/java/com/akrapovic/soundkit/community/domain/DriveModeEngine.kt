@@ -20,6 +20,7 @@ class DriveModeEngine @Inject constructor(
     private val settingsStore: SettingsStore,
     private val executionLog: RuleExecutionLogStore,
     private val diagnosticsRepository: DiagnosticsRepository,
+    private val valveCommandCoordinator: ValveCommandCoordinator,
 ) {
     private val mutex = Mutex()
     private var quietJob: Job? = null
@@ -84,14 +85,14 @@ class DriveModeEngine @Inject constructor(
                     logApply(mode, reason, skipped = true)
                     return
                 }
-                bleRepository.openValve()
+                valveCommandCoordinator.open()
             }
             PreferredValveMode.Closed -> {
                 if (valveState == ValveState.Closed) {
                     logApply(mode, reason, skipped = true)
                     return
                 }
-                bleRepository.closeValve()
+                valveCommandCoordinator.close()
             }
         }
         logApply(mode, reason, result = result)
@@ -106,7 +107,7 @@ class DriveModeEngine @Inject constructor(
             logApply(PreferredValveMode.Closed, reason, skipped = true)
             return
         }
-        logApply(PreferredValveMode.Closed, reason, result = bleRepository.closeValve())
+        logApply(PreferredValveMode.Closed, reason, result = valveCommandCoordinator.close())
     }
 
     private suspend fun logApply(

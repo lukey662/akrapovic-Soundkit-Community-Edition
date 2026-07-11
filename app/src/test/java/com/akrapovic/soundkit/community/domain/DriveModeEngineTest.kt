@@ -161,6 +161,7 @@ class DriveModeEngineTest {
             settingsStore = settings,
             executionLog = log,
             diagnosticsRepository = DiagnosticsRepository(),
+            valveCommandCoordinator = ValveCommandCoordinator(ble),
         )
     }
 

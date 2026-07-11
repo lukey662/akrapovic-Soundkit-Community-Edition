@@ -1,30 +1,38 @@
 package com.akrapovic.soundkit.community.car
 
-import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
+import androidx.car.app.model.CarIcon
+import androidx.car.app.model.GridItem
+import androidx.car.app.model.GridTemplate
+import androidx.car.app.model.ItemList
+import androidx.car.app.model.MessageTemplate
+import androidx.car.app.model.Template
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import androidx.car.app.model.MessageTemplate
-import androidx.car.app.model.Pane
-import androidx.car.app.model.PaneTemplate
-import androidx.car.app.model.Row
-import androidx.car.app.model.Template
-import com.akrapovic.soundkit.community.MainActivity
+import com.akrapovic.soundkit.community.R
+import com.akrapovic.soundkit.community.ble.PermissionPolicy
 import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
+import com.akrapovic.soundkit.community.domain.CommandPhase
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
+import com.akrapovic.soundkit.community.domain.SoundKitSettings
+import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
 import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 class SoundKitCarScreen(
@@ -37,38 +45,42 @@ class SoundKitCarScreen(
     private val repository: BleRepository = entryPoint.bleRepository()
     private val settingsStore: SettingsStore = entryPoint.settingsStore()
     private val driveModeEngine: DriveModeEngine = entryPoint.driveModeEngine()
+    private val valveCommandCoordinator: ValveCommandCoordinator = entryPoint.valveCommandCoordinator()
     private val carSessionTracker: CarSessionTracker = entryPoint.carSessionTracker()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private var hasDefaultReceiver = false
-    private var autoReconnectEnabled = true
+    private var settingsSnapshot = SoundKitSettings()
+    private var didBootstrap = false
 
     init {
         carSessionTracker.beginSession()
         lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onDestroy(owner: LifecycleOwner) {
+                    scope.cancel()
                     carSessionTracker.endSession()
                 }
             },
         )
         scope.launch {
-            val settings = settingsStore.settings.first()
-            hasDefaultReceiver = RememberedDeviceConnector.defaultDevice(settings) != null
-            autoReconnectEnabled = settings.autoReconnect
-            CarBleBootstrap.onCarEntry(carContext, repository, settings, scope)
-        }
-        scope.launch {
             settingsStore.settings.collect { settings ->
-                hasDefaultReceiver = RememberedDeviceConnector.defaultDevice(settings) != null
-                autoReconnectEnabled = settings.autoReconnect
+                settingsSnapshot = settings
+                if (!didBootstrap) {
+                    didBootstrap = true
+                    CarBleBootstrap.onCarEntry(carContext, repository, settings, scope)
+                }
             }
         }
         scope.launch {
             combine(
+                settingsStore.settings,
                 repository.connectionState,
                 repository.valveState,
                 repository.receiverStatusMessage,
-            ) { _, _, _ -> Unit }
+                valveCommandCoordinator.commandPhase,
+            ) { settings, connection, valve, status, commandPhase ->
+                CarRenderState(settings, connection, valve, status, commandPhase)
+            }
+                .distinctUntilChanged()
                 .collect { invalidate() }
         }
     }
@@ -84,112 +96,82 @@ class SoundKitCarScreen(
         val connectionState = repository.connectionState.value
         val valveState = repository.valveState.value
         val receiverStatusMessage = repository.receiverStatusMessage.value
-        val controlsEnabled = connectionState is ConnectionState.Connected &&
-            valveState != ValveState.Unknown &&
-            receiverStatusMessage == null
-
-        val paneBuilder = Pane.Builder()
-            .addRow(
-                Row.Builder()
-                    .setTitle("Receiver")
-                    .addText(connectionState.asCarText())
-                    .build(),
+        return when (
+            val model = CarScreenPresenter.present(
+                onboardingCompleted = settingsSnapshot.onboardingCompleted,
+                permissionsGranted = hasBlePermissions(),
+                hasDefaultReceiver = RememberedDeviceConnector.defaultDevice(settingsSnapshot) != null,
+                connectionState = connectionState,
+                valveState = valveState,
+                receiverStatusMessage = receiverStatusMessage,
+                commandPhase = valveCommandCoordinator.commandPhase.value,
             )
-            .addRow(
-                Row.Builder()
-                    .setTitle("Valves")
-                    .addText(valveState.asCarText(receiverStatusMessage))
-                    .build(),
-            )
-
-        if (receiverStatusMessage != null) {
-            paneBuilder.addRow(
-                Row.Builder()
-                    .setTitle("Status")
-                    .addText(receiverStatusMessage)
-                    .build(),
-            )
+        ) {
+            is CarScreenModel.SetupRequired -> MessageTemplate.Builder(model.message)
+                .setTitle("Sound Kit")
+                .setHeaderAction(Action.APP_ICON)
+                .build()
+            is CarScreenModel.Controls -> buildGridTemplate(model, connectionState)
         }
+    }
 
-        when {
-            controlsEnabled -> {
-                val toggleLabel = when (valveState) {
-                    ValveState.Open -> "Close valves"
-                    ValveState.Closed -> "Open valves"
-                    ValveState.Unknown -> "Toggle valves"
-                }
-                paneBuilder.addAction(
-                    Action.Builder()
-                        .setTitle(toggleLabel)
-                        .setOnClickListener { scope.launch { toggleValve(valveState) } }
-                        .build(),
-                )
-            }
-            connectionState is ConnectionState.Connected && valveState == ValveState.Unknown -> {
-                paneBuilder.addRow(
-                    Row.Builder()
-                        .setTitle("Controls")
-                        .addText("Waiting for receiver status. Use while parked.")
-                        .build(),
-                )
-            }
-        }
-
-        if (!hasDefaultReceiver && connectionState is ConnectionState.Disconnected) {
-            paneBuilder.addAction(openPhoneAppAction())
-        } else if (connectionState is ConnectionState.Error) {
-            paneBuilder.addAction(openPhoneAppAction())
-        }
-
-        return PaneTemplate.Builder(paneBuilder.build())
+    private fun buildGridTemplate(
+        model: CarScreenModel.Controls,
+        connectionState: ConnectionState,
+    ): Template {
+        val builder = GridTemplate.Builder()
             .setTitle("Sound Kit")
             .setHeaderAction(Action.APP_ICON)
-            .build()
+            .setLoading(model.loading)
+        if (model.showControls) {
+            builder.setSingleList(
+                ItemList.Builder()
+                    .addItem(
+                valveActionItem("Open", model.openEnabled) {
+                    scope.launch { openValve() }
+                },
+                    )
+                    .addItem(
+                valveActionItem("Close", model.closeEnabled) {
+                    scope.launch { closeValve() }
+                },
+                    )
+                    .build(),
+            )
+        }
+        return builder.build()
     }
 
-    private fun openPhoneAppAction(): Action {
-        return Action.Builder()
-            .setTitle("Open on phone")
-            .setOnClickListener {
-                val intent = Intent(carContext, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                carContext.startActivity(intent)
-            }
-            .build()
+    private fun valveActionItem(title: String, enabled: Boolean, onClick: () -> Unit): GridItem {
+        val builder = GridItem.Builder()
+            .setTitle(title)
+            .setImage(CarIcon.Builder(IconCompat.createWithResource(carContext, R.drawable.ic_valve_tile)).build())
+        // GridItem has no enabled API. Omitting the click listener makes the host render it inert.
+        if (enabled) builder.setOnClickListener(onClick)
+        return builder.build()
     }
 
-    private suspend fun toggleValve(valveState: ValveState) {
+    private suspend fun openValve() {
         driveModeEngine.onUserValveAdjustment()
-        when (valveState) {
-            ValveState.Open -> repository.closeValve()
-            ValveState.Closed -> repository.openValve()
-            ValveState.Unknown -> Unit
+        valveCommandCoordinator.open()
+    }
+
+    private suspend fun closeValve() {
+        driveModeEngine.onUserValveAdjustment()
+        valveCommandCoordinator.close()
+    }
+
+    private fun hasBlePermissions(): Boolean {
+        return PermissionPolicy.requiredBlePermissions().all { permission ->
+            ContextCompat.checkSelfPermission(carContext, permission) == PackageManager.PERMISSION_GRANTED
         }
     }
 
-    private fun ConnectionState.asCarText(): String {
-        return when (this) {
-            ConnectionState.Disconnected ->
-                if (autoReconnectEnabled && hasDefaultReceiver) {
-                    "Disconnected. Reconnecting to your default receiver, or open the phone app to scan."
-                } else {
-                    "Disconnected. Open the phone app to connect."
-                }
-            ConnectionState.Scanning -> "Scanning for receivers on phone."
-            is ConnectionState.Connecting -> "Connecting to ${device.name}…"
-            is ConnectionState.Connected -> "Connected to ${device.name}"
-            is ConnectionState.Reconnecting -> "Reconnecting to ${device.name} (attempt $attempt)…"
-            is ConnectionState.Error -> "Connection failed: $message. Open the phone app to retry."
-        }
-    }
-
-    private fun ValveState.asCarText(receiverNotReady: String?): String {
-        if (receiverNotReady != null) return "Not ready"
-        return when (this) {
-            ValveState.Open -> "Open"
-            ValveState.Closed -> "Closed"
-            ValveState.Unknown -> "Checking status"
-        }
-    }
+    private data class CarRenderState(
+        val settings: SoundKitSettings,
+        val connectionState: ConnectionState,
+        val valveState: ValveState,
+        val receiverStatusMessage: String?,
+        val commandPhase: CommandPhase,
+    )
 }

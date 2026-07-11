@@ -23,7 +23,10 @@ import androidx.compose.ui.Modifier
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.ble.SoundKitProtocol
@@ -56,12 +59,19 @@ fun ConnectedDeviceScreen(
     val showReceiverLearnMore = remember { mutableStateOf(false) }
     val showDisconnectConfirm = remember { mutableStateOf(false) }
     val wasCommandInFlight = remember { mutableStateOf(false) }
+    val announcedError = remember { mutableStateOf<String?>(null) }
     val successRippleTrigger = remember { mutableIntStateOf(0) }
 
     LaunchedEffect(state.commandInFlight, state.lastError) {
         if (wasCommandInFlight.value && !state.commandInFlight && state.lastError == null) {
             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
             successRippleTrigger.intValue += 1
+        }
+        if (state.lastError != null && state.lastError != announcedError.value) {
+            view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+            announcedError.value = state.lastError
+        } else if (state.lastError == null) {
+            announcedError.value = null
         }
         wasCommandInFlight.value = state.commandInFlight
     }
@@ -78,13 +88,21 @@ fun ConnectedDeviceScreen(
     AkraScreen(modifier = modifier) {
         InlineStatusLine(state = state, device = connectedDevice)
 
+        if (state.connectionState is ConnectionState.Connecting) {
+            AkraBanner(
+                title = "Connecting",
+                body = "Preparing ${connectedDevice?.name ?: "receiver"} for valve control.",
+                accent = AkraColors.Amber,
+            )
+        }
+
         if (state.connectionState is ConnectionState.Reconnecting) {
             val reconnecting = state.connectionState as ConnectionState.Reconnecting
             AkraBanner(
                 title = "Reconnecting · attempt ${reconnecting.attempt}",
                 body = "Checking the link to ${reconnecting.device.name}.",
                 accent = AkraColors.Amber,
-                actionLabel = "Try again",
+                actionLabel = "Retry ${reconnecting.device.name}",
                 onAction = onRetryConnection,
             )
         }
@@ -112,7 +130,12 @@ fun ConnectedDeviceScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .semantics { contentDescription = state.valveState.visualDescription() },
+                    .semantics {
+                        contentDescription = "${state.valveState.displayTitle()}. " +
+                            state.valveState.helperText(state.receiverStatusMessage)
+                        stateDescription = state.valveState.displayTitle()
+                        liveRegion = LiveRegionMode.Polite
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 ValveVisual(
@@ -274,12 +297,6 @@ private fun ValveState.helperText(receiverNotReady: String?): String {
         ValveState.Closed -> "Quiet mode — valves are closed."
         ValveState.Unknown -> "Waiting for the receiver."
     }
-}
-
-private fun ValveState.visualDescription(): String = when (this) {
-    ValveState.Open -> "Exhaust tip visual, valves open"
-    ValveState.Closed -> "Exhaust tip visual, valves closed"
-    ValveState.Unknown -> "Exhaust tip visual, valve status unknown"
 }
 
 private fun ConnectionState.shortText(): String = when (this) {

@@ -9,14 +9,7 @@ struct DiscoveredDevice: Identifiable, Hashable {
     let isLikelySoundKit: Bool
 }
 
-enum BLEConnectionPhase: Equatable {
-    case disconnected
-    case scanning
-    case connecting(DiscoveredDevice)
-    case connected(DiscoveredDevice)
-    case reconnecting(DiscoveredDevice, attempt: Int)
-    case error(String)
-}
+typealias BLEConnectionPhase = ConnectionPhase
 
 @MainActor
 final class BLEManager: NSObject, ObservableObject {
@@ -29,6 +22,7 @@ final class BLEManager: NSObject, ObservableObject {
     @Published private(set) var receiverNotReady = false
     @Published private(set) var connectionYieldState: ConnectionYieldState = .none
     @Published private(set) var commandInFlight = false
+    @Published private(set) var commandPhase: CommandPhase = .idle
 
     static let yieldMessage =
         "Another phone may be controlling the receiver. Tap Take control if you need this phone."
@@ -46,8 +40,11 @@ final class BLEManager: NSObject, ObservableObject {
     private var connectedPeripheral: CBPeripheral?
     private var selectedDevice: DiscoveredDevice?
     private var commandCharacteristic: CBCharacteristic?
+    private var pendingCommand: ValveCommand?
+    private var commandConfirmationTask: Task<Void, Never>?
     private var reconnectAttempts = 0
     private var reconnectTask: Task<Void, Never>?
+    private var scanTimeoutTask: Task<Void, Never>?
     private var pendingReconnectId: String?
     private var wasConnectReady = false
     var onConnectReady: ((Int) -> Void)?
@@ -57,7 +54,11 @@ final class BLEManager: NSObject, ObservableObject {
     init(sessionProvider: @escaping () -> Int = { 0 }) {
         self.sessionProvider = sessionProvider
         super.init()
-        centralManager = CBCentralManager(delegate: self, queue: .main)
+        centralManager = CBCentralManager(
+            delegate: self,
+            queue: .main,
+            options: [CBCentralManagerOptionRestoreIdentifierKey: "com.akrapovic.soundkit.community.ble"]
+        )
     }
 
     var isConnected: Bool {
@@ -83,9 +84,23 @@ final class BLEManager: NSObject, ObservableObject {
         statusMessage = "Scanning for Sound Kit receivers…"
         log("BLE scan started")
         centralManager.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+        scanTimeoutTask?.cancel()
+        scanTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 15_000_000_000)
+            guard let self, !Task.isCancelled else { return }
+            self.centralManager.stopScan()
+            guard case .scanning = self.connectionPhase else { return }
+            self.connectionPhase = .disconnected
+            self.statusMessage = self.discoveredDevices.isEmpty
+                ? "No receiver found. Turn the car on, move closer, then try again."
+                : "Scan complete."
+            self.log("BLE scan timed out after 15000ms")
+        }
     }
 
     func stopScan() {
+        scanTimeoutTask?.cancel()
+        scanTimeoutTask = nil
         centralManager.stopScan()
         if case .scanning = connectionPhase {
             connectionPhase = .disconnected
@@ -93,10 +108,14 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     func connect(to device: DiscoveredDevice, userInitiated: Bool = true) {
+        guard !userInitiated || !connectionPhase.isConnectingOrConnected else {
+            log("BLE connect skipped; connection is already active")
+            return
+        }
         stopScan()
         reconnectTask?.cancel()
-        reconnectAttempts = 0
         if userInitiated {
+            reconnectAttempts = 0
             userRequestedControl = true
             connectionYieldState = .none
             contentionDetector.reset()
@@ -115,9 +134,11 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     func connectToRemembered(id: String, name: String, userInitiated: Bool = true) {
+        let remembered = DiscoveredDevice(id: id, name: name, rssi: 0, isLikelySoundKit: true)
+        selectedDevice = remembered
         if let peripheral = peripheralById[id] {
             connect(
-                to: DiscoveredDevice(id: id, name: name, rssi: 0, isLikelySoundKit: true),
+                to: remembered,
                 userInitiated: userInitiated
             )
             return
@@ -127,11 +148,12 @@ final class BLEManager: NSObject, ObservableObject {
         if let peripheral = retrieved.first {
             peripheralById[id] = peripheral
             connect(
-                to: DiscoveredDevice(id: id, name: name, rssi: 0, isLikelySoundKit: true),
+                to: remembered,
                 userInitiated: userInitiated
             )
         } else {
-            statusMessage = "Couldn't reach receiver — tap to scan"
+            connectionPhase = .error("Couldn't reach receiver — scan again")
+            statusMessage = "Couldn't reach receiver — scan again"
             log("Remembered receiver not found: \(id)")
         }
     }
@@ -151,14 +173,6 @@ final class BLEManager: NSObject, ObservableObject {
             centralManager.cancelPeripheralConnection(peripheral)
         }
         resetConnectionState(userInitiated: true)
-    }
-
-    func openValves() {
-        sendValveCommand(.open)
-    }
-
-    func closeValves() {
-        sendValveCommand(.close)
     }
 
     func retryConnection() {
@@ -193,7 +207,6 @@ final class BLEManager: NSObject, ObservableObject {
             carSessionActive: carSessionProvider()
         ) else { return }
         reconnectTask?.cancel()
-        reconnectAttempts = 0
         connectionYieldState = .yielded(.headUnitMayBeActive)
         log("BLE contention detected (\(signal)); yielding until user takes control")
     }
@@ -211,8 +224,12 @@ final class BLEManager: NSObject, ObservableObject {
         }
     }
 
-    private func sendValveCommand(_ command: ValveCommand) {
+    func requestValveCommand(_ command: ValveCommand) {
         statusMessage = nil
+        guard !commandInFlight else {
+            statusMessage = "Waiting for the previous valve command to be confirmed."
+            return
+        }
         guard case .success = SoundKitProtocol.requireVerified() else {
             statusMessage = ProtocolError.protocolNotVerified.errorDescription
             return
@@ -229,17 +246,19 @@ final class BLEManager: NSObject, ObservableObject {
         case .success(let payload?):
             guard let peripheral = connectedPeripheral, let characteristic = commandCharacteristic else { return }
             commandInFlight = true
+            pendingCommand = command
+            commandPhase = .writing(command)
             peripheral.writeValue(payload, for: characteristic, type: .withResponse)
             log("BLE write toggle for \(command.rawValue)")
         }
     }
 
     private func resetConnectionState(userInitiated: Bool = false) {
+        failPendingCommand("BLE connection ended before the valve command was confirmed.")
         connectedPeripheral = nil
         commandCharacteristic = nil
         valveState = .unknown
         receiverNotReady = false
-        commandInFlight = false
         wasConnectReady = false
         if userInitiated {
             selectedDevice = nil
@@ -264,24 +283,64 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     private func handleStatusNotification(_ data: Data) {
-        switch SoundKitProtocol.statusByteToValveState(data) {
+        let parsedStatus = SoundKitProtocol.statusByteToValveState(data)
+        let confirmation = ValveCommandConfirmation.outcome(pending: pendingCommand, status: parsedStatus)
+        switch parsedStatus {
         case .success(let state) where state != .unknown:
             valveState = state
             receiverNotReady = false
-            statusMessage = nil
-            commandInFlight = false
+            if let confirmation {
+                finishPendingCommand(confirmation)
+            } else {
+                statusMessage = nil
+            }
             evaluateConnectReady()
         case .success:
+            if let confirmation {
+                finishPendingCommand(confirmation)
+            }
             break
         case .failure(.receiverNotReady):
             receiverNotReady = true
             valveState = .unknown
             statusMessage = SoundKitProtocol.receiverNotReadyMessage
-            commandInFlight = false
+            if let confirmation {
+                finishPendingCommand(confirmation)
+            }
             evaluateConnectReady()
         case .failure(let error):
             statusMessage = error.errorDescription
-            commandInFlight = false
+            if let confirmation {
+                finishPendingCommand(confirmation)
+            }
+        }
+    }
+
+    private func finishPendingCommand(_ phase: CommandPhase) {
+        commandConfirmationTask?.cancel()
+        commandConfirmationTask = nil
+        pendingCommand = nil
+        commandInFlight = false
+        commandPhase = phase
+        if case .failed(let message) = phase {
+            statusMessage = message
+            log("BLE command confirmation failed: \(message)")
+        }
+    }
+
+    private func failPendingCommand(_ message: String) {
+        guard pendingCommand != nil || commandInFlight else { return }
+        finishPendingCommand(.failed(message))
+    }
+
+    private func startCommandConfirmationTimeout(for command: ValveCommand) {
+        commandConfirmationTask?.cancel()
+        commandConfirmationTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard let self, !Task.isCancelled, self.pendingCommand == command else { return }
+            if let phase = ValveCommandConfirmation.timedOut(pending: self.pendingCommand) {
+                self.finishPendingCommand(phase)
+            }
         }
     }
 
@@ -290,13 +349,16 @@ final class BLEManager: NSObject, ObservableObject {
             log("Auto-reconnect skipped by head-unit priority policy")
             return
         }
-        guard reconnectAttempts < Self.maxReconnectAttempts, let device = selectedDevice else {
+        guard let nextAttempt = ReconnectAttemptPolicy.nextAttempt(
+            current: reconnectAttempts,
+            maximum: Self.maxReconnectAttempts
+        ), let device = selectedDevice else {
             connectionPhase = .error("Couldn't reach receiver — tap to retry")
             statusMessage = "Couldn't reach receiver — tap to retry"
             maybeYieldOnContention(contentionDetector.onConnectFailed())
             return
         }
-        reconnectAttempts += 1
+        reconnectAttempts = nextAttempt
         pendingReconnectId = device.id
         connectionPhase = .reconnecting(device, attempt: reconnectAttempts)
         let delayNs = UInt64(min(reconnectAttempts, 5)) * 1_000_000_000
@@ -316,6 +378,10 @@ final class BLEManager: NSObject, ObservableObject {
     // MARK: - GATT (called from peripheral delegate)
 
     fileprivate func beginServiceDiscovery() {
+        if let device = selectedDevice {
+            connectionPhase = .preparing(device)
+            statusMessage = "Preparing receiver…"
+        }
         connectedPeripheral?.discoverServices(nil)
     }
 
@@ -342,9 +408,11 @@ final class BLEManager: NSObject, ObservableObject {
     fileprivate func processWriteComplete(for characteristic: CBCharacteristic, error: Error?) {
         guard characteristic.uuid == SoundKitProtocol.commandCharacteristicUUID else { return }
         if let error {
-            commandInFlight = false
-            statusMessage = error.localizedDescription
+            failPendingCommand(error.localizedDescription)
             log("BLE write error: \(error.localizedDescription)")
+        } else if let pendingCommand {
+            commandPhase = .awaitingConfirmation(pendingCommand)
+            startCommandConfirmationTimeout(for: pendingCommand)
         }
     }
 
@@ -406,9 +474,6 @@ extension BLEManager: CBCentralManagerDelegate {
         Task { @MainActor in
             peripheral.delegate = self
             connectedPeripheral = peripheral
-            if let device = selectedDevice {
-                finalizeConnection(device: device)
-            }
             beginServiceDiscovery()
         }
     }
@@ -428,6 +493,34 @@ extension BLEManager: CBCentralManagerDelegate {
             if hadDevice {
                 handleLinkLoss(userInitiated: false, connectFailed: false)
             }
+        }
+    }
+
+    nonisolated func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
+        Task { @MainActor in
+            let restored = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] ?? []
+            guard let peripheral = restored.first else { return }
+            peripheral.delegate = self
+            connectedPeripheral = peripheral
+            let device = DiscoveredDevice(
+                id: peripheral.identifier.uuidString,
+                name: peripheral.name ?? "Sound Kit receiver",
+                rssi: 0,
+                isLikelySoundKit: true
+            )
+            peripheralById[device.id] = peripheral
+            selectedDevice = device
+            commandCharacteristic = peripheral.services?
+                .flatMap { $0.characteristics ?? [] }
+                .first(where: { $0.uuid == SoundKitProtocol.commandCharacteristicUUID })
+            if let commandCharacteristic, commandCharacteristic.isNotifying {
+                finalizeConnection(device: device)
+            } else {
+                connectionPhase = .preparing(device)
+                statusMessage = "Restoring receiver connection…"
+                beginServiceDiscovery()
+            }
+            log("BLE state restored without sending a valve command")
         }
     }
 }
@@ -450,6 +543,23 @@ extension BLEManager: CBPeripheralDelegate {
                 return
             }
             processDiscoveredCharacteristics(service.characteristics ?? [], for: service)
+        }
+    }
+
+    nonisolated func peripheral(
+        _ peripheral: CBPeripheral,
+        didUpdateNotificationStateFor characteristic: CBCharacteristic,
+        error: Error?
+    ) {
+        Task { @MainActor in
+            guard characteristic.uuid == SoundKitProtocol.commandCharacteristicUUID else { return }
+            guard error == nil, characteristic.isNotifying else {
+                statusMessage = error?.localizedDescription ?? "Receiver did not accept status notifications."
+                if let connectedPeripheral { centralManager.cancelPeripheralConnection(connectedPeripheral) }
+                return
+            }
+            guard let device = selectedDevice else { return }
+            finalizeConnection(device: device)
         }
     }
 

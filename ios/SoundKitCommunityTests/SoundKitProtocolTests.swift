@@ -108,3 +108,88 @@ final class BleContentionDetectorTests: XCTestCase {
         XCTAssertEqual(detector.onDisconnected(userInitiated: false), .quickDrop)
     }
 }
+
+final class ValveCommandConfirmationTests: XCTestCase {
+    func testMatchingNotificationConfirmsCommand() {
+        XCTAssertEqual(
+            ValveCommandConfirmation.outcome(pending: .open, status: .success(.open)),
+            .idle
+        )
+    }
+
+    func testOppositeNotificationFailsCommandWithoutSuccess() {
+        XCTAssertEqual(
+            ValveCommandConfirmation.outcome(pending: .open, status: .success(.closed)),
+            .failed("Receiver reported the opposite valve state; command was not confirmed.")
+        )
+    }
+
+    func testUnknownAndNotReadyNotificationsFailCommand() {
+        XCTAssertEqual(
+            ValveCommandConfirmation.outcome(pending: .close, status: .success(.unknown)),
+            .failed("Receiver sent an unrecognised status; command was not confirmed.")
+        )
+        XCTAssertEqual(
+            ValveCommandConfirmation.outcome(pending: .close, status: .failure(.receiverNotReady)),
+            .failed(SoundKitProtocol.receiverNotReadyMessage)
+        )
+    }
+
+    func testNoPendingCommandDoesNotConsumeStatus() {
+        XCTAssertNil(ValveCommandConfirmation.outcome(pending: nil, status: .success(.open)))
+    }
+
+    func testTimeoutFailsPendingCommand() {
+        XCTAssertEqual(
+            ValveCommandConfirmation.timedOut(pending: .open),
+            .failed("Receiver did not confirm the valve command.")
+        )
+    }
+}
+
+final class ValveIntentDialogMapperTests: XCTestCase {
+    func testConfirmedOutcomeUsesConfirmedStateDialog() {
+        XCTAssertEqual(
+            ValveIntentDialogMapper.commandDialog(for: .open, outcome: .confirmed(.open)),
+            "Valves are open."
+        )
+        XCTAssertEqual(
+            ValveIntentDialogMapper.commandDialog(for: .close, outcome: .confirmed(.closed)),
+            "Valves are closed."
+        )
+    }
+
+    func testRejectedOutcomeNeverClaimsSuccess() {
+        XCTAssertEqual(
+            ValveIntentDialogMapper.commandDialog(
+                for: .open,
+                outcome: .rejected("Receiver did not confirm the valve command.")
+            ),
+            "Receiver did not confirm the valve command."
+        )
+    }
+
+    func testUnknownStatusGuidesUserWithoutGuessing() {
+        XCTAssertEqual(
+            ValveIntentDialogMapper.statusDialog(for: .unknown),
+            "Valve status is unavailable. Unlock your iPhone and open Sound Kit Community to reconnect."
+        )
+    }
+}
+
+final class ReconnectAttemptPolicyTests: XCTestCase {
+    func testRetryAttemptsCapAtEightWithoutResetting() {
+        var attempt = 0
+        for expected in 1...BLEManager.maxReconnectAttempts {
+            attempt = try! XCTUnwrap(ReconnectAttemptPolicy.nextAttempt(
+                current: attempt,
+                maximum: BLEManager.maxReconnectAttempts
+            ))
+            XCTAssertEqual(attempt, expected)
+        }
+        XCTAssertNil(ReconnectAttemptPolicy.nextAttempt(
+            current: attempt,
+            maximum: BLEManager.maxReconnectAttempts
+        ))
+    }
+}

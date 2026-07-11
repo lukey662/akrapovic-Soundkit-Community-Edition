@@ -7,14 +7,20 @@
 - Keep Android framework calls inside platform-facing classes.
 - Use coroutines and `StateFlow` for asynchronous state.
 - Keep BLE operations serialized through a mutex or explicit operation queue.
+- Model valve commands with `CommandResult` and `CommandPhase`; presentation surfaces call `ValveCommandCoordinator`, not BLE writes.
+- Treat a matching known valve state as successful no-op. Disconnected, unknown, and receiver-not-ready requests fail closed before any BLE write.
 
 ## Compose
 
 - Use Material 3 components.
 - Keep touch targets large and labels explicit.
 - Use semantic descriptions for critical controls.
+- Meet WCAG 2.1 AA interaction expectations: 48dp Android targets (or platform-equivalent iOS targets), explicit selected/state semantics for tabs and switches, and polite live announcements for valve, connection, and recoverable-error changes. Decorative valve artwork is hidden from assistive technology when adjacent text provides the state.
 - Represent loading, empty, error, and disabled states directly in UI.
+- Haptics communicate a completed valve command or a command failure only; respect system reduced-motion settings and never make animation the only state indicator.
 - Keep vehicle-use UI simple and low distraction.
+- Car App screens use typed presenter models and low-distraction templates; setup, permissions, and receiver selection always redirect to the phone.
+- Car templates show only status and discrete Open/Close actions. Hide controls for unknown or not-ready state; make current-state and in-flight actions inert.
 
 ## BLE
 
@@ -24,6 +30,8 @@
 - Require a known notification-derived valve state before sending a toggle command.
 - Update `BLE_PROTOCOL.md` and tests with every protocol change.
 - Isolate deprecated Android BLE calls behind SDK checks with comments explaining why they are unavoidable.
+- iOS voice and car surfaces must invoke `ValveControlCoordinator`, never `BLEManager` writes. A spoken or CarPlay success state requires receiver-notification confirmation, not a GATT write acknowledgement.
+- Keep CarPlay templates shallow and event-driven; setup, diagnostics, permissions, and device selection belong on the phone.
 
 ## Security
 
@@ -56,6 +64,6 @@
 - Prefer theme color roles (`MaterialTheme.colorScheme.onSurface`, `onSurfaceVariant`, etc.) over fixed white/gray text.
 - **Avoid**: screen + card double gradients, 10dp shadows on every block, uppercase eyebrow labels on every screen, decorative pill bottom nav.
 - Optional accent gradients belong on Home hero glow or theme preview strips — not default card treatment.
-- **`ValveVisual`** is the minimal Home hero: carbon rim stroke, titanium lip, dark bore, flat disc (80% fill, no tilt when closed). Open = disc clears, lip brightens. Uses [`ExhaustTipPalette`](app/src/main/java/com/akrapovic/soundkit/community/ui/components/ExhaustTipPalette.kt). Layout: `fillMaxWidth()` × ~168dp on Home. Prototype: `design/valve-simple-animations.html`.
+- **`ValveVisual`** is the minimal Home hero: carbon rim stroke, titanium lip, dark bore, flat disc (80% fill, no tilt when closed). Open = disc clears, lip brightens. It may animate only for unknown/busy state and is static when reduced motion is enabled. Uses [`ExhaustTipPalette`](app/src/main/java/com/akrapovic/soundkit/community/ui/components/ExhaustTipPalette.kt). Layout: `fillMaxWidth()` × ~168dp on Home. Prototype: `design/valve-simple-animations.html`.
 - Launcher artwork should use the same dark carbon / titanium / amber vocabulary and remain vector-based.
 

@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -149,23 +151,27 @@ fun SoundKitApp(
                         modifier = modifier,
                         onNavigate = { destination -> subScreen = destination },
                     )
-                    AppScreen.Diagnostics -> DiagnosticsScreen(
-                        modifier = modifier,
-                        entries = state.diagnostics,
-                        hasPendingCrash = state.hasPendingCrash,
-                        onBuildReport = viewModel::buildDiagnosticsReport,
-                        onCreateReportFile = viewModel::writeDiagnosticsReportFile,
-                        onBuildCrashReport = viewModel::buildCrashReport,
-                        onCreateCrashReportFile = viewModel::writeCrashReportFile,
-                        onCrashHandled = viewModel::clearPendingCrash,
-                        supportTriageBody = viewModel.buildSupportTriageBody(state),
-                        appVersionLabel = viewModel.buildAppVersionLabel(),
-                    )
+                    AppScreen.Diagnostics -> {
+                        val diagnostics by viewModel.diagnostics.collectAsStateWithLifecycle()
+                        DiagnosticsScreen(
+                            modifier = modifier,
+                            entries = diagnostics,
+                            hasPendingCrash = state.hasPendingCrash,
+                            onBuildReport = viewModel::buildDiagnosticsReport,
+                            onCreateReportFile = viewModel::writeDiagnosticsReportFile,
+                            onBuildCrashReport = viewModel::buildCrashReport,
+                            onCreateCrashReportFile = viewModel::writeCrashReportFile,
+                            onCrashHandled = viewModel::clearPendingCrash,
+                            supportTriageBody = viewModel.buildSupportTriageBody(state),
+                            appVersionLabel = viewModel.buildAppVersionLabel(),
+                        )
+                    }
                     AppScreen.Settings -> SettingsScreen(
                         modifier = modifier,
                         state = state,
                         onAutoReconnectChanged = viewModel::setAutoReconnect,
                         onConnectOnLaunchChanged = viewModel::setConnectOnLaunch,
+                        onConnectInCarChanged = viewModel::setConnectInCar,
                         onHeadUnitPriorityChanged = viewModel::setHeadUnitPriorityEnabled,
                         onSetDefaultReceiver = viewModel::setDefaultReceiver,
                         onRemoveReceiver = viewModel::removeReceiver,
@@ -231,7 +237,7 @@ private fun AkraTopBar(
             if (canGoBack) {
                 Box(
                     Modifier
-                        .size(28.dp)
+                        .size(48.dp)
                         .clickable(onClick = onBack)
                         .semantics { contentDescription = "Go back" },
                     contentAlignment = Alignment.Center,
@@ -302,7 +308,12 @@ private fun AkraBottomNav(
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
                         .clickable { onSelect(tab) }
-                        .padding(vertical = 10.dp),
+                        .semantics {
+                            role = androidx.compose.ui.semantics.Role.Tab
+                            this.selected = isSelected
+                            contentDescription = "${tab.label()} tab"
+                        }
+                        .padding(vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(

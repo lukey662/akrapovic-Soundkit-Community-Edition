@@ -26,10 +26,10 @@ jobs:
       - name: Verify Gradle wrapper
         run: ./gradlew --version
 
-      # assembleDebug depends on testDebugUnitTest (JVM unit + Paparazzi screenshot verify).
+      # Keep the required Android JVM matrix explicit; assembleDebug also depends on these tests.
       # Instrumented tests need a device/emulator — run locally via connectedDebugAndroidTest.
-      - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon
+      - name: Verify Android unit tests and build debug APK
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
 
       - name: Upload unit test reports
         if: always()

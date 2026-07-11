@@ -12,6 +12,8 @@ import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
+import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
+import com.akrapovic.soundkit.community.widget.SoundKitWidgetProvider
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.flow.combine
@@ -25,8 +27,10 @@ class BleConnectionService : LifecycleService() {
     @Inject lateinit var executionLog: RuleExecutionLogStore
     @Inject lateinit var notificationFactory: SoundKitNotificationFactory
     @Inject lateinit var driveModeEngine: DriveModeEngine
+    @Inject lateinit var valveCommandCoordinator: ValveCommandCoordinator
 
     private var connectSessionId = 0L
+    private var lastNotificationKey: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -47,8 +51,18 @@ class BleConnectionService : LifecycleService() {
                     driveModeEnabled = settings.driveModeEnabled,
                     driveModePaused = settings.automationPaused,
                     lastExecution = lastExecution,
-                )
-            }.collect { notification ->
+                ) to listOf(
+                    connectionState.toString(),
+                    valveState.name,
+                    receiverStatusMessage.orEmpty(),
+                    settings.defaultReceiver?.address.orEmpty(),
+                    settings.driveModeEnabled.toString(),
+                    settings.automationPaused.toString(),
+                    lastExecution?.timestampMillis?.toString().orEmpty(),
+                ).joinToString("|")
+            }.collect { (notification, key) ->
+                if (key == lastNotificationKey) return@collect
+                lastNotificationKey = key
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     startForeground(
                         SoundKitNotificationFactory.NOTIFICATION_ID,
@@ -58,6 +72,22 @@ class BleConnectionService : LifecycleService() {
                 } else {
                     startForeground(SoundKitNotificationFactory.NOTIFICATION_ID, notification)
                 }
+            }
+        }
+        lifecycleScope.launch {
+            combine(
+                bleRepository.connectionState,
+                bleRepository.valveState,
+                bleRepository.receiverStatusMessage,
+                settingsStore.settings,
+            ) { connection, valve, notReady, settings ->
+                SoundKitWidgetProvider.requestUpdate(
+                    context = this@BleConnectionService,
+                    connectionState = connection,
+                    valveState = valve,
+                    receiverStatusMessage = notReady,
+                    hasDefaultReceiver = settings.defaultReceiver != null,
+                )
             }
         }
         lifecycleScope.launch {
@@ -97,11 +127,11 @@ class BleConnectionService : LifecycleService() {
         when (intent?.action) {
             ACTION_OPEN -> lifecycleScope.launch {
                 driveModeEngine.onUserValveAdjustment()
-                bleRepository.openValve()
+                valveCommandCoordinator.open()
             }
             ACTION_CLOSE -> lifecycleScope.launch {
                 driveModeEngine.onUserValveAdjustment()
-                bleRepository.closeValve()
+                valveCommandCoordinator.close()
             }
             ACTION_DISCONNECT -> lifecycleScope.launch { bleRepository.disconnect() }
             ACTION_PAUSE_DRIVE_MODE -> lifecycleScope.launch {

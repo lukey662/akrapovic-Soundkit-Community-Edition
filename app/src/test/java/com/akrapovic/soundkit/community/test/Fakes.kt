@@ -49,6 +49,7 @@ class FakeBleConnectionGateway : BleConnectionGateway {
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val valveState = MutableStateFlow(ValveState.Unknown)
     override val receiverStatusMessage = MutableStateFlow<String?>(null)
+    override val notificationsEnabled = MutableStateFlow(false)
 
     val connectedDevices = mutableListOf<SoundKitDevice>()
     val writtenCommands = mutableListOf<ValveCommand>()
@@ -74,12 +75,14 @@ class FakeBleConnectionGateway : BleConnectionGateway {
         val result = if (connectResults.isNotEmpty()) connectResults.removeAt(0) else Result.success(Unit)
         if (result.isSuccess) {
             connectionState.value = ConnectionState.Connecting(device)
+            notificationsEnabled.value = false
         }
         return result
     }
 
     override suspend fun disconnect() {
         disconnectCount += 1
+        notificationsEnabled.value = false
         connectionState.value = ConnectionState.Disconnected
     }
 
@@ -97,6 +100,7 @@ class FakeSettingsStore(
     var forgetCount = 0
     var autoReconnectChanges = mutableListOf<Boolean>()
     var connectOnLaunchChanges = mutableListOf<Boolean>()
+    var connectInCarChanges = mutableListOf<Boolean>()
     var debugLoggingChanges = mutableListOf<Boolean>()
     var garageThemeChanges = mutableListOf<String>()
     var riskNoticeAcceptCount = 0
@@ -148,6 +152,11 @@ class FakeSettingsStore(
     override suspend fun setConnectOnLaunch(enabled: Boolean) {
         connectOnLaunchChanges += enabled
         settings.value = settings.value.copy(connectOnLaunch = enabled)
+    }
+
+    override suspend fun setConnectInCar(enabled: Boolean) {
+        connectInCarChanges += enabled
+        settings.value = settings.value.copy(connectInCar = enabled)
     }
 
     override suspend fun setHeadUnitPriorityEnabled(enabled: Boolean) {

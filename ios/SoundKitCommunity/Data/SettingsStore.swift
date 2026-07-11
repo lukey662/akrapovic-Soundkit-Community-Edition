@@ -3,17 +3,23 @@ import Foundation
 @MainActor
 final class SettingsStore: ObservableObject {
     @Published private(set) var settings: SoundKitSettings
+    @Published private(set) var persistenceError: String?
 
     private let defaults: UserDefaults
     private let settingsKey = "soundkit_settings_v1"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        if let data = defaults.data(forKey: settingsKey),
-           let decoded = try? JSONDecoder().decode(SoundKitSettings.self, from: data) {
-            settings = decoded
-        } else {
+        persistenceError = nil
+        guard let data = defaults.data(forKey: settingsKey) else {
             settings = SoundKitSettings()
+            return
+        }
+        do {
+            settings = try JSONDecoder().decode(SoundKitSettings.self, from: data)
+        } catch {
+            settings = SoundKitSettings()
+            persistenceError = "Couldn't restore saved settings: \(error.localizedDescription)"
         }
     }
 
@@ -62,7 +68,12 @@ final class SettingsStore: ObservableObject {
     }
 
     private func persist() {
-        guard let data = try? JSONEncoder().encode(settings) else { return }
-        defaults.set(data, forKey: settingsKey)
+        do {
+            let data = try JSONEncoder().encode(settings)
+            defaults.set(data, forKey: settingsKey)
+            persistenceError = nil
+        } catch {
+            persistenceError = "Couldn't save settings: \(error.localizedDescription)"
+        }
     }
 }

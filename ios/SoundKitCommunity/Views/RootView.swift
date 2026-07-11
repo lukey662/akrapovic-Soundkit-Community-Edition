@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RootView: View {
-    @StateObject private var viewModel = SoundKitViewModel()
+    @ObservedObject var viewModel: SoundKitViewModel
 
     var body: some View {
         Group {

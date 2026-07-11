@@ -16,6 +16,7 @@ import com.akrapovic.soundkit.community.domain.ValveCommand
 import com.akrapovic.soundkit.community.domain.ValveState
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.akrapovic.soundkit.community.domain.BleTimeouts
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -55,6 +56,7 @@ class BleRepositoryImpl @Inject constructor(
 ) : BleRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var scanJob: Job? = null
+    private var scanTimeoutJob: Job? = null
     private var reconnectJob: Job? = null
     private var lastRequestedDevice: SoundKitDevice? = null
     private var currentSettings: SoundKitSettings = SoundKitSettings()
@@ -81,6 +83,7 @@ class BleRepositoryImpl @Inject constructor(
         scope.launch {
             settingsRepository.settings.collect { settings ->
                 currentSettings = settings
+                diagnosticsRepository.debugLoggingEnabled = settings.debugLoggingEnabled
             }
         }
         scope.launch {
@@ -130,6 +133,7 @@ class BleRepositoryImpl @Inject constructor(
 
     override fun startScan() {
         if (scanJob?.isActive == true) return
+        scanTimeoutJob?.cancel()
         scanJob = scope.launch {
             _isScanning.value = true
             scanner.scan()
@@ -144,9 +148,18 @@ class BleRepositoryImpl @Inject constructor(
                     )
                 }
         }
+        scanTimeoutJob = scope.launch {
+            delay(BleTimeouts.ACTIVE_SCAN_MS)
+            if (_isScanning.value) {
+                diagnosticsRepository.info("Scan timed out after ${BleTimeouts.ACTIVE_SCAN_MS}ms")
+                stopScan()
+            }
+        }
     }
 
     override fun stopScan() {
+        scanTimeoutJob?.cancel()
+        scanTimeoutJob = null
         scanJob?.cancel()
         scanJob = null
         _isScanning.value = false

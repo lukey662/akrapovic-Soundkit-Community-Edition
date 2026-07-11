@@ -9,7 +9,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if bleManager.isConnected {
+                if showsConnectionStatus {
                     ConnectedDeviceView()
                 } else {
                     ScanView()
@@ -30,6 +30,15 @@ struct HomeView: View {
             }
         }
     }
+
+    private var showsConnectionStatus: Bool {
+        switch bleManager.connectionPhase {
+        case .connecting, .preparing, .connected, .reconnecting, .error:
+            return true
+        case .disconnected, .scanning:
+            return false
+        }
+    }
 }
 
 struct ConnectedDeviceView: View {
@@ -37,12 +46,19 @@ struct ConnectedDeviceView: View {
     @EnvironmentObject private var bleManager: BLEManager
     @EnvironmentObject private var settingsStore: SettingsStore
     @Environment(\.garageTheme) private var theme
+    @State private var showDisconnectConfirm = false
+    @State private var wasCommandInFlight = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 statusLine
                 valveHero
+                if case .error = bleManager.connectionPhase {
+                    Button("Retry connection") { bleManager.retryConnection() }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .accessibilityLabel("Retry receiver connection")
+                }
                 primaryAction
                 driveModeRow
                 disconnectRow
@@ -50,24 +66,52 @@ struct ConnectedDeviceView: View {
             .padding(24)
         }
         .onAppear { viewModel.rememberConnectedDevice() }
+        .onChange(of: bleManager.commandInFlight) { inFlight in
+            if wasCommandInFlight && !inFlight {
+                let feedback = UINotificationFeedbackGenerator()
+                feedback.notificationOccurred(bleManager.commandPhase.isFailure ? .error : .success)
+            }
+            wasCommandInFlight = inFlight
+        }
+        .onChange(of: bleManager.valveState) { _ in
+            UIAccessibility.post(
+                notification: .announcement,
+                argument: "\(valveLabel). \(valveSubtitle)"
+            )
+        }
+        .onChange(of: bleManager.statusMessage) { message in
+            guard let message, !message.isEmpty else { return }
+            UIAccessibility.post(notification: .announcement, argument: message)
+        }
+        .alert("Disconnect from receiver?", isPresented: $showDisconnectConfirm) {
+            Button("Disconnect", role: .destructive) { bleManager.disconnect() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The valves will keep their current position. You can reconnect from Home.")
+        }
     }
 
     private var statusLine: some View {
         HStack(spacing: 8) {
-            Circle().fill(Color.green).frame(width: 8, height: 8)
+            Circle().fill(connectionColor).frame(width: 8, height: 8)
             Text(connectionTitle)
                 .font(.subheadline)
                 .foregroundStyle(theme.muted)
             Spacer()
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(connectionTitle)
     }
 
     private var valveHero: some View {
         VStack(spacing: 12) {
-            Circle()
-                .stroke(theme.accent.opacity(0.5), lineWidth: 3)
-                .background(Circle().fill(theme.surface))
-                .frame(width: 160, height: 160)
+            ValveVisual(
+                state: bleManager.valveState,
+                commandInFlight: bleManager.commandInFlight,
+                accent: theme.accent,
+                surface: theme.surface
+            )
+            .accessibilityHidden(true)
             Text(valveLabel)
                 .font(.largeTitle.bold())
             Text(valveSubtitle)
@@ -81,19 +125,19 @@ struct ConnectedDeviceView: View {
                     .multilineTextAlignment(.center)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(valveLabel). \(valveSubtitle)")
+        .accessibilityValue(bleManager.statusMessage ?? "")
+        .accessibilityAddTraits(.updatesFrequently)
     }
 
     private var primaryAction: some View {
         Button(primaryActionTitle) {
-            viewModel.onValveCommand()
-            if bleManager.valveState == .open {
-                bleManager.closeValves()
-            } else {
-                bleManager.openValves()
-            }
+            viewModel.toggleValves()
         }
         .buttonStyle(PrimaryButtonStyle())
         .disabled(!bleManager.canControlValves)
+        .accessibilityHint(bleManager.canControlValves ? "Changes the receiver valve state." : "Unavailable until the receiver reports its current valve state.")
     }
 
     private var driveModeRow: some View {
@@ -121,16 +165,26 @@ struct ConnectedDeviceView: View {
 
     private var disconnectRow: some View {
         Button("Disconnect", role: .destructive) {
-            bleManager.disconnect()
+            showDisconnectConfirm = true
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var connectionTitle: String {
-        if case .connected(let device) = bleManager.connectionPhase {
+        switch bleManager.connectionPhase {
+        case .connecting(let device):
+            return "\(device.name) · Connecting"
+        case .preparing(let device):
+            return "\(device.name) · Preparing receiver"
+        case .connected(let device):
             return "\(device.name) · Connected"
+        case .reconnecting(let device, let attempt):
+            return "\(device.name) · Reconnecting (attempt \(attempt))"
+        case .error:
+            return "Connection needs attention"
+        case .disconnected, .scanning:
+            return "Disconnected"
         }
-        return "Connected"
     }
 
     private var valveLabel: String {
@@ -150,7 +204,57 @@ struct ConnectedDeviceView: View {
     }
 
     private var primaryActionTitle: String {
-        bleManager.valveState == .open ? "Close valves" : "Open valves"
+        if bleManager.commandInFlight { return "Changing…" }
+        if bleManager.valveState == .unknown { return "Waiting for status" }
+        return bleManager.valveState == .open ? "Close valves" : "Open valves"
+    }
+
+    private var connectionColor: Color {
+        switch bleManager.connectionPhase {
+        case .connected: return .green
+        case .connecting, .preparing, .reconnecting: return .orange
+        case .error: return .red
+        case .disconnected, .scanning: return theme.muted
+        }
+    }
+}
+
+private struct ValveVisual: View {
+    let state: ValveState
+    let commandInFlight: Bool
+    let accent: Color
+    let surface: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Group {
+            if (state == .unknown || commandInFlight) && !reduceMotion {
+                TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+                    visual(at: context.date)
+                }
+            } else {
+                visual(at: .distantPast)
+            }
+        }
+        .frame(width: 160, height: 160)
+    }
+
+    @ViewBuilder
+    private func visual(at date: Date) -> some View {
+        let phase = date == .distantPast ? 0.0 : (sin(date.timeIntervalSinceReferenceDate * 3) + 1) / 2
+        let openAmount = state == .open ? 1.0 : state == .unknown ? 0.8 + phase * 0.1 : 0.0
+        ZStack {
+            Circle().fill(surface)
+            Circle().stroke(accent.opacity(0.45 + openAmount * 0.45), lineWidth: 3)
+            if openAmount < 0.99 {
+                Circle()
+                    .fill(accent.opacity(0.7))
+                    .scaleEffect(1 - openAmount)
+            }
+            if commandInFlight {
+                Circle().stroke(accent.opacity(0.35 + phase * 0.45), lineWidth: 3)
+            }
+        }
     }
 }
 
@@ -186,7 +290,7 @@ struct ScanView: View {
                 .buttonStyle(PrimaryButtonStyle())
 
             if bleManager.discoveredDevices.isEmpty {
-                Text("No receivers yet")
+                Text(bleManager.statusMessage ?? "No receivers yet")
                     .foregroundStyle(theme.muted)
                     .padding(.top, 8)
             } else {

@@ -104,6 +104,8 @@ data class RuleExecutionEntry(
 data class SoundKitSettings(
     val savedReceivers: List<SavedReceiver> = emptyList(),
     val connectOnLaunch: Boolean = true,
+    /** Whether a Car App session may connect to the default receiver independently of phone launch. */
+    val connectInCar: Boolean = true,
     val headUnitPriorityEnabled: Boolean = true,
     val autoReconnect: Boolean = true,
     val debugLoggingEnabled: Boolean = true,

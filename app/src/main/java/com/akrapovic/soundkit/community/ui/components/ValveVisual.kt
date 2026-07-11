@@ -26,6 +26,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.invisibleToUser
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.ui.theme.LocalAkraTheme
@@ -52,16 +54,21 @@ fun ValveVisual(
         ) == 0f
     }
 
-    val unknownBreath = rememberInfiniteTransition(label = "valveBreath")
-    val breathOpen by unknownBreath.animateFloat(
-        initialValue = 0.72f,
-        targetValue = 0.88f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "valveBreathOpen",
-    )
+    val breathOpen = if (state == ValveState.Unknown && !reduceMotion) {
+        val unknownBreath = rememberInfiniteTransition(label = "valveBreath")
+        val value by unknownBreath.animateFloat(
+            initialValue = 0.72f,
+            targetValue = 0.88f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1800, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "valveBreathOpen",
+        )
+        value
+    } else {
+        0f
+    }
 
     val targetOpen = when {
         state == ValveState.Unknown && !reduceMotion -> breathOpen
@@ -79,16 +86,21 @@ fun ValveVisual(
         label = "valveOpenAmount",
     )
 
-    val infinite = rememberInfiniteTransition(label = "valveBusy")
-    val busyAlpha by infinite.animateFloat(
-        initialValue = if (commandInFlight && !reduceMotion) 0.55f else 1f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 700, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "valveBusyAlpha",
-    )
+    val busyAlpha = if (commandInFlight && !reduceMotion) {
+        val busyTransition = rememberInfiniteTransition(label = "valveBusy")
+        val value by busyTransition.animateFloat(
+            initialValue = 0.55f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 700, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "valveBusyAlpha",
+        )
+        value
+    } else {
+        1f
+    }
 
     var lastRippleTrigger by remember { mutableIntStateOf(0) }
     val rippleAnimatable = remember { Animatable(0f) }
@@ -105,7 +117,10 @@ fun ValveVisual(
     val rippleProgress = rippleAnimatable.value
     val contentAlpha = (if (state == ValveState.Unknown) 0.78f else 1f) * busyAlpha
 
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier.semantics { invisibleToUser() },
+        contentAlignment = Alignment.Center,
+    ) {
         Canvas(Modifier.fillMaxSize()) {
             val padX = size.width * 0.04f
             val padY = size.height * 0.11f

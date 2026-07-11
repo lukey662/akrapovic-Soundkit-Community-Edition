@@ -7,10 +7,13 @@ import com.akrapovic.soundkit.community.diagnostics.CrashReporter
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportMetadata
 import com.akrapovic.soundkit.community.domain.CommandResult
+import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.SavedReceiver
+import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.test.FakeBleRepository
 import com.akrapovic.soundkit.community.test.FakeSettingsStore
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
+import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
 import com.akrapovic.soundkit.community.test.NoopRuleExecutionLogStore
 import com.akrapovic.soundkit.community.test.MainDispatcherRule
 import com.akrapovic.soundkit.community.test.testDevice
@@ -35,6 +38,7 @@ class SoundKitViewModelTest {
     private val settingsStore = FakeSettingsStore()
     private val diagnosticsRepository = DiagnosticsRepository()
     private val carSessionTracker = CarSessionTracker()
+    private val valveCommandCoordinator = ValveCommandCoordinator(bleRepository)
 
     private fun viewModel(): SoundKitViewModel {
         val outputDirectory = File(System.getProperty("java.io.tmpdir"), "soundkit-${System.nanoTime()}")
@@ -63,7 +67,7 @@ class SoundKitViewModelTest {
                 },
                 crashReader = { crashReporter.readPendingCrash() },
                 outputDirectoryProvider = { outputDirectory },
-                carAppReadinessProvider = { _ -> "CAR APP READINESS" },
+                carAppReadinessProvider = { _, _ -> "CAR APP READINESS" },
             ),
             crashReporter = crashReporter,
             driveModeEngine = DriveModeEngine(
@@ -71,8 +75,10 @@ class SoundKitViewModelTest {
                 settingsStore = settingsStore,
                 executionLog = NoopRuleExecutionLogStore(),
                 diagnosticsRepository = diagnosticsRepository,
+                valveCommandCoordinator = valveCommandCoordinator,
             ),
             carSessionTracker = carSessionTracker,
+            valveCommandCoordinator = valveCommandCoordinator,
         )
     }
 
@@ -162,6 +168,8 @@ class SoundKitViewModelTest {
     @Test
     fun commandInFlightTogglesAndFailureReachesLastError() = runTest(mainDispatcherRule.dispatcher) {
         val viewModel = viewModel()
+        bleRepository.connectionState.value = ConnectionState.Connected(testDevice())
+        bleRepository.valveState.value = ValveState.Closed
         bleRepository.openResult = CompletableDeferred()
 
         viewModel.uiState.test {

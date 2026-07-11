@@ -1,5 +1,55 @@
 # Decisions
 
+## 2026-07-11: Centralize Android valve-command admission
+
+### Context
+
+Phone UI, notifications, Quick Settings, widgets, drive mode, and the Android Auto screen can all request a valve change. A receiver command is a state-gated toggle, so allowing each caller to decide readiness risks a duplicate or unintended write.
+
+### Decision
+
+- Route every Android valve request through the process-wide `ValveCommandCoordinator`.
+- The coordinator serializes requests, treats a matching known state as no-op success, and rejects disconnected, unknown, and receiver-not-ready requests before calling the BLE repository.
+- `BleConnectionManager` remains responsible for GATT discovery, notification subscription, write transport, and notification-based confirmation; a successful write callback alone is not command success.
+- The foreground BLE service retains the connection for Android background surfaces but does not bypass readiness or confirmation rules.
+
+### Consequences
+
+- All Android surfaces share the same fail-closed command boundary and observable command phase.
+- Tests can prove command admission without radio hardware, while physical testing still verifies GATT timing and receiver behavior.
+- The coordinator does not grant Android Auto distribution eligibility; the IoT template remains for DHU and compatible Automotive/head-unit testing, with projected Play distribution out of scope.
+
+## 2026-07-11: Confirm iOS toggle commands by receiver status
+
+### Decision
+
+iOS treats a completed GATT write as transport acknowledgement only. A valve command succeeds only when a subsequent notification reports its requested target state; opposite, unknown, not-ready, timeout, and disconnect outcomes fail closed.
+
+### Consequences
+
+- The app never presents an unconfirmed toggle as successful.
+- The BLE link is not exposed as connected until discovery and notification subscription complete.
+
+## 2026-07-11: Gate CarPlay, ship Siri independently
+
+### Context
+
+CarPlay driving-task access requires Apple's entitlement approval. Exhaust-valve commands have elevated review risk because noise, emissions, and driver distraction are safety-sensitive. Siri can use the installed app's local BLE state without granting CarPlay access.
+
+### Decision
+
+- Request `com.apple.developer.carplay-driving-task`, but keep it commented behind `CARPLAY_ENABLED` in the committed entitlement file until Apple approves it and the provisioning profile carries it.
+- Implement the CarPlay scene as a low-distraction `CPGridTemplate` only: Open, Close, and current status. It has no setup, diagnostics, receiver selection, or direct BLE path.
+- Register every CarPlay scene with `CarSessionTracker` and route both CarPlay and Siri through the process-wide `ValveControlCoordinator`.
+- Ship `OpenValvesIntent`, `CloseValvesIntent`, and `GetValveStatusIntent` regardless of entitlement outcome. Spoken command success requires notification confirmation from the receiver.
+- If the entitlement is rejected, ship phone UI plus Siri only; do not pursue private APIs, alternate entitlement keys, or provisioning workarounds.
+
+### Consequences
+
+- CarPlay remains unavailable until approval and matching provisioning are complete, so it is not a public feature claim.
+- A CarPlay session becomes the head-unit-priority signal for normal local BLE reconnect policy.
+- Locked/background Siri requests may fail safely when CoreBluetooth cannot restore a ready connection promptly; the response directs the user to unlock and open the phone app.
+
 ## 2026-06-13: Head-unit priority for two-phone households
 
 ### Context
@@ -349,3 +399,19 @@ Android v0.3.0 ships owner-facing features (drive mode, quiet neighbours, Audi t
 - Developers clone → open Xcode → set Team → run on iPhone without manual project creation.
 - iOS background BLE limitations documented; foreground-first UX acceptable for dev v1.
 - Owner README states Android is the supported platform until iOS hardware validation completes.
+
+## 2026-07-11: Separate Car Connection Preference
+
+### Context
+
+Phone launch and car-session entry are separate user intents. Reusing `connectOnLaunch` meant a user who disabled background phone launch connection could not choose to connect from the low-distraction car surface.
+
+### Decision
+
+Persist `connectInCar` independently, defaulting to true. Car entry checks this preference while phone launch continues to check only `connectOnLaunch`. The car surface uses an IoT `GridTemplate` with separate Open and Close items; it never starts setup or grants permissions while driving.
+
+### Consequences
+
+- Users can enable car connection without enabling phone launch connection.
+- Missing setup, Bluetooth permissions, or a default receiver lead to a phone-directed message rather than an in-car setup flow.
+- Commands remain serialized and fail closed through `ValveCommandCoordinator`.

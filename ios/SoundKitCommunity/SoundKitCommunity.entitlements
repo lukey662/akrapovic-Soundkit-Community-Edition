@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		CARPLAY_ENABLED: add com.apple.developer.carplay-driving-task only after
+		Apple grants the driving-task entitlement and the provisioning profile
+		contains it. Do not add entitlement workarounds or ship this key unsigned.
+		<key>com.apple.developer.carplay-driving-task</key>
+		<true/>
+	-->
+</dict>
+</plist>

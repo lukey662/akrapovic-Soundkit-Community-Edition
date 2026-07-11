@@ -16,7 +16,7 @@ flowchart TD
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest
+./gradlew :app:testDebugUnitTest :app:assembleDebug
 ```
 
 `assembleDebug` also depends on `testDebugUnitTest`, so a local APK build fails fast if JVM tests fail:
@@ -36,11 +36,28 @@ Covered areas:
 - `RememberedDeviceConnector` connect-on-launch policy (phone and car)
 - `NotificationCopy` and `QsTilePresenter` action gating
 - `DriveModeEngine` — preferred valve on connect + quiet start; manual toggle wins per session
+- `ValveCommandCoordinator` — same-state no-op, disconnected/unknown/not-ready rejection without a write, serialization, and terminal failure phases
+- `CarScreenPresenter` — phone-only setup states, connecting/unknown/not-ready states, and separate Open/Close availability
+- `SettingsBackupCodec` — schema version, JSON, theme, and preferred-mode validation
+- `RememberedDeviceConnector` — independent `connectOnLaunch` and `connectInCar` policies
+- `NotificationCopy` / `QsTilePresenter` — disconnected, known-ready, unknown, and not-ready command gating
 - Reconnect backoff **max 8 attempts**
 - Diagnostics report generation and local crash-log round trip
 - **Paparazzi** — README screenshot composables (Audi RS Dark, drive mode, quiet neighbours)
 
 These tests do not need Android BLE hardware.
+
+### Required automated verification matrix
+
+Run the relevant rows for every change, and all rows before release:
+
+| Area | Required verification |
+|---|---|
+| Android domain/data/service changes | `./gradlew :app:testDebugUnitTest :app:assembleDebug` |
+| Compose or screenshot changes | `./gradlew :app:verifyPaparazziDebug` when the Paparazzi task is available |
+| Android UI, manifest, notification, or Car App changes | `./gradlew :app:connectedDebugAndroidTest` on a supported local device/emulator |
+| iOS Swift, App Intents, lifecycle, or CarPlay changes | `cd ios && xcodebuild -project SoundKitCommunity.xcodeproj -scheme SoundKitCommunity -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO test` |
+| Car integration changes | Automated presenter/unit coverage plus DHU and physical head-unit checks below |
 
 ## Instrumented Smoke Tests
 
@@ -77,7 +94,7 @@ Record results in your test notes as **Pass / Fail / Not tested**.
 | 1 | Install debug APK; complete first-run onboarding; connect to receiver once on phone | Remembered receiver stored |
 | 2 | Settings → Connected devices → Connection preferences → **Android Auto** (Pixel) or search Settings; tap **Version** 10× → **Developer mode** | Developer menu visible |
 | 3 | Enable **Unknown sources** (and **Start head unit server** for DHU) | Settings stick after restart |
-| 4 | **DHU (Mac):** run Desktop Head Unit; launch **Sound Kit** from launcher | Pane shows receiver + valve rows |
+| 4 | **DHU (Mac):** run Desktop Head Unit; launch **Sound Kit** from launcher | Grid shows Open/Close + status (or phone-setup message) |
 | 5 | **Real car:** plug in or wireless AA; open AA launcher → find **Sound Kit** | App listed (sideload + dev mode) |
 | 6 | Open Sound Kit on head unit while **parked** | Template loads without crash |
 | 7 | With remembered receiver: confirm auto-reconnect or **Connecting…** row | No need to open phone app first |
@@ -172,6 +189,51 @@ Record each step as **Pass / Fail / Not tested** and note iOS version, iPhone mo
 ### iOS CI
 
 GitHub Actions runs **build + simulator unit tests** only (`.github/workflows/ios-build.yml`). No BLE integration on CI.
+
+## Locked-phone, DHU, and CarPlay release gates
+
+These checks cannot be established by simulator or JVM tests. Record device model, OS version, build, and **Pass / Fail / Not tested** for each.
+
+### Locked-phone background BLE
+
+- Connect to a ready receiver, lock the phone for at least two minutes, then confirm the Android foreground service retains the expected state without an unsolicited write.
+- On iPhone, lock after an established connection and verify restoration/reconnect never sends a blind command; unlock if the OS cannot promptly restore a ready connection.
+- Trigger one intentional command only while parked; verify success follows a matching receiver notification, not merely the GATT write callback.
+
+### DHU / Android Automotive
+
+- Complete onboarding and remember a default receiver on the phone.
+- Set `connectOnLaunch` and `connectInCar` to opposite values, open a car session, and verify only `connectInCar` controls car-entry connection.
+- Verify setup/permission/default-receiver failures are phone-directed; no setup flow appears in the car template.
+- Verify Open/Close are separate, same-state and busy actions are inert, and unknown/not-ready status hides commands.
+- Repeat on a physical Automotive OS or projected debug head unit where available. A projected Play listing is not a release target.
+
+### CarPlay and Siri
+
+- Siri may be released independently: test Open, Close, and Status on a physical iPhone, including a locked-phone request that must fail safely when BLE cannot become ready.
+- Do not claim, enable, or distribute CarPlay until Apple has approved `com.apple.developer.carplay-driving-task` and the installed provisioning profile includes it.
+- After approval only, validate the shallow CarPlay grid on hardware: status updates, coordinator-routed commands, no phone-only setup/diagnostics/device selection, and safe failure while the phone is locked.
+
+### Known environment limitations
+
+- Android 16 / API 36 may fail in Espresso before app assertions because of the `InputManager` shim; use a supported device/API 35 or Paparazzi for Compose verification.
+- `connectedDebugAndroidTest`, DHU, Automotive OS, CoreBluetooth, Siri, and CarPlay require local hardware or tooling and are not GitHub-hosted CI coverage.
+- iOS Simulator cannot exercise CoreBluetooth, background restoration, Siri BLE readiness, or CarPlay entitlement behavior.
+- Simulator images vary by Xcode install. If `name=iPhone 16` resolves to an unavailable latest runtime, choose an installed iPhone runtime explicitly (for example `name=iPhone 16,OS=18.6`) before treating the test command as a product failure.
+- CarPlay entitlement approval is not evidence of App Store approval; exhaust-valve control remains subject to Apple review and regional safety, noise, and emissions requirements.
+
+## Automated validation evidence (2026-07-11)
+
+| Gate | Result |
+|---|---|
+| `./gradlew :app:testDebugUnitTest` | Passed |
+| `./gradlew :app:assembleDebug` | Passed |
+| `./gradlew :app:verifyPaparazziDebug` | Passed |
+| iOS `xcodebuild … name=iPhone 16,OS=18.6 … test` | Passed (19 tests) |
+| `connectedDebugAndroidTest` | Manual / local device required |
+| DHU / real Android Auto | Manual release gate |
+| Locked-phone Siri / CarPlay entitlement | Manual; CarPlay not approved |
+| Parked physical receiver smoke | Manual release gate |
 
 ## Physical Receiver Smoke Checklist
 

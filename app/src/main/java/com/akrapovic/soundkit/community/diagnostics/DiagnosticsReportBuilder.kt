@@ -3,6 +3,7 @@ package com.akrapovic.soundkit.community.diagnostics
 import android.content.Context
 import android.os.Build
 import com.akrapovic.soundkit.community.BuildConfig
+import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.domain.DiagnosticsEntry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -17,24 +18,31 @@ class DiagnosticsReportBuilder(
     private val metadataProvider: () -> DiagnosticsReportMetadata,
     private val crashReader: () -> String?,
     private val outputDirectoryProvider: () -> File,
-    private val carAppReadinessProvider: (Boolean) -> String,
+    private val carAppReadinessProvider: (Boolean, Boolean) -> String,
 ) {
     @Inject
     constructor(
         @ApplicationContext context: Context,
         crashReporter: CrashReporter,
+        carSessionTracker: CarSessionTracker,
     ) : this(
         metadataProvider = { DiagnosticsReportMetadata.from(context) },
         crashReader = { crashReporter.readPendingCrash() },
         outputDirectoryProvider = { File(context.cacheDir, "diagnostics") },
-        carAppReadinessProvider = { hasDefaultReceiver ->
-            CarAppDiagnostics.format(context, hasDefaultReceiver)
+        carAppReadinessProvider = { hasDefaultReceiver, connectInCar ->
+            CarAppDiagnostics.format(
+                context = context,
+                hasDefaultReceiver = hasDefaultReceiver,
+                connectInCar = connectInCar,
+                carSessionActive = carSessionTracker.isCarSessionActive.value,
+            )
         },
     )
 
     fun buildDiagnosticsReport(
         entries: List<DiagnosticsEntry>,
         hasDefaultReceiver: Boolean = false,
+        connectInCar: Boolean = true,
         includeCrash: Boolean = true,
         vehicleDisplayName: String? = null,
         vehicleTier: String? = null,
@@ -47,7 +55,7 @@ class DiagnosticsReportBuilder(
             appendLine()
             appendVehicleContext(vehicleDisplayName, vehicleTier, connectionState)
             appendLine()
-            appendLine(carAppReadinessProvider(hasDefaultReceiver))
+            appendLine(carAppReadinessProvider(hasDefaultReceiver, connectInCar))
             appendLine()
             appendLine("PRIVACY NOTE")
             appendLine("Review before sending. This report may include BLE device names and MAC addresses.")
@@ -88,10 +96,11 @@ class DiagnosticsReportBuilder(
     fun writeDiagnosticsReportFile(
         entries: List<DiagnosticsEntry>,
         hasDefaultReceiver: Boolean = false,
+        connectInCar: Boolean = true,
     ): File {
         return writeReportFile(
             "soundkit-diagnostics",
-            buildDiagnosticsReport(entries, hasDefaultReceiver),
+            buildDiagnosticsReport(entries, hasDefaultReceiver, connectInCar),
         )
     }
 

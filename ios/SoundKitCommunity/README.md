@@ -73,6 +73,8 @@ ios/SoundKitCommunityTests/   XCTest unit tests
 - Drive mode: preferred Open/Closed on connect, quiet neighbours window
 - Audi RS Dark theme (default when Audi RS3 selected)
 - Diagnostics log, share export, mailto **support@appsforgood.net**
+- Siri App Intents for Open, Close, and status; command success is spoken only after the receiver notification confirms it
+- CarPlay `CPGridTemplate` scaffold, gated on Apple approval of `com.apple.developer.carplay-driving-task` (not currently available)
 
 ## Testing
 
@@ -89,7 +91,12 @@ Physical receiver smoke checklist: **[TESTING.md](../../TESTING.md)** § iOS dev
 
 | Key | Purpose |
 |-----|---------|
-| `NSBluetoothAlwaysUsageDescription` | Foreground BLE scan and connect |
+| `NSBluetoothAlwaysUsageDescription` | BLE scan and connect |
 | `NSBluetoothPeripheralUsageDescription` | Legacy compatibility |
+| `UIBackgroundModes` → `bluetooth-central` | CoreBluetooth recovery and state restoration |
 
-No internet usage; no background BLE modes in dev v1.
+No internet usage. Background restoration never authorizes a blind valve write; Siri and CarPlay commands still require a ready receiver and notification confirmation.
+
+## CarPlay entitlement
+
+Before enabling CarPlay distribution, request `com.apple.developer.carplay-driving-task`. Approval is high-risk for valve control because it can affect noise, emissions, and driving safety. The project includes a scene declaration but keeps the entitlement key commented under `CARPLAY_ENABLED`; add it only after Apple approves the request and the provisioning profile carries it. If rejected, ship Siri and phone UI only—there is no entitlement workaround.

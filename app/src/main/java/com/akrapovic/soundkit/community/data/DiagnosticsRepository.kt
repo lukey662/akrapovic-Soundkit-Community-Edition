@@ -19,7 +19,17 @@ class DiagnosticsRepository @Inject constructor() {
     private val _entries = MutableStateFlow<List<DiagnosticsEntry>>(emptyList())
     val entries: StateFlow<List<DiagnosticsEntry>> = _entries
 
-    fun debug(message: String) = add(DiagnosticsLevel.Debug, message)
+    @Volatile
+    var debugLoggingEnabled: Boolean = true
+
+    fun debug(message: String) {
+        if (!debugLoggingEnabled) {
+            Timber.d(message)
+            return
+        }
+        add(DiagnosticsLevel.Debug, message)
+    }
+
     fun info(message: String) = add(DiagnosticsLevel.Info, message)
     fun warning(message: String) = add(DiagnosticsLevel.Warning, message)
     fun error(message: String, throwable: Throwable? = null) {

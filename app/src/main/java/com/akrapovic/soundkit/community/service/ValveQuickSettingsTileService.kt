@@ -82,6 +82,10 @@ class ValveQuickSettingsTileService : TileService() {
             ValveTileAction.Close -> BleConnectionService.ACTION_CLOSE
             null -> return
         }
-        startService(Intent(this, BleConnectionService::class.java).setAction(action))
+        // Cold-process QS taps must start as a foreground service on Android 12+.
+        androidx.core.content.ContextCompat.startForegroundService(
+            this,
+            Intent(this, BleConnectionService::class.java).setAction(action),
+        )
     }
 }

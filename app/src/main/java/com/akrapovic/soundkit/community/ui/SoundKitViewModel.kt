@@ -23,6 +23,7 @@ import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.domain.ConnectionPriorityPolicy
 import com.akrapovic.soundkit.community.domain.ConnectionYieldState
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
+import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.domain.VehicleCompatibilityCatalog
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,6 +45,7 @@ class SoundKitViewModel @Inject constructor(
     private val crashReporter: CrashReporter,
     private val driveModeEngine: DriveModeEngine,
     private val carSessionTracker: CarSessionTracker,
+    private val valveCommandCoordinator: ValveCommandCoordinator,
 ) : ViewModel() {
     private val commandInFlight = MutableStateFlow(false)
     private val lastError = MutableStateFlow<String?>(null)
@@ -87,20 +89,28 @@ class SoundKitViewModel @Inject constructor(
         )
     }
 
+    /**
+     * Diagnostics are deliberately collected by the Diagnostics destination only. BLE log churn
+     * must not invalidate the app-wide UI state or recompose Home while a receiver is active.
+     */
+    val diagnostics = diagnosticsRepository.entries.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+        initialValue = emptyList(),
+    )
+
     val uiState = combine(
         coreState,
-        diagnosticsRepository.entries,
         commandInFlight,
         lastError,
         hasPendingCrash,
-    ) { core, diagnostics, inFlight, error, pendingCrash ->
+    ) { core, inFlight, error, pendingCrash ->
         SoundKitUiState(
             devices = core.devices,
             connectionState = core.connectionState,
             valveState = core.valveState,
             isScanning = core.isScanning,
             settings = core.settings,
-            diagnostics = diagnostics,
             commandInFlight = inFlight,
             lastError = error,
             receiverStatusMessage = core.receiverStatusMessage,
@@ -165,16 +175,15 @@ class SoundKitViewModel @Inject constructor(
 
     fun openValve() {
         driveModeEngine.onUserValveAdjustment()
-        sendCommand { bleRepository.openValve() }
+        sendCommand { valveCommandCoordinator.open() }
     }
 
     fun closeValve() {
         driveModeEngine.onUserValveAdjustment()
-        sendCommand { bleRepository.closeValve() }
+        sendCommand { valveCommandCoordinator.close() }
     }
 
     fun toggleValve() {
-        driveModeEngine.onUserValveAdjustment()
         when (uiState.value.valveState) {
             ValveState.Open -> closeValve()
             ValveState.Closed -> openValve()
@@ -191,6 +200,12 @@ class SoundKitViewModel @Inject constructor(
     fun setConnectOnLaunch(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.setConnectOnLaunch(enabled)
+        }
+    }
+
+    fun setConnectInCar(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setConnectInCar(enabled)
         }
     }
 
@@ -233,7 +248,12 @@ class SoundKitViewModel @Inject constructor(
 
     fun importSettingsBackup(json: String) {
         viewModelScope.launch {
-            settingsRepository.importSettingsBackup(json)
+            try {
+                settingsRepository.importSettingsBackup(json)
+                lastError.value = null
+            } catch (error: Throwable) {
+                lastError.value = error.message ?: "Settings import failed"
+            }
         }
     }
 
@@ -325,8 +345,9 @@ class SoundKitViewModel @Inject constructor(
         val hasDefault = RememberedDeviceConnector.defaultDevice(settings) != null
         val vehicle = VehicleCompatibilityCatalog.findById(settings.selectedVehicleId)
         return diagnosticsReportBuilder.buildDiagnosticsReport(
-            entries = uiState.value.diagnostics,
+            entries = diagnostics.value,
             hasDefaultReceiver = hasDefault,
+            connectInCar = settings.connectInCar,
             vehicleDisplayName = vehicle?.displayName,
             vehicleTier = vehicle?.tierLabel,
             connectionState = uiState.value.connectionState.toString(),
@@ -337,8 +358,9 @@ class SoundKitViewModel @Inject constructor(
         val settings = uiState.value.settings
         val hasDefault = RememberedDeviceConnector.defaultDevice(settings) != null
         return diagnosticsReportBuilder.writeDiagnosticsReportFile(
-            entries = uiState.value.diagnostics,
+            entries = diagnostics.value,
             hasDefaultReceiver = hasDefault,
+            connectInCar = settings.connectInCar,
         )
     }
 
@@ -368,14 +390,21 @@ class SoundKitViewModel @Inject constructor(
     }
 
     private fun sendCommand(block: suspend () -> CommandResult) {
+        if (commandInFlight.value || valveCommandCoordinator.commandInFlight) return
         viewModelScope.launch {
             commandInFlight.value = true
             lastError.value = null
-            when (val result = block()) {
-                is CommandResult.Success -> lastError.value = null
-                is CommandResult.Failure -> lastError.value = result.message
+            try {
+                when (val result = block()) {
+                    is CommandResult.Success -> lastError.value = null
+                    is CommandResult.Failure -> lastError.value = result.message
+                }
+            } catch (error: Throwable) {
+                lastError.value = error.message ?: "Valve command failed"
+            } finally {
+                commandInFlight.value = false
+                valveCommandCoordinator.clearTerminalPhase()
             }
-            commandInFlight.value = false
         }
     }
 }

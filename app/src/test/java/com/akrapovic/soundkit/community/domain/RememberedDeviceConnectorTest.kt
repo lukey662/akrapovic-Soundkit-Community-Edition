@@ -66,6 +66,33 @@ class RememberedDeviceConnectorTest {
     }
 
     @Test
+    fun carConnectionPolicyIsIndependentFromPhoneLaunchPolicy() {
+        val settings = SoundKitSettings(
+            connectOnLaunch = false,
+            connectInCar = true,
+            savedReceivers = listOf(
+                SavedReceiver(address = "00:11:22:33:44:55", name = "Kit", isDefault = true),
+            ),
+        )
+
+        assertFalse(RememberedDeviceConnector.shouldAutoConnect(ConnectionState.Disconnected, settings))
+        assertTrue(RememberedDeviceConnector.shouldConnectInCar(ConnectionState.Disconnected, settings))
+    }
+
+    @Test
+    fun carConnectionPolicyHonorsConnectInCar() {
+        val settings = SoundKitSettings(
+            connectOnLaunch = true,
+            connectInCar = false,
+            savedReceivers = listOf(
+                SavedReceiver(address = "00:11:22:33:44:55", name = "Kit", isDefault = true),
+            ),
+        )
+
+        assertFalse(RememberedDeviceConnector.shouldConnectInCar(ConnectionState.Disconnected, settings))
+    }
+
+    @Test
     fun shouldNotAutoConnectWhenAlreadyActive() {
         val settings = SoundKitSettings(
             savedReceivers = listOf(

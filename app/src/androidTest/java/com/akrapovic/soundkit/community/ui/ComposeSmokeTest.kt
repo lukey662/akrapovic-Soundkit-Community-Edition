@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.SdkSuppress
+import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
@@ -25,6 +26,7 @@ import com.akrapovic.soundkit.community.domain.DiagnosticsLevel
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
+import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.testDeviceForSmoke
 import com.akrapovic.soundkit.community.ui.control.ConnectedDeviceScreen
@@ -59,11 +61,13 @@ private fun smokeDriveModeEngine(
     bleRepository: BleRepository,
     settingsRepository: SettingsStore,
     diagnosticsRepository: DiagnosticsRepository,
+    valveCommandCoordinator: ValveCommandCoordinator,
 ) = DriveModeEngine(
     bleRepository = bleRepository,
     settingsStore = settingsRepository,
     executionLog = SmokeRuleExecutionLogStore(),
     diagnosticsRepository = diagnosticsRepository,
+    valveCommandCoordinator = valveCommandCoordinator,
 )
 
 @SdkSuppress(maxSdkVersion = 35)
@@ -227,6 +231,8 @@ class ComposeSmokeTest {
                     state = SoundKitUiState(),
                     onAutoReconnectChanged = {},
                     onConnectOnLaunchChanged = {},
+                    onConnectInCarChanged = {},
+                    onHeadUnitPriorityChanged = {},
                     onSetDefaultReceiver = {},
                     onRemoveReceiver = {},
                     onUpdateNickname = { _, _ -> },
@@ -264,6 +270,8 @@ class ComposeSmokeTest {
                     ),
                     onAutoReconnectChanged = {},
                     onConnectOnLaunchChanged = {},
+                    onConnectInCarChanged = {},
+                    onHeadUnitPriorityChanged = {},
                     onSetDefaultReceiver = {},
                     onRemoveReceiver = {},
                     onUpdateNickname = { _, _ -> },
@@ -289,19 +297,29 @@ class ComposeSmokeTest {
             initial = SoundKitSettings(onboardingCompletedAt = 1L),
         )
         val diagnosticsRepository = DiagnosticsRepository()
+        val bleRepository = FakeBleRepositoryForSmoke()
+        val valveCommandCoordinator = ValveCommandCoordinator(bleRepository)
+        val carSessionTracker = CarSessionTracker()
         composeRule.setContent {
             SoundKitApp(
                 viewModel = SoundKitViewModel(
-                    bleRepository = FakeBleRepositoryForSmoke(),
+                    bleRepository = bleRepository,
                     settingsRepository = settingsRepository,
                     diagnosticsRepository = diagnosticsRepository,
-                    diagnosticsReportBuilder = DiagnosticsReportBuilder(context, crashReporter),
+                    diagnosticsReportBuilder = DiagnosticsReportBuilder(
+                        context,
+                        crashReporter,
+                        carSessionTracker,
+                    ),
                     crashReporter = crashReporter,
                     driveModeEngine = smokeDriveModeEngine(
-                        FakeBleRepositoryForSmoke(),
+                        bleRepository,
                         settingsRepository,
                         diagnosticsRepository,
+                        valveCommandCoordinator,
                     ),
+                    carSessionTracker = carSessionTracker,
+                    valveCommandCoordinator = valveCommandCoordinator,
                 ),
                 blePermissions = emptyList(),
                 blePermissionsGranted = true,
@@ -323,19 +341,29 @@ class ComposeSmokeTest {
             initial = SoundKitSettings(onboardingCompletedAt = 0L),
         )
         val diagnosticsRepository = DiagnosticsRepository()
+        val bleRepository = FakeBleRepositoryForSmoke()
+        val valveCommandCoordinator = ValveCommandCoordinator(bleRepository)
+        val carSessionTracker = CarSessionTracker()
         composeRule.setContent {
             SoundKitApp(
                 viewModel = SoundKitViewModel(
-                    bleRepository = FakeBleRepositoryForSmoke(),
+                    bleRepository = bleRepository,
                     settingsRepository = settingsRepository,
                     diagnosticsRepository = diagnosticsRepository,
-                    diagnosticsReportBuilder = DiagnosticsReportBuilder(context, crashReporter),
+                    diagnosticsReportBuilder = DiagnosticsReportBuilder(
+                        context,
+                        crashReporter,
+                        carSessionTracker,
+                    ),
                     crashReporter = crashReporter,
                     driveModeEngine = smokeDriveModeEngine(
-                        FakeBleRepositoryForSmoke(),
+                        bleRepository,
                         settingsRepository,
                         diagnosticsRepository,
+                        valveCommandCoordinator,
                     ),
+                    carSessionTracker = carSessionTracker,
+                    valveCommandCoordinator = valveCommandCoordinator,
                 ),
                 blePermissions = emptyList(),
                 blePermissionsGranted = true,
@@ -486,6 +514,10 @@ private class FakeSettingsStoreForSmoke(
 
     override suspend fun setConnectOnLaunch(enabled: Boolean) {
         settings.value = settings.value.copy(connectOnLaunch = enabled)
+    }
+
+    override suspend fun setConnectInCar(enabled: Boolean) {
+        settings.value = settings.value.copy(connectInCar = enabled)
     }
 
     override suspend fun setHeadUnitPriorityEnabled(enabled: Boolean) {

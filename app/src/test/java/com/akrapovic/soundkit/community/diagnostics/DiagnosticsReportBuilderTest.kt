@@ -77,12 +77,13 @@ class DiagnosticsReportBuilderTest {
             },
             crashReader = { crash },
             outputDirectoryProvider = { outputDirectory },
-            carAppReadinessProvider = { hasDefault ->
+            carAppReadinessProvider = { hasDefault, connectInCar ->
                 buildString {
                     appendLine("CAR APP READINESS")
                     appendLine("carAppServiceRegistered=true")
                     appendLine("protocolVerified=true")
                     appendLine("defaultReceiverSaved=$hasDefault")
+                    appendLine("connectInCar=$connectInCar")
                 }
             },
         )

@@ -1,7 +1,9 @@
 package com.akrapovic.soundkit.community.domain
 
 /**
- * Shared policy for connecting to the user's default saved receiver on launch or car entry.
+ * Shared policy for connecting to the user's default saved receiver.
+ *
+ * Phone launch and Car App entry intentionally use independent preferences.
  */
 object RememberedDeviceConnector {
     fun defaultDevice(settings: SoundKitSettings): SoundKitDevice? {
@@ -14,6 +16,15 @@ object RememberedDeviceConnector {
 
     fun shouldAutoConnect(connectionState: ConnectionState, settings: SoundKitSettings): Boolean {
         if (!settings.connectOnLaunch) return false
+        return canConnectDefault(connectionState, settings)
+    }
+
+    fun shouldConnectInCar(connectionState: ConnectionState, settings: SoundKitSettings): Boolean {
+        if (!settings.connectInCar) return false
+        return canConnectDefault(connectionState, settings)
+    }
+
+    private fun canConnectDefault(connectionState: ConnectionState, settings: SoundKitSettings): Boolean {
         if (defaultDevice(settings) == null) return false
         return when (connectionState) {
             ConnectionState.Disconnected,

@@ -20,9 +20,13 @@ Provide a modern Android app that locally controls an Akrapovic Sound Kit BLE re
 ```mermaid
 flowchart TD
     ComposeUI[Compose UI] --> ViewModel[SoundKitViewModel]
-    AndroidAuto[Android Auto IoT Screen] --> Repository[BleRepository]
-    Notification[Notification Actions] --> Service[BleConnectionService]
-    QuickTile[Quick Settings Tile] --> Service
+    ViewModel --> Coordinator[ValveCommandCoordinator]
+    AndroidAuto[Android Auto IoT Screen] --> Coordinator
+    Notification[Notification Actions] --> Coordinator
+    QuickTile[Quick Settings Tile] --> Coordinator
+    Widget[App widget] --> Coordinator
+    DriveMode[DriveModeEngine] --> Coordinator
+    Coordinator --> Repository[BleRepository]
     ViewModel --> Repository
     Service --> Repository
     Repository --> Scanner[BleScanner]
@@ -46,11 +50,15 @@ flowchart TD
   - Unknown state: no write.
   - Requested state already active: no-op success.
   - Requested state opposite current state: send one toggle write with `WRITE_TYPE_DEFAULT`.
+  - A write response starts a five-second confirmation window; only a matching target-state notification succeeds. Opposite, unknown, `04`, timeout, and disconnect outcomes fail closed.
+- iOS reports a receiver connected only after characteristic discovery and notification subscription succeed; it uses `bluetooth-central` background restoration without sending a command during restoration.
 
 ## UI Behavior
 
 - Scan screen is a guided setup flow with plain permission copy, one scan action, empty state, and receiver cards.
-- Control screen focuses on current valve state and one safe next action. Protocol details are hidden from the primary journey. The valve state is rendered as an animated **valve visual** (two opposing arc plates that animate apart when Open and together when Closed; a soft accent glow pulses while Open). The visual is decorative; the helper text is the source of truth for screen readers.
+- Control screen focuses on current valve state and one safe next action. Protocol details are hidden from the primary journey. The valve visual communicates open/closed/unknown states, animates only while unknown or busy, and stays static with reduced motion. The visual is decorative; the helper text is the source of truth for screen readers.
+- Home preserves connection progress rather than returning to scan: connecting shows a “Preparing receiver” banner, reconnecting and errors expose a distinct retry action, and a connected receiver with unknown valve state shows “Waiting for status” with controls safely disabled. Active scans stop after 15 seconds and show a “No receiver found” retry state when empty.
+- Valve state, connection changes, and recoverable errors use polite accessibility announcements. Success and failure haptics are limited to completed valve command outcomes; decorative valve artwork is excluded from screen-reader navigation and all motion honors the system reduced-motion preference.
 - Diagnostics screen shows local logs and exposes a **file-only** export. Copy puts plain text on the clipboard; Save uses the system Storage Access Framework (`ACTION_CREATE_DOCUMENT`) to let the user pick a destination; Share builds an `ACTION_SEND` intent with **no `EXTRA_SUBJECT` and no `EXTRA_TEXT`** so email apps cannot auto-populate the user's account or message body.
 - Settings screen controls auto-reconnect, detailed local logging, remembered receiver removal (with confirmation dialog), and background connection reliability.
 - Disconnect and Forget receiver actions show a confirmation `AlertDialog` to prevent accidental in-car taps.
@@ -60,9 +68,10 @@ flowchart TD
 ## Background Behavior
 
 - A foreground service maintains the BLE connection and persistent notification.
-- Notification actions call the same repository command path as the UI.
+- UI, notification, Quick Settings, widget, drive mode, and Android Auto commands use the process-wide `ValveCommandCoordinator`. It serializes requests, returns no-op success for a matching known state, and rejects disconnected, unknown, and not-ready state before a repository call.
+- GATT discovery and notification subscription establish readiness; write acknowledgement is transport-only and a target-state notification confirms a command result.
 - Quick Settings tile opens the app when disconnected and toggles the last known valve state when connected.
-- Android Auto exposes minimal low-distraction controls through the IoT category. The app targets Android **Automotive OS** (built-in head units) and the Desktop Head Unit simulator; it does **not** appear in **projected Android Auto** (phone-projected) because a valve-toggle controller does not fit any Google Play projected category. See `DOCS.md` § Android Auto Testing.
+- Android Auto exposes minimal low-distraction controls through the IoT category. It is testable on DHU, compatible Automotive OS targets, and sideloaded projected debug paths with Android Auto developer settings. Google Play projected distribution remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
 
 ## Security
 
@@ -71,13 +80,15 @@ flowchart TD
 - No cloud logging.
 - No BLE writes to unknown characteristics or while valve state is unknown.
 - No hard-coded pairing PIN.
-- Minimal persisted data: saved receivers (JSON list, max 8), connect-on-launch flag, selected theme, and user settings.
+- Minimal persisted data: saved receivers (JSON list, max 8), independent phone-launch and car-entry connection flags, selected theme, and user settings.
 
 ## Saved receivers
 
 - `SavedReceiver`: address, name, optional nickname, `isDefault`.
 - CRUD via `SettingsStore`: save on connect (default if first), remove, set default, update nickname, forget all.
 - **Connect on launch:** one attempt per process when onboarding complete, BLE granted, `connectOnLaunch` true, and `ConnectionPriorityPolicy.shouldAutoConnectOnLaunch` (respects head-unit priority — secondary phones defer until Car App session is active on that device).
+- **Connect in car:** a separate default-on `connectInCar` preference controls automatic connection when a Car App session opens; it does not alter phone launch behavior.
+- **Car surface:** an IoT `GridTemplate` shows separate Open and Close items only for a connected, ready receiver with known state. The matching current-state item is inert, both are inert during a command, and controls are hidden while state is unknown or the receiver is not ready. Missing onboarding, Bluetooth permissions, or a default receiver show a phone-only setup message.
 - **Head unit priority** (default on): when enabled, only the phone with an active Android Auto session auto-connects on launch; other phones yield on BLE contention and show **Take control** on Home.
 
 ## Multi-phone / same car
@@ -127,13 +138,17 @@ Bundle ID: `com.akrapovic.soundkit.community` (matches Android base ID).
 - Minimum deployment: **iOS 17.0**
 - Swift 5.9+, Xcode 15+
 - CoreBluetooth only — **no internet**, no accounts, no cloud logging
-- Foreground-first UX (no background BLE reconnect in dev v1)
+- CoreBluetooth `bluetooth-central` background mode and central-manager state restoration support safe connection recovery; no blind background valve write is permitted.
 
 ### Architecture
 
 ```mermaid
 flowchart TD
     SwiftUI[SwiftUI Views] --> VM[SoundKitViewModel]
+    Siri[Siri App Intents] --> Coordinator[ValveControlCoordinator]
+    CarPlay[CarPlay CPGridTemplate] --> Coordinator
+    VM --> Coordinator
+    Coordinator --> BLE
     VM --> BLE[BLEManager]
     VM --> Store[SettingsStore]
     VM --> Drive[DriveModeEngine]
@@ -154,6 +169,7 @@ Mirrors Android (see `BLE_PROTOCOL.md`):
 - Valve state from notifications only: `02`/`07` closed, `03`/`06` open, `04` not ready.
 - Toggle payload `01` with the same state-gated rules as Android `SoundKitProtocol.commandPayload`.
 - Status `04`: remain connected, show not-ready copy, disable valve controls (no reconnect storm).
+- Connection progress, reconnect failures, and retry remain on the Home control journey instead of falling back to Scan prematurely. Unknown status shows “Waiting for status”; disconnect requires confirmation. Valve commands provide in-flight, success, and failure feedback with system haptics, VoiceOver announcements, Dynamic Type-safe layouts, and reduced-motion valve visuals.
 - Auto-reconnect capped at **8** attempts with user-visible retry.
 
 ### UI behavior
@@ -163,6 +179,8 @@ Mirrors Android (see `BLE_PROTOCOL.md`):
 - Drive mode screen: preferred Open/Closed, quiet neighbours window, quick profiles (Everyday / Quiet street / Track).
 - Garage themes: Studio + Audi RS Dark (default when Audi RS3 selected in onboarding).
 - Diagnostics: local ring-buffer log, share `.txt` export, mailto support@appsforgood.net.
+- Siri: Open, Close, and status intents use the single `ValveControlCoordinator`. Open/Close speak success only after a notification confirms the requested state.
+- CarPlay: entitlement-gated, shallow Open/Close/status `CPGridTemplate`; all setup, permissions, diagnostics, and receiver selection remain phone-only. The scene is unavailable until Apple approves `com.apple.developer.carplay-driving-task` and provisioning includes it.
 
 ### Persistence
 
@@ -174,7 +192,7 @@ Developer install via Xcode or ad-hoc IPA only. TestFlight and App Store are def
 
 ### Testing
 
-- XCTest unit tests for protocol, quiet window, connect-ready observer, drive mode profiles.
+- XCTest unit tests for protocol, quiet window, connect-ready observer, drive mode profiles, and Siri dialog/result mapping.
 - CI: macOS runner build + simulator unit tests (no BLE hardware).
 - Physical smoke: `TESTING.md` § iOS device smoke (required before owner distribution).
 

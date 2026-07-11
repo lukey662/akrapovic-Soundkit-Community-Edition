@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  DataStore preferences live under files/datastore/, not sharedpref/.
+  Exclude receiver IDs, settings, and automation logs from cloud backup
+  and device-to-device transfer.
+-->
 <data-extraction-rules>
     <cloud-backup>
+        <exclude
+            domain="file"
+            path="datastore/" />
         <exclude
             domain="sharedpref"
             path="soundkit_settings.preferences_pb" />
     </cloud-backup>
     <device-transfer>
         <exclude
+            domain="file"
+            path="datastore/" />
+        <exclude
             domain="sharedpref"
             path="soundkit_settings.preferences_pb" />
     </device-transfer>
 </data-extraction-rules>
-

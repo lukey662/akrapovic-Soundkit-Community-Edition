@@ -7,6 +7,7 @@ final class SoundKitViewModel: ObservableObject {
     let settingsStore: SettingsStore
     let diagnosticsStore: DiagnosticsStore
     let bleManager: BLEManager
+    let valveControl: ValveControlCoordinator
     let driveModeEngine: DriveModeEngine
 
     @Published var selectedTab: AppTab = .home
@@ -30,8 +31,14 @@ final class SoundKitViewModel: ObservableObject {
         let engine = self.driveModeEngine
         let ble = bleManager ?? BLEManager(sessionProvider: { [weak engine] in engine?.nextSessionId() ?? 0 })
         self.bleManager = ble
+        self.valveControl = ValveControlCoordinator(bleManager: ble)
 
-        self.driveModeEngine.configure(ble: ble, settings: self.settingsStore, diagnostics: self.diagnosticsStore)
+        self.driveModeEngine.configure(
+            ble: ble,
+            valveControl: self.valveControl,
+            settings: self.settingsStore,
+            diagnostics: self.diagnosticsStore
+        )
         ble.settingsProvider = { [weak settingsStore = self.settingsStore] in
             settingsStore?.settings ?? SoundKitSettings()
         }
@@ -62,6 +69,7 @@ final class SoundKitViewModel: ObservableObject {
     }
 
     func tryConnectOnLaunch() {
+        guard !bleManager.connectionPhase.isConnectingOrConnected else { return }
         guard ConnectionPriorityPolicy.shouldAutoConnectOnLaunch(
             settings: settingsStore.settings,
             carSessionActive: CarSessionTracker.shared.isCarSessionActive
@@ -83,6 +91,15 @@ final class SoundKitViewModel: ObservableObject {
 
     func onValveCommand() {
         driveModeEngine.onUserValveAdjustment()
+    }
+
+    func toggleValves() {
+        onValveCommand()
+        if valveControl.currentStatus == .open {
+            valveControl.close()
+        } else {
+            valveControl.open()
+        }
     }
 
     func rememberConnectedDevice() {

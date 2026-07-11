@@ -27,6 +27,13 @@ ios/SoundKitCommunity/
 4. Build with `./gradlew :app:assembleDebug` (uses the committed Gradle wrapper).
 5. Install on a physical Android device with BLE support.
 
+### Android packages, build variants, and diagnostics
+
+- The release application ID is `com.akrapovic.soundkit.community`; the debug build adds `.debug` and `-debug`. There are no product flavors.
+- Before handing off an APK, run `./gradlew :app:testDebugUnitTest :app:assembleDebug`; run `:app:verifyPaparazziDebug` when the task is present and UI snapshots changed.
+- The Android foreground service owns connection lifetime. Every command surface—including the Compose UI, notification, Quick Settings, widget, drive mode, and Car App—uses `ValveCommandCoordinator`; only `BleConnectionManager` performs GATT discovery, subscription, and transport.
+- **More → Advanced → Diagnostics** records package/build identifiers, Car App readiness, local BLE events, and the GATT profile. Export remains user-initiated and file-only; do not add telemetry or upload paths.
+
 ## iOS development
 
 **Owners:** iOS is not available for public install yet — see `INSTALL.md`.
@@ -55,6 +62,22 @@ xcodebuild -project SoundKitCommunity.xcodeproj -scheme SoundKitCommunity \
 
 Physical receiver validation: `TESTING.md` § iOS device smoke. Full iOS layout and dev install: `ios/SoundKitCommunity/README.md`.
 
+### CarPlay entitlement and Siri
+
+CarPlay is **not available or marketed** until Apple approves the driving-task entitlement. Before requesting distribution, request `com.apple.developer.carplay-driving-task`; valve control has a high approval risk because it can affect noise, emissions, and safe driving. The committed entitlement file deliberately keeps that key commented under `CARPLAY_ENABLED`. After written approval, add the key and use a provisioning profile that contains it—never bypass entitlement signing.
+
+If Apple rejects the request, ship Siri App Intents and the phone UI only. There is no entitlement workaround and the CarPlay scene must remain unavailable.
+
+Once approved and correctly provisioned, the CarPlay scene is a shallow `CPGridTemplate`: Open, Close, and a non-interactive status. It shares the app's `ValveControlCoordinator`, updates only on BLE/coordinator events, and directs setup, permissions, diagnostics, and receiver selection to the phone.
+
+Siri shortcuts are independent of CarPlay approval:
+
+- “Open valves in Sound Kit Community”
+- “Close valves in Sound Kit Community”
+- “Get valve status in Sound Kit Community”
+
+They run without opening the app where iOS permits it, but never start an unsafe blind command: a result is spoken as successful only after the notification-confirmed coordinator result. If Bluetooth state cannot restore or become ready in time, Siri tells the user to unlock the phone and open the app.
+
 ## README screenshots
 
 Marketing screenshots for `docs/screenshots/` and the README are recorded with [Paparazzi](https://github.com/cashapp/paparazzi) — JVM tests, no emulator or phone:
@@ -80,12 +103,12 @@ Until `onboardingCompletedAt` is set in DataStore, the app shows a single scroll
 
 Clearing app data resets onboarding. Existing installs see the full screen again until they tap **Get started**.
 
-## Saved receivers and connect on launch
+## Saved receivers and automatic connection
 
 - Up to **8** receivers stored as JSON in DataStore (`saved_receivers_json`), with legacy `remembered_device_*` migrated on first read.
-- **Settings** lists saved receivers, default star, connect-on-launch toggle, and per-receiver remove.
+- **Settings** lists saved receivers, default star, independent **Connect on launch** and **Connect in car** toggles, and per-receiver remove.
 - **Home (scan)** shows saved chips and marks default devices; connecting saves/updates the receiver and sets default when appropriate.
-- **`RememberedDeviceConnector`** (domain) decides whether to auto-connect on app launch (phone) or car session entry; separate from post-drop **auto reconnect** in `BleRepository`.
+- **`RememberedDeviceConnector`** (domain) keeps phone launch (`connectOnLaunch`) and car session entry (`connectInCar`) policies separate from post-drop **auto reconnect** in `BleRepository`.
 
 ## Drive mode
 
@@ -146,7 +169,9 @@ Planned features, UX direction, and non-goals are tracked in `ROADMAP.md`.
 
 The car surface uses the Android for Cars App Library **IoT** category (`androidx.car.app.category.IOT`). It is local-only and delegates all BLE work to the same repository path as the phone UI, including state-gated toggle safety.
 
-When the car session opens, the app starts the BLE foreground service and **auto-connects to the remembered receiver** if disconnected. The car template shows receiver/valve status, a single **Open valves** / **Close valves** toggle when safe, receiver-not-ready (`04`) messaging, and **Open on phone** when no receiver is saved.
+When the car session opens, the app starts the BLE foreground service and auto-connects to the remembered receiver only when **Connect in car** is enabled. The `GridTemplate` provides separate **Open** and **Close** actions when the receiver is connected and status is known; the current-state action is inert and both are inert while a command runs. Unknown and not-ready receiver states hide actions. Onboarding, BLE permission, and receiver setup remain phone-only and show **Finish setup on phone** on the car display.
+
+Diagnostics exports record Car App registration, package suffix, manifest Car API level, Bluetooth permission readiness, saved receiver, `connectInCar`, and current car-session status.
 
 The manifest must declare `com.google.android.gms.car.application` pointing at `res/xml/automotive_app_desc.xml` (with `<uses name="template" />`).
 
@@ -180,6 +205,12 @@ If Sound Kit never appears in the car launcher, control valves while parked via:
 ### Android Automotive OS
 
 Built-in head units (Polestar, Volvo, etc.) can host IoT Car apps without phone projection. The same `SoundKitCarScreen` template applies.
+
+### Distribution and approval boundaries
+
+- Android Auto's IoT surface supports DHU, Automotive OS, and sideloaded projected testing with developer settings. A projected Google Play listing is not planned; do not represent it as supported distribution.
+- iOS Siri App Intents can ship independently after physical BLE validation. They fail safely if a locked/background phone cannot restore a ready BLE connection in time.
+- CarPlay is entitlement-gated and not approved. Do not enable, advertise, or submit its scene until Apple approves the driving-task entitlement and the provisioning profile includes it. Approval still does not guarantee App Store acceptance for safety-, noise-, or emissions-sensitive valve control.
 
 ## Release Notes
 

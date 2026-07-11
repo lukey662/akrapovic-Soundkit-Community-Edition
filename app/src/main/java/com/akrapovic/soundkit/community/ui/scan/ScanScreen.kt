@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -60,6 +61,16 @@ fun ScanScreen(
 ) {
     val savedByAddress = state.settings.savedReceivers.associateBy { it.address }
     val showTakeControlConfirm = remember { mutableStateOf(false) }
+    var scanCompletedWithoutReceiver by remember { mutableStateOf(false) }
+    var wasScanning by remember { mutableStateOf(state.isScanning) }
+
+    LaunchedEffect(state.isScanning, state.devices.isEmpty()) {
+        if (wasScanning && !state.isScanning && state.devices.isEmpty()) {
+            scanCompletedWithoutReceiver = true
+        }
+        if (state.devices.isNotEmpty()) scanCompletedWithoutReceiver = false
+        wasScanning = state.isScanning
+    }
 
     if (showTakeControlConfirm.value) {
         AlertDialog(
@@ -119,8 +130,16 @@ fun ScanScreen(
         }
 
         AkraActionButton(
-            label = if (state.isScanning) "Stop scan" else "Scan nearby",
-            contentDescription = if (state.isScanning) "Stop scanning" else "Scan for Sound Kit receiver",
+            label = when {
+                state.isScanning -> "Stop scan"
+                scanCompletedWithoutReceiver -> "Try scan again"
+                else -> "Scan nearby"
+            },
+            contentDescription = when {
+                state.isScanning -> "Stop scanning for Sound Kit receivers"
+                scanCompletedWithoutReceiver -> "Retry scan: no Sound Kit receiver found"
+                else -> "Scan for Sound Kit receiver"
+            },
             filled = true,
             onClick = if (state.isScanning) onStopScan else onStartScan,
         )
@@ -149,15 +168,19 @@ fun ScanScreen(
         if (state.devices.isEmpty()) {
             AkraElevated {
                 Text(
-                    text = if (state.isScanning) "Scanning nearby…" else "No receivers yet",
+                    text = when {
+                        state.isScanning -> "Scanning nearby…"
+                        scanCompletedWithoutReceiver -> "No receiver found"
+                        else -> "No receivers yet"
+                    },
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = if (state.isScanning) {
-                        "Keep the phone near the car."
-                    } else {
-                        "Turn the car on, then tap Scan nearby."
+                    text = when {
+                        state.isScanning -> "Keep the phone near the car."
+                        scanCompletedWithoutReceiver -> "Turn the car on, move closer, then try again."
+                        else -> "Turn the car on, then tap Scan nearby."
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

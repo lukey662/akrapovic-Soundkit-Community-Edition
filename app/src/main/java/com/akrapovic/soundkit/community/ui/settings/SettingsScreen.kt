@@ -41,6 +41,7 @@ fun SettingsScreen(
     state: SoundKitUiState,
     onAutoReconnectChanged: (Boolean) -> Unit,
     onConnectOnLaunchChanged: (Boolean) -> Unit,
+    onConnectInCarChanged: (Boolean) -> Unit,
     onHeadUnitPriorityChanged: (Boolean) -> Unit,
     onSetDefaultReceiver: (String) -> Unit,
     onRemoveReceiver: (String) -> Unit,
@@ -70,6 +71,13 @@ fun SettingsScreen(
                 subtitle = "When this phone is on Android Auto, it controls the Sound Kit. Other phones won't auto-connect.",
                 checked = state.settings.headUnitPriorityEnabled,
                 onCheckedChange = onHeadUnitPriorityChanged,
+            )
+            AkraListDivider()
+            AkraSwitchRow(
+                title = "Connect in car",
+                subtitle = "Try your default receiver when Sound Kit opens on the car display",
+                checked = state.settings.connectInCar,
+                onCheckedChange = onConnectInCarChanged,
             )
             AkraListDivider()
             AkraSwitchRow(

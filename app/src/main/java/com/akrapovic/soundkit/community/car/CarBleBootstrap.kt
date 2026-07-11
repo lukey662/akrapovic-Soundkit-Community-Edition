@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Ensures BLE foreground service is running and reconnects to the default saved receiver when the
- * Android Auto / car session opens.
+ * Android Auto / car session opens, if the separate car connection preference permits it.
  */
 object CarBleBootstrap {
     fun onCarEntry(
@@ -20,9 +20,10 @@ object CarBleBootstrap {
         scope: CoroutineScope,
     ) {
         BleConnectionService.start(context)
+        if (!settings.onboardingCompleted) return
         val device = RememberedDeviceConnector.defaultDevice(settings) ?: return
         scope.launch {
-            if (RememberedDeviceConnector.shouldAutoConnect(repository.connectionState.value, settings)) {
+            if (RememberedDeviceConnector.shouldConnectInCar(repository.connectionState.value, settings)) {
                 repository.connect(device, userInitiated = false)
             }
         }

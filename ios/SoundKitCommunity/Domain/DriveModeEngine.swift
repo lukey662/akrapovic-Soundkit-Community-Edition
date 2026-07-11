@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class DriveModeEngine {
     private weak var bleManager: BLEManager?
+    private weak var valveControl: ValveControlCoordinator?
     private weak var settingsStore: SettingsStore?
     private weak var diagnostics: DiagnosticsStore?
 
@@ -11,8 +12,14 @@ final class DriveModeEngine {
     private var currentSessionId: Int?
     private var userAdjustedSessionId: Int?
 
-    func configure(ble: BLEManager, settings: SettingsStore, diagnostics: DiagnosticsStore) {
+    func configure(
+        ble: BLEManager,
+        valveControl: ValveControlCoordinator,
+        settings: SettingsStore,
+        diagnostics: DiagnosticsStore
+    ) {
         bleManager = ble
+        self.valveControl = valveControl
         settingsStore = settings
         self.diagnostics = diagnostics
     }
@@ -78,13 +85,13 @@ final class DriveModeEngine {
                 diagnostics?.debug("Drive mode skipped open (\(reason))")
                 return
             }
-            bleManager.openValves()
+            valveControl?.open()
         case .closed:
             if bleManager.valveState == .closed {
                 diagnostics?.debug("Drive mode skipped closed (\(reason))")
                 return
             }
-            bleManager.closeValves()
+            valveControl?.close()
         }
         diagnostics?.info("Drive mode \(mode.rawValue) (\(reason))")
     }
@@ -96,7 +103,7 @@ final class DriveModeEngine {
             diagnostics?.debug("Drive mode already closed (\(reason))")
             return
         }
-        bleManager.closeValves()
+        valveControl?.close()
         diagnostics?.info("Drive mode close (\(reason))")
     }
 
