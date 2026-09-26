@@ -49,6 +49,7 @@ class VoiceValveActionRouter @Inject constructor(
                 if (current.device.address != receiver.address) return "The saved default receiver is not connected."
             ConnectionState.Disconnected,
             is ConnectionState.Error,
+            is ConnectionState.Away,
             ConnectionState.Scanning,
             -> bleRepository.connect(receiver, userInitiated = false)
         }

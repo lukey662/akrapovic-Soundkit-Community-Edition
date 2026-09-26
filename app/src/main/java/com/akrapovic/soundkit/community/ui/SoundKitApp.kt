@@ -147,6 +147,9 @@ fun SoundKitApp(
                             primaryScreen = AppScreen.More
                             subScreen = AppScreen.DriveMode
                         },
+                        onPeriodicScanAnswer = { enabled ->
+                            if (enabled) viewModel.setPeriodicScanWhenAway(true) else viewModel.declinePeriodicScan()
+                        },
                     )
                     AppScreen.More -> MoreScreen(
                         modifier = modifier,
@@ -185,6 +188,8 @@ fun SoundKitApp(
                         onExportSettingsBackup = viewModel::exportSettingsBackup,
                         onImportSettingsBackup = viewModel::importSettingsBackup,
                         onApplyDriveModeProfile = viewModel::applyDriveModeProfile,
+                        onPeriodicScanChanged = viewModel::setPeriodicScanWhenAway,
+                        onCarBluetoothSelected = viewModel::setCarBluetooth,
                     )
                     AppScreen.DriveMode -> DriveModeScreen(
                         modifier = modifier,

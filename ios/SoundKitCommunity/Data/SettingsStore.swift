@@ -152,6 +152,8 @@ final class SettingsStore: ObservableObject {
         settings.connectInCar = try boolean(root, key: "connectInCar", defaultValue: settings.connectInCar)
         settings.headUnitPriorityEnabled = try boolean(root, key: "headUnitPriorityEnabled", defaultValue: settings.headUnitPriorityEnabled)
         settings.autoReconnect = try boolean(root, key: "autoReconnect", defaultValue: settings.autoReconnect)
+        settings.periodicScanWhenAway = try boolean(root, key: "periodicScanWhenAway", defaultValue: settings.periodicScanWhenAway)
+        settings.periodicScanPromptAnswered = try boolean(root, key: "periodicScanPromptAnswered", defaultValue: settings.periodicScanPromptAnswered)
         settings.driveModeEnabled = try boolean(root, key: "driveModeEnabled", defaultValue: settings.driveModeEnabled)
 
         if let theme = root["garageThemeId"] {

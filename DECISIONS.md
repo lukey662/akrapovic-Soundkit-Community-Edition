@@ -556,3 +556,23 @@ Persist `connectInCar` independently, defaulting to true. Car entry checks this 
 - Users can enable car connection without enabling phone launch connection.
 - Missing setup, Bluetooth permissions, or a default receiver lead to a phone-directed message rather than an in-car setup flow.
 - Commands remain serialized and fail closed through `ValveCommandCoordinator`.
+
+## 2026-09-26: Leaving the car is not a connection error
+
+### Context
+
+After the receiver drops, the app retried about eight times and then stored `ConnectionState.Error` with “Couldn't reach receiver — tap to retry”. The notification also kept “Checking valves” and the last drive-mode apply. That reads as a fault when the phone has simply left the car. The same cap meant the phone never connected again when the driver returned. Android Auto could also die on first paint: an idle `GridTemplate` with no list throws.
+
+### Decision
+
+- When the short reconnect burst ends, enter `ConnectionState.Away` with a persisted timestamp. If the phone is still on the saved car Bluetooth link or Android Auto projection, the copy is “Receiver out of range”. Otherwise it is “Left the car”. Real faults (pairing, missing characteristic, permission) stay `Error`.
+- There is no Audi MMI API. Presence is the paired classic Bluetooth device the user confirms, plus `CarConnection` projection. Either one counts as “in the car” for head-unit priority.
+- Coming back to the car connects once when auto-reconnect and connect-in-car are on. A user disconnect does not.
+- Occasional scanning while away is off until the user opts in. The walk-away burst stays capped at 8 attempts.
+- The car screen uses a loading template only while connecting, a message for every other non-ready state, and the Open/Close grid only when the receiver is connected and valve state is known.
+
+### Consequences
+
+- The shade no longer looks like a failure after a normal exit, and it can show when the phone left.
+- Stock Android Auto still will not list a sideloaded IoT app until Unknown sources and Customize launcher are on for this package id. Play listing stays a non-goal.
+- iOS uses the same away copy. CarPlay stays off. iOS presence is the car-audio route, which is a weaker signal than Android's Bluetooth profile.

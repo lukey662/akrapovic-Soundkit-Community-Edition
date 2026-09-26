@@ -44,6 +44,7 @@ class SoundKitNotificationFactory @Inject constructor(
         lastExecution: RuleExecutionEntry? = null,
         driveModeEnabled: Boolean = true,
         driveModePaused: Boolean = automationPaused,
+        periodicScanWhenAway: Boolean = false,
     ): Notification {
         val presentation = NotificationCopy.build(
             connectionState = connectionState,
@@ -53,6 +54,7 @@ class SoundKitNotificationFactory @Inject constructor(
             driveModeEnabled = driveModeEnabled,
             driveModePaused = driveModePaused,
             lastExecution = lastExecution,
+            periodicScanWhenAway = periodicScanWhenAway,
         )
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -71,6 +73,9 @@ class SoundKitNotificationFactory @Inject constructor(
             .setOnlyAlertOnce(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
+        if (presentation.connectEnabled) {
+            builder.addAction(action(R.string.notification_action_connect, BleConnectionService.ACTION_CONNECT, 6))
+        }
         if (presentation.openValveEnabled) {
             builder.addAction(action(R.string.notification_action_open, BleConnectionService.ACTION_OPEN, 1))
         }

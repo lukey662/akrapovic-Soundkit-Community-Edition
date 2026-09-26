@@ -22,8 +22,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+enum class ScanDuty {
+    Active,
+    LowPower,
+}
+
 interface BleScannerGateway {
-    fun scan(): Flow<List<SoundKitDevice>>
+    fun scan(duty: ScanDuty = ScanDuty.Active): Flow<List<SoundKitDevice>>
 }
 
 class BleScanner @Inject constructor(
@@ -35,7 +40,7 @@ class BleScanner @Inject constructor(
     private val bluetoothAdapter = bluetoothManager.adapter
 
     @SuppressLint("MissingPermission")
-    override fun scan(): Flow<List<SoundKitDevice>> = callbackFlow {
+    override fun scan(duty: ScanDuty): Flow<List<SoundKitDevice>> = callbackFlow {
         if (!hasScanPermission()) {
             trySend(emptyList())
             close(SecurityException("Missing Bluetooth scan permission"))
@@ -78,8 +83,12 @@ class BleScanner @Inject constructor(
         val filters = SoundKitProtocol.serviceUuid?.let { uuid ->
             listOf(ScanFilter.Builder().setServiceUuid(ParcelUuid(uuid)).build())
         }.orEmpty()
+        val scanMode = when (duty) {
+            ScanDuty.Active -> ScanSettings.SCAN_MODE_LOW_LATENCY
+            ScanDuty.LowPower -> ScanSettings.SCAN_MODE_LOW_POWER
+        }
         val settings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setScanMode(scanMode)
             .setReportDelay(0L)
             .build()
 

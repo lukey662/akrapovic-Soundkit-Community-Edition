@@ -1,5 +1,15 @@
 import Foundation
 
+enum AwayCopy {
+    static func message(leftCar: Bool, since: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        let time = formatter.string(from: since)
+        return leftCar ? "Left the car at \(time)" : "Receiver out of range since \(time)"
+    }
+}
+
 enum ConnectionPhase: Equatable {
     case disconnected
     case scanning
@@ -8,6 +18,8 @@ enum ConnectionPhase: Equatable {
     case connected(DiscoveredDevice)
     case reconnecting(DiscoveredDevice, attempt: Int)
     case error(String)
+    /// Receiver stopped answering. Not a fault: the phone left the car, or the receiver is off.
+    case away(since: Date, leftCar: Bool)
 
     var isConnectingOrConnected: Bool {
         switch self {

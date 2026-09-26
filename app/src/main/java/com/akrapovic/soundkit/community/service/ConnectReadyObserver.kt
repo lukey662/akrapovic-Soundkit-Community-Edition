@@ -21,7 +21,8 @@ internal object ConnectReadyObserver {
         wasConnectReady: Boolean,
     ): Transition {
         val disconnected = connection is ConnectionState.Disconnected ||
-            connection is ConnectionState.Error
+            connection is ConnectionState.Error ||
+            connection is ConnectionState.Away
         val isConnectReady = connection is ConnectionState.Connected &&
             valve != ValveState.Unknown &&
             notReady == null

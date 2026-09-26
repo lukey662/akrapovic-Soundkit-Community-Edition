@@ -11,6 +11,7 @@ import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.test.FakeBleRepository
+import com.akrapovic.soundkit.community.test.FakeCarPresenceSource
 import com.akrapovic.soundkit.community.test.FakeSettingsStore
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
@@ -78,6 +79,7 @@ class SoundKitViewModelTest {
                 valveCommandCoordinator = valveCommandCoordinator,
             ),
             carSessionTracker = carSessionTracker,
+            carPresence = FakeCarPresenceSource(),
             valveCommandCoordinator = valveCommandCoordinator,
         )
     }

@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.service
 
+import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
 import com.akrapovic.soundkit.community.domain.RuleExecutionOutcome
@@ -105,5 +106,31 @@ class NotificationCopyTest {
         )
 
         assertTrue(presentation.contentText.contains("Last: Drive mode → Open"))
+    }
+
+    @Test
+    fun awayIsNotAnErrorAndOmitsValveAndDriveModeLines() {
+        val presentation = NotificationCopy.build(
+            connectionState = ConnectionState.Away(1_700_000_000_000L, AwayReason.LeftCar),
+            valveState = ValveState.Unknown,
+            receiverStatusMessage = null,
+            defaultReceiver = null,
+            driveModeEnabled = true,
+            lastExecution = RuleExecutionEntry(
+                timestampMillis = 1L,
+                ruleName = "Drive mode",
+                action = "Open",
+                reason = "connect",
+                outcome = RuleExecutionOutcome.Success,
+            ),
+        )
+
+        assertTrue(presentation.contentText.startsWith("Left the car at "))
+        assertFalse(presentation.contentText.contains("Error"))
+        assertFalse(presentation.contentText.contains("Checking valves"))
+        assertFalse(presentation.contentText.contains("Drive mode"))
+        assertFalse(presentation.ongoing)
+        assertTrue(presentation.connectEnabled)
+        assertFalse(presentation.openValveEnabled)
     }
 }

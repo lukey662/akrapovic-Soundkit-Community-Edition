@@ -26,6 +26,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.data.BleRepositoryImpl
+import com.akrapovic.soundkit.community.domain.AwayCopy
+import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.ConnectionYieldState
 import com.akrapovic.soundkit.community.domain.SavedReceiver
@@ -58,6 +60,7 @@ fun ScanScreen(
     onRetryConnection: () -> Unit = {},
     onTakeControl: () -> Unit = {},
     onOpenDriveMode: () -> Unit = {},
+    onPeriodicScanAnswer: (Boolean) -> Unit = {},
 ) {
     val savedByAddress = state.settings.savedReceivers.associateBy { it.address }
     val showTakeControlConfirm = remember { mutableStateOf(false) }
@@ -114,14 +117,32 @@ fun ScanScreen(
             )
         }
 
+        val away = state.connectionState as? ConnectionState.Away
+        if (away != null) {
+            AkraBanner(
+                title = if (away.reason == AwayReason.LeftCar) "Left the car" else "Receiver out of range",
+                body = AwayCopy.statusText(away.reason, away.sinceMillis),
+                accent = AkraColors.Amber,
+                actionLabel = "Connect",
+                onAction = onRetryConnection,
+            )
+            if (!state.settings.periodicScanPromptAnswered) {
+                Text(
+                    text = "Scan for the receiver occasionally while you're away?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { onPeriodicScanAnswer(true) }) { Text("Scan occasionally") }
+                    TextButton(onClick = { onPeriodicScanAnswer(false) }) { Text("Not now") }
+                }
+            }
+        }
+
         val connectionError = state.connectionState as? ConnectionState.Error
         if (connectionError != null) {
             AkraBanner(
-                title = if (connectionError.message == BleRepositoryImpl.RECONNECT_GAVE_UP_MESSAGE) {
-                    "Receiver unreachable"
-                } else {
-                    "Could not connect"
-                },
+                title = "Could not connect",
                 body = connectionError.message,
                 accent = AkraColors.Danger,
                 actionLabel = "Try again",

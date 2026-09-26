@@ -18,6 +18,13 @@ enum class ValveState {
     Closed,
 }
 
+enum class AwayReason {
+    /** Phone is no longer on the car's Bluetooth or Android Auto projection. */
+    LeftCar,
+    /** Phone is still with the car; the receiver itself stopped answering. */
+    OutOfRange,
+}
+
 sealed interface ConnectionState {
     data object Disconnected : ConnectionState
     data object Scanning : ConnectionState
@@ -25,6 +32,12 @@ sealed interface ConnectionState {
     data class Connected(val device: SoundKitDevice) : ConnectionState
     data class Reconnecting(val device: SoundKitDevice, val attempt: Int, val nextDelayMs: Long) : ConnectionState
     data class Error(val message: String, val recoverable: Boolean) : ConnectionState
+
+    /**
+     * The receiver was unreachable after the short reconnect burst.
+     * This is not a fault: the phone left the car, or the receiver is off.
+     */
+    data class Away(val sinceMillis: Long, val reason: AwayReason) : ConnectionState
 }
 
 sealed interface CommandResult {
@@ -108,6 +121,15 @@ data class SoundKitSettings(
     val connectInCar: Boolean = true,
     val headUnitPriorityEnabled: Boolean = true,
     val autoReconnect: Boolean = true,
+    /** Slow BLE scan while [ConnectionState.Away], only after the user opts in. */
+    val periodicScanWhenAway: Boolean = false,
+    val periodicScanPromptAnswered: Boolean = false,
+    /** Paired classic Bluetooth device that means "this phone is in the car". */
+    val carBluetoothAddress: String? = null,
+    val carBluetoothName: String? = null,
+    /** Survives process death so the shade can still say when the phone left. */
+    val awaySinceMillis: Long = 0L,
+    val awayReason: AwayReason? = null,
     val debugLoggingEnabled: Boolean = true,
     val garageThemeId: String = "studio-dark",
     val riskNoticeAcceptedAt: Long = 0L,

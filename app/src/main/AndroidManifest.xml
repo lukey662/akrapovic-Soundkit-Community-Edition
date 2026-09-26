@@ -105,6 +105,16 @@
                 android:value="true" />
         </service>
 
+        <receiver
+            android:name=".car.CarPresenceReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+                <action android:name="androidx.car.app.connection.action.CAR_CONNECTION_UPDATED" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".car.SoundKitCarAppService"
             android:exported="true">

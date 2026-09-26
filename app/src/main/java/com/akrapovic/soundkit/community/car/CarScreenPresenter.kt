@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.car
 
+import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.CommandPhase
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.ValveState
@@ -35,9 +36,11 @@ object CarScreenPresenter {
         val controlsVisible = connectionState is ConnectionState.Connected &&
             valveState != ValveState.Unknown &&
             receiverStatusMessage == null
+        // A GridTemplate cannot be loading and have a list, and it cannot be idle with neither.
+        // Loading is only for the empty connecting state. A command keeps the grid and disables taps.
         return CarScreenModel.Controls(
             status = receiverStatusMessage ?: connectionState.statusText(valveState),
-            loading = commandInFlight || connectionInFlight,
+            loading = !controlsVisible && connectionInFlight,
             showControls = controlsVisible,
             openEnabled = controlsVisible && valveState == ValveState.Closed && !commandInFlight,
             closeEnabled = controlsVisible && valveState == ValveState.Open && !commandInFlight,
@@ -55,12 +58,37 @@ object CarScreenPresenter {
         is ConnectionState.Reconnecting -> "Connecting"
         is ConnectionState.Connected -> valveState.statusText()
         is ConnectionState.Error -> "Connection failed"
+        is ConnectionState.Away -> when (reason) {
+            AwayReason.LeftCar -> "Left the car"
+            AwayReason.OutOfRange -> "Receiver out of range"
+        }
     }
 
     private fun ValveState.statusText(): String = when (this) {
         ValveState.Closed -> "Closed"
         ValveState.Open -> "Open"
         ValveState.Unknown -> "Checking status"
+    }
+}
+
+enum class CarTemplateKind {
+    Loading,
+    Controls,
+    Message,
+}
+
+/**
+ * GridTemplate.build() throws unless the template is loading or has a list, and never both.
+ * Callers must follow this instead of combining [CarScreenModel.Controls.loading] with a list.
+ */
+fun carTemplateKind(model: CarScreenModel): CarTemplateKind {
+    return when (model) {
+        is CarScreenModel.SetupRequired -> CarTemplateKind.Message
+        is CarScreenModel.Controls -> when {
+            model.loading -> CarTemplateKind.Loading
+            model.showControls -> CarTemplateKind.Controls
+            else -> CarTemplateKind.Message
+        }
     }
 }
 

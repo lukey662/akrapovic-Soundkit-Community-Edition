@@ -306,4 +306,5 @@ private fun ConnectionState.shortText(): String = when (this) {
     is ConnectionState.Connected -> "Connected"
     is ConnectionState.Reconnecting -> "Reconnecting"
     is ConnectionState.Error -> "Needs attention"
+    is ConnectionState.Away -> "Away"
 }

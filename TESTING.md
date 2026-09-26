@@ -191,7 +191,8 @@ Record each step as **Pass / Fail / Not tested** and note iOS version, iPhone mo
 | 13 | Connect-on-launch: kill app → relaunch | Auto-connects to saved default receiver | Not tested |
 | 14 | Drive mode → preferred **Open** → reconnect | Valves open when connect-ready | Not tested |
 | 15 | Quiet neighbours: 22:00–07:00, 5 min hold → connect in window | Closed on connect; opens after hold unless manual override | Not tested |
-| 16 | Reconnect cap: power off receiver | Stops after ~8 attempts; tap to retry works | Not tested |
+| 16 | Reconnect cap: leave the car or power off receiver | Stops after ~8 attempts; notification says left the car or out of range, with Connect | Not tested |
+| 17 | Return to the car's Bluetooth | Connects once without opening the app first | Not tested |
 
 ### iOS CI
 
@@ -277,7 +278,7 @@ If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel app
 8. **More → Advanced:** confirm Diagnostics, Android Auto, Roadmap, and Developer are reachable from the Advanced hub.
 9. **Vehicle onboarding:** select Audi RS3 (Supported) or another platform (Beta); confirm tier copy and theme hint.
 10. **Diagnostics support:** export report → **Email support** or **Copy email** for support@appsforgood.net.
-11. **Reconnect cap:** turn receiver off → confirm reconnect stops after ~8 attempts and Home shows “Couldn't reach receiver — tap to retry”.
+11. **Reconnect cap:** leave the car or turn the receiver off → confirm reconnect stops after ~8 attempts. Home and the notification say “Left the car at …” or “Receiver out of range since …”, not an error. Connect brings it back. In Settings, choose the Audi's Bluetooth device so return-to-car can reconnect.
 12. **Drive mode pause:** Pause drive mode from the notification → reconnect or wait for its next eligible apply → confirm no drive-mode action occurs until Resume.
 
 ### Command Smoke Pass

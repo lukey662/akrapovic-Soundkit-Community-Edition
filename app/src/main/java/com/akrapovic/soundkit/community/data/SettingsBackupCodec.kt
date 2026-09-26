@@ -10,6 +10,8 @@ data class SettingsBackupPayload(
     val connectInCar: Boolean? = null,
     val headUnitPriorityEnabled: Boolean? = null,
     val autoReconnect: Boolean? = null,
+    val periodicScanWhenAway: Boolean? = null,
+    val periodicScanPromptAnswered: Boolean? = null,
     val garageThemeId: String? = null,
     val selectedVehicleId: String? = null,
     val driveModeEnabled: Boolean? = null,
@@ -51,6 +53,8 @@ object SettingsBackupCodec {
             put("connectInCar", settings.connectInCar)
             put("headUnitPriorityEnabled", settings.headUnitPriorityEnabled)
             put("autoReconnect", settings.autoReconnect)
+            put("periodicScanWhenAway", settings.periodicScanWhenAway)
+            put("periodicScanPromptAnswered", settings.periodicScanPromptAnswered)
             put("garageThemeId", settings.garageThemeId)
             settings.selectedVehicleId?.let { put("selectedVehicleId", it) }
             put("driveModeEnabled", settings.driveModeEnabled)
@@ -132,6 +136,8 @@ object SettingsBackupCodec {
             connectInCar = optionalBoolean(root, "connectInCar"),
             headUnitPriorityEnabled = optionalBoolean(root, "headUnitPriorityEnabled"),
             autoReconnect = optionalBoolean(root, "autoReconnect"),
+            periodicScanWhenAway = optionalBoolean(root, "periodicScanWhenAway"),
+            periodicScanPromptAnswered = optionalBoolean(root, "periodicScanPromptAnswered"),
             garageThemeId = garageThemeId,
             selectedVehicleId = selectedVehicleId,
             driveModeEnabled = optionalBoolean(root, "driveModeEnabled"),

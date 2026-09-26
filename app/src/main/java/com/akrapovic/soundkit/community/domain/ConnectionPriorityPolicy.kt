@@ -2,41 +2,66 @@ package com.akrapovic.soundkit.community.domain
 
 /**
  * Decides whether this phone should auto-connect or auto-reconnect based on head-unit priority.
- * Primary is inferred locally from an active Car App session on this device.
+ * Primary means this phone is with the car: an open Car App session, car Bluetooth, or Android Auto projection.
  */
 object ConnectionPriorityPolicy {
-    fun isPrimaryController(carSessionActive: Boolean): Boolean = carSessionActive
+    fun isPrimaryController(inCar: Boolean): Boolean = inCar
 
     fun shouldAutoConnectOnLaunch(
         settings: SoundKitSettings,
         connectionState: ConnectionState,
-        carSessionActive: Boolean,
+        inCar: Boolean,
     ): Boolean {
         if (!settings.headUnitPriorityEnabled) {
             return RememberedDeviceConnector.shouldAutoConnect(connectionState, settings)
         }
-        if (!isPrimaryController(carSessionActive)) return false
+        if (!isPrimaryController(inCar)) return false
         return RememberedDeviceConnector.shouldAutoConnect(connectionState, settings)
     }
 
     fun shouldAutoReconnect(
         settings: SoundKitSettings,
-        carSessionActive: Boolean,
+        inCar: Boolean,
         userRequestedControl: Boolean,
         yieldState: ConnectionYieldState,
     ): Boolean {
         if (!settings.autoReconnect) return false
         if (yieldState is ConnectionYieldState.Yielded) return false
         if (!settings.headUnitPriorityEnabled) return true
-        if (isPrimaryController(carSessionActive)) return true
+        if (isPrimaryController(inCar)) return true
         return userRequestedControl
     }
 
     fun shouldEnterYieldOnContention(
         settings: SoundKitSettings,
-        carSessionActive: Boolean,
+        inCar: Boolean,
     ): Boolean {
         if (!settings.headUnitPriorityEnabled) return false
-        return !isPrimaryController(carSessionActive)
+        return !isPrimaryController(inCar)
+    }
+
+    /**
+     * One connect when the phone comes back to the car after the short retry burst has already stopped.
+     * A deliberate user disconnect is suppressed by the repository, not here.
+     */
+    fun shouldReconnectOnReturn(
+        settings: SoundKitSettings,
+        connectionState: ConnectionState,
+        yieldState: ConnectionYieldState,
+    ): Boolean {
+        if (!settings.autoReconnect || !settings.connectInCar) return false
+        if (settings.defaultReceiver == null) return false
+        if (yieldState is ConnectionYieldState.Yielded) return false
+        return when (connectionState) {
+            ConnectionState.Disconnected,
+            is ConnectionState.Away,
+            is ConnectionState.Error,
+            -> true
+            ConnectionState.Scanning,
+            is ConnectionState.Connecting,
+            is ConnectionState.Connected,
+            is ConnectionState.Reconnecting,
+            -> false
+        }
     }
 }

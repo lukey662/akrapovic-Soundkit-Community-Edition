@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.BuildConfig
 import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
 import com.akrapovic.soundkit.community.ui.components.AkraListGroup
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
@@ -51,7 +52,9 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
             SetupStep(
                 number = 5,
                 title = "Customize launcher",
-                body = "Back in Android Auto settings → Customize launcher → enable Sound Kit if listed.",
+                body = "Back in Android Auto settings → Customize launcher → enable Sound Kit if listed. " +
+                    "Enable this package: ${BuildConfig.APPLICATION_ID}. " +
+                    "A debug install ends in .debug and will not match the release name.",
             )
             SetupStep(
                 number = 6,
@@ -71,7 +74,9 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Play Store Android Auto listing is not available for valve controllers. Sideload + developer mode is the supported personal path.",
+            text = "A stock Android Auto launcher will not list this sideloaded app until Unknown sources is on. " +
+                "There is no Play Store category for a valve controller, so that path stays unavailable. " +
+                "If the icon appears and then closes, reconnect while parked after the phone is already paired to the receiver.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp),

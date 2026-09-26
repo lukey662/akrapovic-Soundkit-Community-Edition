@@ -1,3 +1,4 @@
+import AVFoundation
 import Combine
 import CoreBluetooth
 import Foundation
@@ -14,6 +15,8 @@ typealias BLEConnectionPhase = ConnectionPhase
 @MainActor
 final class BLEManager: NSObject, ObservableObject {
     static let maxReconnectAttempts = 8
+    private static let awaySinceKey = "soundkit_away_since"
+    private static let awayLeftCarKey = "soundkit_away_left_car"
 
     @Published private(set) var connectionPhase: BLEConnectionPhase = .disconnected
     @Published private(set) var valveState: ValveState = .unknown
@@ -45,7 +48,9 @@ final class BLEManager: NSObject, ObservableObject {
     private var reconnectAttempts = 0
     private var reconnectTask: Task<Void, Never>?
     private var scanTimeoutTask: Task<Void, Never>?
+    private var awayScanTask: Task<Void, Never>?
     private var pendingReconnectId: String?
+    private var suppressNextLinkLoss = false
     private var wasConnectReady = false
     var onConnectReady: ((Int) -> Void)?
     var onDisconnectEvent: (() -> Void)?
@@ -59,6 +64,7 @@ final class BLEManager: NSObject, ObservableObject {
             queue: .main,
             options: [CBCentralManagerOptionRestoreIdentifierKey: "com.akrapovic.soundkit.community.ble"]
         )
+        restoreAwayIfNeeded()
     }
 
     var isConnected: Bool {
@@ -74,7 +80,20 @@ final class BLEManager: NSObject, ObservableObject {
         isReadyForAutomation
     }
 
+    func awayScanPreferenceChanged() {
+        guard case .away = connectionPhase else { return }
+        if settingsProvider().periodicScanWhenAway {
+            startPeriodicAwayScan()
+        } else {
+            awayScanTask?.cancel()
+            awayScanTask = nil
+            centralManager.stopScan()
+        }
+    }
+
     func startScan() {
+        awayScanTask?.cancel()
+        awayScanTask = nil
         guard centralManager.state == .poweredOn else {
             statusMessage = "Bluetooth is not ready."
             return
@@ -164,6 +183,7 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     func disconnect() {
+        suppressNextLinkLoss = true
         reconnectTask?.cancel()
         pendingReconnectId = nil
         userRequestedControl = false
@@ -185,6 +205,8 @@ final class BLEManager: NSObject, ObservableObject {
         } else if let id = pendingReconnectId,
                   let name = discoveredDevices.first(where: { $0.id == id })?.name {
             connectToRemembered(id: id, name: name, userInitiated: true)
+        } else if let receiver = settingsProvider().defaultReceiver {
+            connectToRemembered(id: receiver.address, name: receiver.displayName(), userInitiated: true)
         }
     }
 
@@ -212,6 +234,10 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     private func handleLinkLoss(userInitiated: Bool, connectFailed: Bool) {
+        if suppressNextLinkLoss {
+            suppressNextLinkLoss = false
+            return
+        }
         let signal: BleContentionSignal?
         if connectFailed {
             signal = contentionDetector.onConnectFailed()
@@ -221,6 +247,9 @@ final class BLEManager: NSObject, ObservableObject {
         maybeYieldOnContention(signal)
         if shouldAutoReconnectNow() {
             scheduleReconnect()
+        } else if currentSettings.autoReconnect {
+            if case .yielded = connectionYieldState { return }
+            enterAway()
         }
     }
 
@@ -263,6 +292,9 @@ final class BLEManager: NSObject, ObservableObject {
         if userInitiated {
             selectedDevice = nil
             pendingReconnectId = nil
+            clearPersistedAway()
+            awayScanTask?.cancel()
+            awayScanTask = nil
         }
         connectionPhase = .disconnected
         statusMessage = userInitiated ? "Disconnected" : statusMessage
@@ -344,6 +376,58 @@ final class BLEManager: NSObject, ObservableObject {
         }
     }
 
+    private func phoneIsInCar() -> Bool {
+        AVAudioSession.sharedInstance().currentRoute.outputs.contains { $0.portType == .carAudio }
+    }
+
+    private func enterAway() {
+        let since = Date()
+        let leftCar = !phoneIsInCar()
+        UserDefaults.standard.set(since.timeIntervalSince1970, forKey: Self.awaySinceKey)
+        UserDefaults.standard.set(leftCar, forKey: Self.awayLeftCarKey)
+        connectionPhase = .away(since: since, leftCar: leftCar)
+        statusMessage = AwayCopy.message(leftCar: leftCar, since: since)
+        log(statusMessage ?? "Left the receiver")
+        if settingsProvider().periodicScanWhenAway {
+            startPeriodicAwayScan()
+        }
+    }
+
+    private func restoreAwayIfNeeded() {
+        let since = UserDefaults.standard.double(forKey: Self.awaySinceKey)
+        guard since > 0 else { return }
+        let leftCar = UserDefaults.standard.object(forKey: Self.awayLeftCarKey) as? Bool ?? true
+        let date = Date(timeIntervalSince1970: since)
+        connectionPhase = .away(since: date, leftCar: leftCar)
+        statusMessage = AwayCopy.message(leftCar: leftCar, since: date)
+    }
+
+    private func clearPersistedAway() {
+        UserDefaults.standard.removeObject(forKey: Self.awaySinceKey)
+        UserDefaults.standard.removeObject(forKey: Self.awayLeftCarKey)
+    }
+
+    private func startPeriodicAwayScan() {
+        awayScanTask?.cancel()
+        awayScanTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                guard case .away = self.connectionPhase else { return }
+                guard self.settingsProvider().periodicScanWhenAway else { return }
+                guard self.centralManager.state == .poweredOn else { return }
+                let services = SoundKitProtocol.serviceUUID.map { [$0] }
+                self.centralManager.scanForPeripherals(
+                    withServices: services,
+                    options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+                )
+                try? await Task.sleep(nanoseconds: 8_000_000_000)
+                guard !Task.isCancelled else { return }
+                self.centralManager.stopScan()
+                try? await Task.sleep(nanoseconds: 120_000_000_000)
+            }
+        }
+    }
+
     private func scheduleReconnect() {
         guard shouldAutoReconnectNow() else {
             log("Auto-reconnect skipped by head-unit priority policy")
@@ -353,8 +437,7 @@ final class BLEManager: NSObject, ObservableObject {
             current: reconnectAttempts,
             maximum: Self.maxReconnectAttempts
         ), let device = selectedDevice else {
-            connectionPhase = .error("Couldn't reach receiver — tap to retry")
-            statusMessage = "Couldn't reach receiver — tap to retry"
+            enterAway()
             maybeYieldOnContention(contentionDetector.onConnectFailed())
             return
         }
@@ -366,7 +449,12 @@ final class BLEManager: NSObject, ObservableObject {
         reconnectTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: delayNs)
             guard let self, !Task.isCancelled else { return }
-            guard self.shouldAutoReconnectNow() else { return }
+            guard self.shouldAutoReconnectNow() else {
+                if case .reconnecting = self.connectionPhase {
+                    self.enterAway()
+                }
+                return
+            }
             self.connect(to: device, userInitiated: false)
         }
     }
@@ -417,6 +505,9 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     fileprivate func finalizeConnection(device: DiscoveredDevice) {
+        clearPersistedAway()
+        awayScanTask?.cancel()
+        awayScanTask = nil
         connectionPhase = .connected(device)
         valveState = .unknown
         receiverNotReady = false
@@ -462,6 +553,14 @@ extension BLEManager: CBCentralManagerDelegate {
             let isLikely = SoundKitProtocol.hasAdvertisingSignature(in: adPayload)
                 || SoundKitProtocol.isLikelySoundKitDevice(name: name)
             let device = DiscoveredDevice(id: id, name: name, rssi: RSSI.intValue, isLikelySoundKit: isLikely)
+            if case .away = connectionPhase,
+               settingsProvider().defaultReceiver?.address == id {
+                centralManager.stopScan()
+                awayScanTask?.cancel()
+                awayScanTask = nil
+                connect(to: device, userInitiated: false)
+                return
+            }
             if let index = discoveredDevices.firstIndex(where: { $0.id == device.id }) {
                 discoveredDevices[index] = device
             } else {

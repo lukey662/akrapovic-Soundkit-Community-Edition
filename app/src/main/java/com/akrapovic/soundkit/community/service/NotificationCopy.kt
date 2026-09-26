@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.service
 
+import com.akrapovic.soundkit.community.domain.AwayCopy
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
 import com.akrapovic.soundkit.community.domain.SavedReceiver
@@ -14,6 +15,7 @@ data class NotificationPresentation(
     val disconnectEnabled: Boolean,
     val pauseDriveModeEnabled: Boolean,
     val resumeDriveModeEnabled: Boolean,
+    val connectEnabled: Boolean,
 )
 
 object NotificationCopy {
@@ -25,20 +27,24 @@ object NotificationCopy {
         driveModeEnabled: Boolean = true,
         driveModePaused: Boolean = false,
         lastExecution: RuleExecutionEntry? = null,
+        periodicScanWhenAway: Boolean = false,
     ): NotificationPresentation {
         val displayName = defaultReceiver?.displayName()
         val title = when (connectionState) {
             is ConnectionState.Connected -> displayName ?: "Sound Kit Community"
             else -> "Sound Kit Community"
         }
+        val away = connectionState is ConnectionState.Away
         val statusText = connectionState.asNotificationText(displayName)
         val valveText = when {
+            away -> null
             receiverStatusMessage != null -> "Receiver not ready"
             valveState == ValveState.Open -> "Valves open"
             valveState == ValveState.Closed -> "Valves closed"
             else -> "Checking valves"
         }
         val driveModeText = when {
+            away -> null
             !driveModeEnabled -> "Drive mode off"
             driveModePaused -> "Drive mode paused"
             lastExecution?.ruleName == "Drive mode" -> "Last: Drive mode → ${lastExecution.action}"
@@ -60,12 +66,14 @@ object NotificationCopy {
             contentText = contentText,
             ongoing = connectionState is ConnectionState.Connected ||
                 connectionState is ConnectionState.Connecting ||
-                connectionState is ConnectionState.Reconnecting,
+                connectionState is ConnectionState.Reconnecting ||
+                (away && periodicScanWhenAway),
             openValveEnabled = valveControlsEnabled && valveState != ValveState.Open,
             closeValveEnabled = valveControlsEnabled && valveState != ValveState.Closed,
             disconnectEnabled = connectionState is ConnectionState.Connected,
             pauseDriveModeEnabled = showDriveModeActions && !driveModePaused,
             resumeDriveModeEnabled = showDriveModeActions && driveModePaused,
+            connectEnabled = away,
         )
     }
 
@@ -77,6 +85,7 @@ object NotificationCopy {
             is ConnectionState.Connected -> "Connected"
             is ConnectionState.Reconnecting -> "Reconnecting (attempt $attempt)"
             is ConnectionState.Error -> "Error: $message"
+            is ConnectionState.Away -> AwayCopy.statusText(reason, sinceMillis)
         }
     }
 }

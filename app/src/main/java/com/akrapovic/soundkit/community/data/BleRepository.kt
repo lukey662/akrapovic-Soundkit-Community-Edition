@@ -3,20 +3,25 @@ package com.akrapovic.soundkit.community.data
 import com.akrapovic.soundkit.community.ble.BleConnectionGateway
 import com.akrapovic.soundkit.community.ble.BleScannerGateway
 import com.akrapovic.soundkit.community.ble.RetryPolicy
+import com.akrapovic.soundkit.community.ble.ScanDuty
+import com.akrapovic.soundkit.community.car.CarPresenceSource
 import com.akrapovic.soundkit.community.car.CarSessionTracker
+import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.BleContentionDetector
+import com.akrapovic.soundkit.community.domain.BleTimeouts
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionPriorityPolicy
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.ConnectionYieldReason
 import com.akrapovic.soundkit.community.domain.ConnectionYieldState
+import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.domain.ValveCommand
 import com.akrapovic.soundkit.community.domain.ValveState
+import com.akrapovic.soundkit.community.domain.WallClock
 import javax.inject.Inject
 import javax.inject.Singleton
-import com.akrapovic.soundkit.community.domain.BleTimeouts
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,7 +31,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 interface BleRepository {
     val discoveredDevices: StateFlow<List<SoundKitDevice>>
@@ -53,15 +61,19 @@ class BleRepositoryImpl @Inject constructor(
     private val diagnosticsRepository: DiagnosticsRepository,
     private val retryPolicy: RetryPolicy,
     private val carSessionTracker: CarSessionTracker,
+    private val carPresence: CarPresenceSource,
+    private val clock: WallClock,
 ) : BleRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var scanJob: Job? = null
     private var scanTimeoutJob: Job? = null
     private var reconnectJob: Job? = null
+    private var awayScanJob: Job? = null
     private var lastRequestedDevice: SoundKitDevice? = null
     private var currentSettings: SoundKitSettings = SoundKitSettings()
     private var hadStableConnection: Boolean = false
     private var suppressNextAutoReconnect: Boolean = false
+    private var suppressReturnConnect: Boolean = false
     private var userRequestedControl: Boolean = false
     private var reconnectAttempt: Int = 0
     private val contentionDetector = BleContentionDetector()
@@ -82,8 +94,46 @@ class BleRepositoryImpl @Inject constructor(
     init {
         scope.launch {
             settingsRepository.settings.collect { settings ->
+                val wasPeriodic = currentSettings.periodicScanWhenAway
                 currentSettings = settings
                 diagnosticsRepository.debugLoggingEnabled = settings.debugLoggingEnabled
+                if (settings.periodicScanWhenAway && connectionState.value is ConnectionState.Away) {
+                    startAwayScan()
+                } else if (wasPeriodic && !settings.periodicScanWhenAway) {
+                    awayScanJob?.cancel()
+                    awayScanJob = null
+                }
+            }
+        }
+        scope.launch {
+            val settings = settingsRepository.settings.first()
+            currentSettings = settings
+            val restoredAway = settings.awaySinceMillis > 0L &&
+                connectionState.value == ConnectionState.Disconnected
+            if (restoredAway) {
+                connectionManager.markAway(
+                    settings.awaySinceMillis,
+                    settings.awayReason ?: AwayReason.LeftCar,
+                )
+            }
+            var wasInCar = carPresence.presence.value.orSession(carSessionTracker.isCarSessionActive.value)
+            // Process start has no false→true edge when the phone is already on the car link.
+            // A persisted away session is the "we lost the receiver" case that should connect once.
+            if (wasInCar && restoredAway) {
+                onReturnedToCar()
+            }
+            combine(
+                carPresence.presence,
+                carSessionTracker.isCarSessionActive,
+            ) { presence, sessionActive ->
+                presence.orSession(sessionActive)
+            }.collect { inCar ->
+                if (!wasInCar && inCar) {
+                    onReturnedToCar()
+                } else if (wasInCar && !inCar) {
+                    onLeftCar()
+                }
+                wasInCar = inCar
             }
         }
         scope.launch {
@@ -94,6 +144,9 @@ class BleRepositoryImpl @Inject constructor(
                         hadStableConnection = true
                         reconnectAttempt = 0
                         contentionDetector.onConnected()
+                        awayScanJob?.cancel()
+                        awayScanJob = null
+                        settingsRepository.clearAwaySession()
                     }
                     is ConnectionState.Error -> {
                         val device = lastRequestedDevice
@@ -109,6 +162,12 @@ class BleRepositoryImpl @Inject constructor(
                             )
                         } else {
                             hadStableConnection = false
+                        }
+                    }
+                    is ConnectionState.Away -> {
+                        hadStableConnection = false
+                        if (currentSettings.periodicScanWhenAway) {
+                            startAwayScan()
                         }
                     }
                     ConnectionState.Disconnected -> {
@@ -132,6 +191,8 @@ class BleRepositoryImpl @Inject constructor(
     }
 
     override fun startScan() {
+        awayScanJob?.cancel()
+        awayScanJob = null
         if (scanJob?.isActive == true) return
         scanTimeoutJob?.cancel()
         scanJob = scope.launch {
@@ -158,11 +219,29 @@ class BleRepositoryImpl @Inject constructor(
     }
 
     override fun stopScan() {
+        stopScanning(resumeAwayScan = true)
+    }
+
+    private fun stopScanning(resumeAwayScan: Boolean) {
         scanTimeoutJob?.cancel()
         scanTimeoutJob = null
         scanJob?.cancel()
         scanJob = null
+        val shouldResumeAway = resumeAwayScan &&
+            awayScanJob?.isActive == true &&
+            connectionState.value is ConnectionState.Away &&
+            currentSettings.periodicScanWhenAway
+        awayScanJob?.cancel()
+        awayScanJob = null
         _isScanning.value = false
+        if (shouldResumeAway) {
+            scope.launch {
+                delay(BleTimeouts.AWAY_SCAN_GAP_MS)
+                if (connectionState.value is ConnectionState.Away && currentSettings.periodicScanWhenAway) {
+                    startAwayScan()
+                }
+            }
+        }
     }
 
     override suspend fun connect(device: SoundKitDevice, userInitiated: Boolean) {
@@ -170,18 +249,23 @@ class BleRepositoryImpl @Inject constructor(
     }
 
     override suspend fun takeControl(device: SoundKitDevice) {
+        suppressReturnConnect = false
         connectInternal(device, userInitiated = true, clearYield = true)
     }
 
     override suspend fun disconnect() {
         reconnectJob?.cancel()
+        awayScanJob?.cancel()
+        awayScanJob = null
         reconnectAttempt = 0
         suppressNextAutoReconnect = true
+        suppressReturnConnect = true
         hadStableConnection = false
         userRequestedControl = false
         contentionDetector.reset()
         lastRequestedDevice = null
         _connectionYieldState.value = ConnectionYieldState.None
+        settingsRepository.clearAwaySession()
         connectionManager.disconnect()
     }
 
@@ -193,17 +277,65 @@ class BleRepositoryImpl @Inject constructor(
         return connectionManager.writeCommand(ValveCommand.Close).also { logCommandResult("CLOSE", it) }
     }
 
+    private fun onReturnedToCar() {
+        if (suppressReturnConnect) {
+            diagnosticsRepository.debug("Return connect suppressed after a user disconnect")
+            return
+        }
+        if (!ConnectionPriorityPolicy.shouldReconnectOnReturn(
+                settings = currentSettings,
+                connectionState = connectionState.value,
+                yieldState = _connectionYieldState.value,
+            )
+        ) {
+            return
+        }
+        val device = RememberedDeviceConnector.defaultDevice(currentSettings) ?: return
+        diagnosticsRepository.info("Car link returned; connecting to ${device.name}")
+        scope.launch { connect(device, userInitiated = false) }
+    }
+
+    private fun onLeftCar() {
+        when (val state = connectionState.value) {
+            is ConnectionState.Away -> {
+                if (state.reason == AwayReason.LeftCar) return
+                scope.launch { enterAway("Car link dropped") }
+            }
+            is ConnectionState.Connecting,
+            is ConnectionState.Reconnecting,
+            -> {
+                reconnectJob?.cancel()
+                // GATT callbacks must not revive a reconnect after the phone has left.
+                suppressNextAutoReconnect = true
+                scope.launch {
+                    connectionManager.disconnect()
+                    enterAway("Car link dropped during connect")
+                }
+            }
+            else -> {
+                if (state !is ConnectionState.Connected && reconnectJob?.isActive == true) {
+                    reconnectJob?.cancel()
+                    suppressNextAutoReconnect = true
+                    scope.launch { enterAway("Car link dropped during reconnect") }
+                }
+            }
+        }
+    }
+
     private suspend fun connectInternal(
         device: SoundKitDevice,
         userInitiated: Boolean,
         clearYield: Boolean,
     ) {
-        stopScan()
+        awayScanJob?.cancel()
+        awayScanJob = null
+        stopScanning(resumeAwayScan = false)
         settingsRepository.rememberDevice(device)
         if (connectionState.value.isActiveFor(device)) {
             lastRequestedDevice = device
             if (userInitiated) {
                 userRequestedControl = true
+                suppressReturnConnect = false
             }
             diagnosticsRepository.info("Already connected or connecting to ${device.name}")
             return
@@ -220,6 +352,7 @@ class BleRepositoryImpl @Inject constructor(
         }
         if (userInitiated) {
             userRequestedControl = true
+            suppressReturnConnect = false
             diagnosticsRepository.info("User requested connection to ${device.name}")
         } else {
             diagnosticsRepository.info("Auto requested connection to ${device.name}")
@@ -254,7 +387,7 @@ class BleRepositoryImpl @Inject constructor(
         if (userRequestedControl && signal == BleContentionDetector.ContentionSignal.ConnectStorm) return
         if (!ConnectionPriorityPolicy.shouldEnterYieldOnContention(
                 currentSettings,
-                carSessionTracker.isCarSessionActive.value,
+                phoneIsInCar(),
             )
         ) {
             return
@@ -271,12 +404,16 @@ class BleRepositoryImpl @Inject constructor(
         if (device == null) return
         if (!ConnectionPriorityPolicy.shouldAutoReconnect(
                 settings = currentSettings,
-                carSessionActive = carSessionTracker.isCarSessionActive.value,
+                inCar = phoneIsInCar(),
                 userRequestedControl = userRequestedControl,
                 yieldState = _connectionYieldState.value,
             )
         ) {
             diagnosticsRepository.debug("Auto-reconnect skipped by head-unit priority policy")
+            // A walk-away is not a fault. Yield stays on the contention message instead.
+            if (currentSettings.autoReconnect && _connectionYieldState.value !is ConnectionYieldState.Yielded) {
+                scope.launch { enterAway("Auto-reconnect skipped because this phone is not with the car") }
+            }
             return
         }
         scheduleReconnect(device)
@@ -292,25 +429,27 @@ class BleRepositoryImpl @Inject constructor(
                 reconnectAttempt += 1
                 val attempt = reconnectAttempt
                 if (!retryPolicy.hasMoreAttempts(attempt)) {
-                    diagnosticsRepository.warning("Auto-reconnect gave up after $attempt attempts")
-                    connectionManager.markReconnectGaveUp(RECONNECT_GAVE_UP_MESSAGE)
+                    enterAway("Auto-reconnect gave up after $attempt attempts")
                     maybeYieldOnContention(signal = contentionDetector.onConnectFailed())
                     return@launch
                 }
                 val delayMs = retryPolicy.delayForAttempt(attempt)
                 diagnosticsRepository.warning("Scheduling reconnect attempt $attempt in ${delayMs}ms")
+                connectionManager.markReconnecting(device, attempt, delayMs)
                 delay(delayMs)
                 if (lastRequestedDevice?.address != device.address) return@launch
                 if (!ConnectionPriorityPolicy.shouldAutoReconnect(
                         settings = currentSettings,
-                        carSessionActive = carSessionTracker.isCarSessionActive.value,
+                        inCar = phoneIsInCar(),
                         userRequestedControl = userRequestedControl,
                         yieldState = _connectionYieldState.value,
                     )
                 ) {
+                    // Leaving mid-burst must not freeze the shade on Reconnecting.
+                    // Away is what lets a later return to the car connect once.
+                    enterAway("Auto-reconnect stopped before the next attempt")
                     return@launch
                 }
-                connectionManager.markReconnecting(device, attempt, delayMs)
                 val result = connectionManager.connect(device)
                 if (result.isSuccess) {
                     diagnosticsRepository.info("Reconnect attempt $attempt started")
@@ -322,8 +461,56 @@ class BleRepositoryImpl @Inject constructor(
         }
     }
 
+    private suspend fun enterAway(logMessage: String) {
+        diagnosticsRepository.warning(logMessage)
+        val since = clock.nowMillis()
+        val reason = if (phoneIsInCar()) AwayReason.OutOfRange else AwayReason.LeftCar
+        settingsRepository.recordAwaySession(since, reason)
+        connectionManager.markAway(since, reason)
+    }
+
+    private fun startAwayScan() {
+        if (awayScanJob?.isActive == true) return
+        val address = currentSettings.defaultReceiver?.address ?: return
+        awayScanJob = scope.launch {
+            while (connectionState.value is ConnectionState.Away && currentSettings.periodicScanWhenAway) {
+                _isScanning.value = true
+                val match = try {
+                    withTimeoutOrNull(BleTimeouts.AWAY_SCAN_WINDOW_MS) {
+                        scanner.scan(ScanDuty.LowPower).first { devices ->
+                            devices.any { it.address.equals(address, ignoreCase = true) }
+                        }
+                    }
+                } catch (error: kotlinx.coroutines.CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    diagnosticsRepository.warning("Away scan stopped: ${error.message}")
+                    null
+                } finally {
+                    // Callers null awayScanJob before cancel, so the flag cannot depend on that job.
+                    if (scanJob?.isActive != true) {
+                        _isScanning.value = false
+                    }
+                }
+                val device = match?.firstOrNull { it.address.equals(address, ignoreCase = true) }
+                if (device != null) {
+                    diagnosticsRepository.info("Away scan found ${device.name}")
+                    // Drop the job handle first so connect does not cancel this coroutine.
+                    awayScanJob = null
+                    connect(device, userInitiated = false)
+                    return@launch
+                }
+                delay(BleTimeouts.AWAY_SCAN_GAP_MS)
+            }
+            _isScanning.value = false
+        }
+    }
+
+    private fun phoneIsInCar(): Boolean {
+        return carPresence.presence.value.orSession(carSessionTracker.isCarSessionActive.value)
+    }
+
     companion object {
-        const val RECONNECT_GAVE_UP_MESSAGE = "Couldn't reach receiver — tap to retry"
         const val YIELD_MESSAGE = "Another phone may be controlling the receiver. Tap Take control if you need this phone."
     }
 
@@ -351,6 +538,7 @@ class BleRepositoryImpl @Inject constructor(
             ConnectionState.Disconnected,
             ConnectionState.Scanning,
             is ConnectionState.Error,
+            is ConnectionState.Away,
             -> null
         }
     }

@@ -1,11 +1,15 @@
 package com.akrapovic.soundkit.community.service
 
+import android.app.Notification
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.content.ContextCompat
+import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.akrapovic.soundkit.community.data.BleRepository
@@ -18,6 +22,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -31,6 +36,7 @@ class BleConnectionService : LifecycleService() {
 
     private var connectSessionId = 0L
     private var lastNotificationKey: String? = null
+    private var detachedForAway = false
 
     override fun onCreate() {
         super.onCreate()
@@ -43,7 +49,7 @@ class BleConnectionService : LifecycleService() {
                 settingsStore.settings,
                 executionLog.lastExecution,
             ) { connectionState, valveState, receiverStatusMessage, settings, lastExecution ->
-                notificationFactory.build(
+                val notification = notificationFactory.build(
                     connectionState = connectionState,
                     valveState = valveState,
                     receiverStatusMessage = receiverStatusMessage,
@@ -51,27 +57,24 @@ class BleConnectionService : LifecycleService() {
                     driveModeEnabled = settings.driveModeEnabled,
                     driveModePaused = settings.automationPaused,
                     lastExecution = lastExecution,
-                ) to listOf(
+                    periodicScanWhenAway = settings.periodicScanWhenAway,
+                )
+                val key = listOf(
                     connectionState.toString(),
                     valveState.name,
                     receiverStatusMessage.orEmpty(),
                     settings.defaultReceiver?.address.orEmpty(),
                     settings.driveModeEnabled.toString(),
                     settings.automationPaused.toString(),
+                    settings.periodicScanWhenAway.toString(),
                     lastExecution?.timestampMillis?.toString().orEmpty(),
                 ).joinToString("|")
-            }.collect { (notification, key) ->
+                val quietAway = connectionState is ConnectionState.Away && !settings.periodicScanWhenAway
+                Triple(notification, key, quietAway)
+            }.collect { (notification, key, quietAway) ->
                 if (key == lastNotificationKey) return@collect
                 lastNotificationKey = key
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(
-                        SoundKitNotificationFactory.NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
-                    )
-                } else {
-                    startForeground(SoundKitNotificationFactory.NOTIFICATION_ID, notification)
-                }
+                publishNotification(notification, quietAway)
             }
         }
         lifecycleScope.launch {
@@ -134,6 +137,11 @@ class BleConnectionService : LifecycleService() {
                 valveCommandCoordinator.close()
             }
             ACTION_DISCONNECT -> lifecycleScope.launch { bleRepository.disconnect() }
+            ACTION_CONNECT -> lifecycleScope.launch {
+                val settings = settingsStore.settings.first()
+                val device = RememberedDeviceConnector.defaultDevice(settings) ?: return@launch
+                bleRepository.connect(device, userInitiated = true)
+            }
             ACTION_PAUSE_DRIVE_MODE -> lifecycleScope.launch {
                 settingsStore.setAutomationPaused(true)
             }
@@ -152,6 +160,42 @@ class BleConnectionService : LifecycleService() {
         return START_STICKY
     }
 
+    /**
+     * A lost receiver is not a live session. Drop the foreground service and leave a dismissible
+     * notification unless the user asked for an occasional scan, which needs the service.
+     */
+    private fun publishNotification(notification: Notification, quietAway: Boolean) {
+        if (!quietAway) {
+            detachedForAway = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    SoundKitNotificationFactory.NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
+                )
+            } else {
+                startForeground(SoundKitNotificationFactory.NOTIFICATION_ID, notification)
+            }
+            return
+        }
+        if (!detachedForAway) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    SoundKitNotificationFactory.NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
+                )
+            } else {
+                startForeground(SoundKitNotificationFactory.NOTIFICATION_ID, notification)
+            }
+            stopForeground(STOP_FOREGROUND_DETACH)
+            detachedForAway = true
+        } else {
+            getSystemService(NotificationManager::class.java)
+                .notify(SoundKitNotificationFactory.NOTIFICATION_ID, notification)
+        }
+    }
+
     companion object {
         const val ACTION_START = "com.akrapovic.soundkit.community.action.START"
         const val ACTION_OPEN = "com.akrapovic.soundkit.community.action.OPEN"
@@ -159,6 +203,7 @@ class BleConnectionService : LifecycleService() {
         const val ACTION_DISCONNECT = "com.akrapovic.soundkit.community.action.DISCONNECT"
         const val ACTION_PAUSE_DRIVE_MODE = "com.akrapovic.soundkit.community.action.PAUSE_DRIVE_MODE"
         const val ACTION_RESUME_DRIVE_MODE = "com.akrapovic.soundkit.community.action.RESUME_DRIVE_MODE"
+        const val ACTION_CONNECT = "com.akrapovic.soundkit.community.action.CONNECT"
         const val ACTION_STOP = "com.akrapovic.soundkit.community.action.STOP"
 
         @Deprecated("Use ACTION_PAUSE_DRIVE_MODE", ReplaceWith("ACTION_PAUSE_DRIVE_MODE"))

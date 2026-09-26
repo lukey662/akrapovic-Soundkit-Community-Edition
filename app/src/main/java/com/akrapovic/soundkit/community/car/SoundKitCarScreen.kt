@@ -49,6 +49,7 @@ class SoundKitCarScreen(
     private val carSessionTracker: CarSessionTracker = entryPoint.carSessionTracker()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var settingsSnapshot = SoundKitSettings()
+    private var settingsReady = false
     private var didBootstrap = false
 
     init {
@@ -64,10 +65,8 @@ class SoundKitCarScreen(
         scope.launch {
             settingsStore.settings.collect { settings ->
                 settingsSnapshot = settings
-                if (!didBootstrap) {
-                    didBootstrap = true
-                    CarBleBootstrap.onCarEntry(carContext, repository, settings, scope)
-                }
+                settingsReady = true
+                ensureBootstrap(settings)
             }
         }
         scope.launch {
@@ -86,6 +85,7 @@ class SoundKitCarScreen(
     }
 
     override fun onGetTemplate(): Template {
+        if (settingsReady) ensureBootstrap(settingsSnapshot)
         if (!SoundKitProtocol.VERIFIED) {
             return MessageTemplate.Builder("Controls are unavailable in this build.")
                 .setTitle("Sound Kit")
@@ -111,35 +111,40 @@ class SoundKitCarScreen(
                 .setTitle("Sound Kit")
                 .setHeaderAction(Action.APP_ICON)
                 .build()
-            is CarScreenModel.Controls -> buildGridTemplate(model, connectionState)
+            is CarScreenModel.Controls -> when (carTemplateKind(model)) {
+                CarTemplateKind.Loading -> GridTemplate.Builder()
+                    .setTitle("Sound Kit")
+                    .setHeaderAction(Action.APP_ICON)
+                    .setLoading(true)
+                    .build()
+                CarTemplateKind.Controls -> buildGridTemplate(model)
+                CarTemplateKind.Message -> MessageTemplate.Builder(model.status)
+                    .setTitle("Sound Kit")
+                    .setHeaderAction(Action.APP_ICON)
+                    .build()
+            }
         }
     }
 
-    private fun buildGridTemplate(
-        model: CarScreenModel.Controls,
-        connectionState: ConnectionState,
-    ): Template {
-        val builder = GridTemplate.Builder()
+    private fun buildGridTemplate(model: CarScreenModel.Controls): Template {
+        return GridTemplate.Builder()
             .setTitle("Sound Kit")
             .setHeaderAction(Action.APP_ICON)
-            .setLoading(model.loading)
-        if (model.showControls) {
-            builder.setSingleList(
+            .setSingleList(
                 ItemList.Builder()
                     .addItem(
-                valveActionItem("Open", model.openEnabled) {
-                    scope.launch { openValve() }
-                },
+                        valveActionItem("Open", model.openEnabled) {
+                            scope.launch { openValve() }
+                        },
                     )
                     .addItem(
-                valveActionItem("Close", model.closeEnabled) {
-                    scope.launch { closeValve() }
-                },
+                        valveActionItem("Close", model.closeEnabled) {
+                            scope.launch { closeValve() }
+                        },
                     )
                     .build(),
             )
-        }
-        return builder.build()
+            .build()
     }
 
     private fun valveActionItem(title: String, enabled: Boolean, onClick: () -> Unit): GridItem {
@@ -159,6 +164,11 @@ class SoundKitCarScreen(
     private suspend fun closeValve() {
         driveModeEngine.onUserValveAdjustment()
         valveCommandCoordinator.close()
+    }
+
+    private fun ensureBootstrap(settings: SoundKitSettings) {
+        if (didBootstrap) return
+        didBootstrap = CarBleBootstrap.onCarEntry(carContext, repository, settings, scope)
     }
 
     private fun hasBlePermissions(): Boolean {

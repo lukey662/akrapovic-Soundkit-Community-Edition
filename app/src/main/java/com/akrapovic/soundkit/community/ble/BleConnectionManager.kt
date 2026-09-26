@@ -18,6 +18,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
+import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.BleTimeouts
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.ConnectionState
@@ -42,7 +43,7 @@ interface BleConnectionGateway {
     val notificationsEnabled: StateFlow<Boolean>
 
     fun markReconnecting(device: SoundKitDevice, attempt: Int, nextDelayMs: Long)
-    fun markReconnectGaveUp(message: String)
+    fun markAway(sinceMillis: Long, reason: AwayReason)
     suspend fun connect(device: SoundKitDevice): Result<Unit>
     suspend fun disconnect()
     suspend fun writeCommand(command: ValveCommand): CommandResult
@@ -83,8 +84,8 @@ class BleConnectionManager @Inject constructor(
         _connectionState.value = ConnectionState.Reconnecting(device, attempt, nextDelayMs)
     }
 
-    override fun markReconnectGaveUp(message: String) {
-        _connectionState.value = ConnectionState.Error(message, recoverable = false)
+    override fun markAway(sinceMillis: Long, reason: AwayReason) {
+        _connectionState.value = ConnectionState.Away(sinceMillis, reason)
     }
 
     @SuppressLint("MissingPermission")

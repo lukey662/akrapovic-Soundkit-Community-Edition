@@ -49,6 +49,8 @@ struct SoundKitSettings: Codable, Equatable {
     var connectInCar: Bool = true
     var headUnitPriorityEnabled: Bool = true
     var autoReconnect: Bool = true
+    var periodicScanWhenAway: Bool = false
+    var periodicScanPromptAnswered: Bool = false
     var debugLoggingEnabled: Bool = false
     var garageThemeId: String = "studio-dark"
     var riskNoticeAcceptedAt: TimeInterval = 0
@@ -65,6 +67,7 @@ struct SoundKitSettings: Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case savedReceivers, connectOnLaunch, connectInCar, headUnitPriorityEnabled, autoReconnect
+        case periodicScanWhenAway, periodicScanPromptAnswered
         case debugLoggingEnabled, garageThemeId, riskNoticeAcceptedAt, onboardingCompletedAt
         case selectedVehicleId, automationPaused, driveModeEnabled, preferredValveMode, quietStart
     }
@@ -78,6 +81,8 @@ struct SoundKitSettings: Codable, Equatable {
         connectInCar = try container.decodeIfPresent(Bool.self, forKey: .connectInCar) ?? true
         headUnitPriorityEnabled = try container.decodeIfPresent(Bool.self, forKey: .headUnitPriorityEnabled) ?? true
         autoReconnect = try container.decodeIfPresent(Bool.self, forKey: .autoReconnect) ?? true
+        periodicScanWhenAway = try container.decodeIfPresent(Bool.self, forKey: .periodicScanWhenAway) ?? false
+        periodicScanPromptAnswered = try container.decodeIfPresent(Bool.self, forKey: .periodicScanPromptAnswered) ?? false
         debugLoggingEnabled = try container.decodeIfPresent(Bool.self, forKey: .debugLoggingEnabled) ?? false
         garageThemeId = try container.decodeIfPresent(String.self, forKey: .garageThemeId) ?? "studio-dark"
         riskNoticeAcceptedAt = try container.decodeIfPresent(TimeInterval.self, forKey: .riskNoticeAcceptedAt) ?? 0

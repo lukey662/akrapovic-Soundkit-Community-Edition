@@ -25,6 +25,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.domain.CarBluetoothCandidate
+import com.akrapovic.soundkit.community.domain.CarBluetoothCatalog
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.ui.SoundKitUiState
 import com.akrapovic.soundkit.community.ui.components.AkraActionButton
@@ -54,6 +56,8 @@ fun SettingsScreen(
     onExportSettingsBackup: () -> String = { "{}" },
     onImportSettingsBackup: (String) -> Unit = {},
     onApplyDriveModeProfile: (com.akrapovic.soundkit.community.data.DriveModeProfile) -> Unit = {},
+    onPeriodicScanChanged: (Boolean) -> Unit = {},
+    onCarBluetoothSelected: (String?, String?) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val powerManager = remember { context.getSystemService(PowerManager::class.java) }
@@ -62,20 +66,23 @@ fun SettingsScreen(
     val removeTarget = remember { mutableStateOf<SavedReceiver?>(null) }
     val showForgetAllConfirm = remember { mutableStateOf(false) }
     val savedReceivers = state.settings.savedReceivers
+    var showCarPicker by remember { mutableStateOf(false) }
+    val carCandidates = remember(showCarPicker) { CarBluetoothCatalog.bondedCandidates(context) }
+    val carLabel = state.settings.carBluetoothName ?: state.settings.carBluetoothAddress ?: "Not set"
 
     AkraScreen(modifier = modifier) {
         AkraSectionTitle("Connection")
         AkraListGroup {
             AkraSwitchRow(
                 title = "Head unit priority",
-                subtitle = "When this phone is on Android Auto, it controls the Sound Kit. Other phones won't auto-connect.",
+                subtitle = "When this phone is on the car's Bluetooth or Android Auto, it controls the Sound Kit. Other phones won't auto-connect.",
                 checked = state.settings.headUnitPriorityEnabled,
                 onCheckedChange = onHeadUnitPriorityChanged,
             )
             AkraListDivider()
             AkraSwitchRow(
                 title = "Connect in car",
-                subtitle = "Try your default receiver when Sound Kit opens on the car display",
+                subtitle = "Try your default receiver when you return to the car or open Sound Kit on the car display",
                 checked = state.settings.connectInCar,
                 onCheckedChange = onConnectInCarChanged,
             )
@@ -92,6 +99,21 @@ fun SettingsScreen(
                 subtitle = "Retry if the Bluetooth link drops",
                 checked = state.settings.autoReconnect,
                 onCheckedChange = onAutoReconnectChanged,
+            )
+            AkraListDivider()
+            AkraListRow(
+                title = "Car Bluetooth",
+                subtitle = "The Audi's phone link. Used to tell when you've left.",
+                trailing = carLabel,
+                showChevron = true,
+                onClick = { showCarPicker = true },
+            )
+            AkraListDivider()
+            AkraSwitchRow(
+                title = "Scan while away",
+                subtitle = "Occasionally look for the receiver after you leave the car",
+                checked = state.settings.periodicScanWhenAway,
+                onCheckedChange = onPeriodicScanChanged,
             )
         }
 
@@ -179,6 +201,46 @@ fun SettingsScreen(
             )
         }
 
+        if (showCarPicker) {
+            AlertDialog(
+                onDismissRequest = { showCarPicker = false },
+                title = { Text("Which Bluetooth device is the car?") },
+                text = {
+                    Column {
+                        Text("Sound Kit cannot read the Audi MMI. Pick the phone connection the car already uses.")
+                        Spacer(Modifier.height(8.dp))
+                        if (carCandidates.isEmpty()) {
+                            Text("No paired Bluetooth devices found.")
+                        } else {
+                            carCandidates.forEach { candidate ->
+                                TextButton(
+                                    onClick = {
+                                        onCarBluetoothSelected(candidate.address, candidate.name)
+                                        showCarPicker = false
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        text = candidate.label(),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onCarBluetoothSelected(null, null)
+                        showCarPicker = false
+                    }) { Text("None") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCarPicker = false }) { Text("Cancel") }
+                },
+            )
+        }
+
         if (showForgetAllConfirm.value) {
             AlertDialog(
                 onDismissRequest = { showForgetAllConfirm.value = false },
@@ -200,6 +262,10 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(8.dp))
     }
+}
+
+private fun CarBluetoothCandidate.label(): String {
+    return if (likelyCar) "$name (likely car)" else name
 }
 
 @Composable

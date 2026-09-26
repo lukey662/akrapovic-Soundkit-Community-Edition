@@ -63,6 +63,7 @@ struct AdvancedView: View {
 
 struct SettingsView: View {
     @EnvironmentObject private var settingsStore: SettingsStore
+    @EnvironmentObject private var bleManager: BLEManager
     @Environment(\.garageTheme) private var theme
     @State private var editingReceiver: SavedReceiver?
     @State private var receiverToForget: SavedReceiver?
@@ -76,6 +77,16 @@ struct SettingsView: View {
                 Toggle("Connect on launch", isOn: binding(\.connectOnLaunch))
                 Toggle("Connect in CarPlay", isOn: binding(\.connectInCar))
                 Toggle("Auto reconnect", isOn: binding(\.autoReconnect))
+                Toggle("Scan while away", isOn: Binding(
+                    get: { settingsStore.settings.periodicScanWhenAway },
+                    set: { enabled in
+                        settingsStore.update {
+                            $0.periodicScanWhenAway = enabled
+                            $0.periodicScanPromptAnswered = true
+                        }
+                        bleManager.awayScanPreferenceChanged()
+                    }
+                ))
                 Toggle("Head unit priority", isOn: binding(\.headUnitPriorityEnabled))
                 Text("CarPlay connection is independent of phone launch. Head unit priority reduces connection contention with other phones.")
                     .font(.footnote)

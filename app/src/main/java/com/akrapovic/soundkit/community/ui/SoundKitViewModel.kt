@@ -19,6 +19,7 @@ import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
+import com.akrapovic.soundkit.community.car.CarPresenceSource
 import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.domain.ConnectionPriorityPolicy
 import com.akrapovic.soundkit.community.domain.ConnectionYieldState
@@ -45,6 +46,7 @@ class SoundKitViewModel @Inject constructor(
     private val crashReporter: CrashReporter,
     private val driveModeEngine: DriveModeEngine,
     private val carSessionTracker: CarSessionTracker,
+    private val carPresence: CarPresenceSource,
     private val valveCommandCoordinator: ValveCommandCoordinator,
 ) : ViewModel() {
     private val commandInFlight = MutableStateFlow(false)
@@ -130,11 +132,11 @@ class SoundKitViewModel @Inject constructor(
             val settings = settingsRepository.settings.first()
             if (!settings.onboardingCompleted || !settings.connectOnLaunch) return@launch
             val device = RememberedDeviceConnector.defaultDevice(settings) ?: return@launch
-            val carSessionActive = carSessionTracker.isCarSessionActive.value
+            val inCar = carPresence.presence.value.orSession(carSessionTracker.isCarSessionActive.value)
             if (ConnectionPriorityPolicy.shouldAutoConnectOnLaunch(
                     settings,
                     bleRepository.connectionState.value,
-                    carSessionActive,
+                    inCar,
                 )
             ) {
                 bleRepository.connect(device, userInitiated = false)
@@ -194,6 +196,24 @@ class SoundKitViewModel @Inject constructor(
     fun setAutoReconnect(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.setAutoReconnect(enabled)
+        }
+    }
+
+    fun setPeriodicScanWhenAway(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setPeriodicScanWhenAway(enabled)
+        }
+    }
+
+    fun declinePeriodicScan() {
+        viewModelScope.launch {
+            settingsRepository.acknowledgePeriodicScanPrompt()
+        }
+    }
+
+    fun setCarBluetooth(address: String?, name: String?) {
+        viewModelScope.launch {
+            settingsRepository.setCarBluetooth(address, name)
         }
     }
 

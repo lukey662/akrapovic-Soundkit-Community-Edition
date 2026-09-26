@@ -2,6 +2,11 @@ package com.akrapovic.soundkit.community.test
 
 import com.akrapovic.soundkit.community.ble.BleConnectionGateway
 import com.akrapovic.soundkit.community.ble.BleScannerGateway
+import com.akrapovic.soundkit.community.ble.ScanDuty
+import com.akrapovic.soundkit.community.car.CarPresence
+import com.akrapovic.soundkit.community.car.CarPresenceSource
+import com.akrapovic.soundkit.community.domain.AwayReason
+import com.akrapovic.soundkit.community.domain.WallClock
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.QuietStartCodec
 import com.akrapovic.soundkit.community.data.SettingsBackupCodec
@@ -38,11 +43,23 @@ class NoopRuleExecutionLogStore : com.akrapovic.soundkit.community.data.RuleExec
 class FakeBleScannerGateway : BleScannerGateway {
     val emissions = MutableSharedFlow<List<SoundKitDevice>>()
     var scanCollectionCount = 0
+    var lastDuty: ScanDuty? = null
 
-    override fun scan(): Flow<List<SoundKitDevice>> {
+    override fun scan(duty: ScanDuty): Flow<List<SoundKitDevice>> {
+        lastDuty = duty
         scanCollectionCount += 1
         return emissions
     }
+}
+
+class FakeCarPresenceSource(
+    initial: CarPresence = CarPresence(),
+) : CarPresenceSource {
+    override val presence = MutableStateFlow(initial)
+}
+
+class FixedClock(var now: Long = 1_700_000_000_000L) : WallClock {
+    override fun nowMillis(): Long = now
 }
 
 class FakeBleConnectionGateway : BleConnectionGateway {
@@ -58,16 +75,17 @@ class FakeBleConnectionGateway : BleConnectionGateway {
     var writeResult: CommandResult = CommandResult.Failure("protocol not verified", recoverable = false)
     var connectResults: MutableList<Result<Unit>> = mutableListOf(Result.success(Unit))
 
-    val reconnectGaveUpMessages = mutableListOf<String>()
+    val awayMarks = mutableListOf<ConnectionState.Away>()
 
     override fun markReconnecting(device: SoundKitDevice, attempt: Int, nextDelayMs: Long) {
         reconnectMarks += ConnectionState.Reconnecting(device, attempt, nextDelayMs)
         connectionState.value = reconnectMarks.last()
     }
 
-    override fun markReconnectGaveUp(message: String) {
-        reconnectGaveUpMessages += message
-        connectionState.value = ConnectionState.Error(message, recoverable = false)
+    override fun markAway(sinceMillis: Long, reason: AwayReason) {
+        val away = ConnectionState.Away(sinceMillis, reason)
+        awayMarks += away
+        connectionState.value = away
     }
 
     override suspend fun connect(device: SoundKitDevice): Result<Unit> {
@@ -173,6 +191,29 @@ class FakeSettingsStore(
         settings.value = settings.value.copy(autoReconnect = enabled)
     }
 
+    override suspend fun setPeriodicScanWhenAway(enabled: Boolean) {
+        settings.value = settings.value.copy(
+            periodicScanWhenAway = enabled,
+            periodicScanPromptAnswered = true,
+        )
+    }
+
+    override suspend fun acknowledgePeriodicScanPrompt() {
+        settings.value = settings.value.copy(periodicScanPromptAnswered = true)
+    }
+
+    override suspend fun setCarBluetooth(address: String?, name: String?) {
+        settings.value = settings.value.copy(carBluetoothAddress = address, carBluetoothName = name)
+    }
+
+    override suspend fun recordAwaySession(sinceMillis: Long, reason: AwayReason) {
+        settings.value = settings.value.copy(awaySinceMillis = sinceMillis, awayReason = reason)
+    }
+
+    override suspend fun clearAwaySession() {
+        settings.value = settings.value.copy(awaySinceMillis = 0L, awayReason = null)
+    }
+
     override suspend fun setDebugLoggingEnabled(enabled: Boolean) {
         debugLoggingChanges += enabled
         settings.value = settings.value.copy(debugLoggingEnabled = enabled)
@@ -204,6 +245,8 @@ class FakeSettingsStore(
         backup.connectOnLaunch?.let { next = next.copy(connectOnLaunch = it) }
         backup.headUnitPriorityEnabled?.let { next = next.copy(headUnitPriorityEnabled = it) }
         backup.autoReconnect?.let { next = next.copy(autoReconnect = it) }
+        backup.periodicScanWhenAway?.let { next = next.copy(periodicScanWhenAway = it) }
+        backup.periodicScanPromptAnswered?.let { next = next.copy(periodicScanPromptAnswered = it) }
         backup.garageThemeId?.let { next = next.copy(garageThemeId = it) }
         backup.driveModeEnabled?.let { next = next.copy(driveModeEnabled = it) }
         backup.preferredValveMode?.let { mode ->

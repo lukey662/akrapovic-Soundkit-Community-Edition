@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.car
 
+import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.CommandPhase
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
@@ -60,7 +61,9 @@ class CarScreenPresenterTest {
             true, true, true, ConnectionState.Connected(device), ValveState.Closed,
             null, CommandPhase.Writing(ValveState.Open),
         ) as CarScreenModel.Controls
-        assertTrue(writing.loading)
+        assertFalse(writing.loading)
+        assertTrue(writing.showControls)
+        assertEquals(CarTemplateKind.Controls, carTemplateKind(writing))
         assertFalse(writing.openEnabled)
         assertFalse(writing.closeEnabled)
     }
@@ -89,9 +92,21 @@ class CarScreenPresenterTest {
         ) as CarScreenModel.Controls
 
         assertEquals("Receiver disconnected", disconnected.status)
+        assertFalse(disconnected.loading)
         assertFalse(disconnected.showControls)
+        assertEquals(CarTemplateKind.Message, carTemplateKind(disconnected))
         assertEquals("Connection failed", error.status)
         assertFalse(error.showControls)
+        assertEquals(CarTemplateKind.Message, carTemplateKind(error))
+
+        val away = CarScreenPresenter.present(
+            true, true, true, ConnectionState.Away(1_700_000_000_000L, AwayReason.LeftCar), ValveState.Unknown,
+            null, CommandPhase.Idle,
+        ) as CarScreenModel.Controls
+        assertEquals("Left the car", away.status)
+        assertFalse(away.loading)
+        assertFalse(away.showControls)
+        assertEquals(CarTemplateKind.Message, carTemplateKind(away))
     }
 
     private fun present(valveState: ValveState): CarScreenModel.Controls {

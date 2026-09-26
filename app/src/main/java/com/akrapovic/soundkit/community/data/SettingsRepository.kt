@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.SavedReceiver
@@ -31,6 +32,11 @@ interface SettingsStore {
     suspend fun setHeadUnitPriorityEnabled(enabled: Boolean)
     suspend fun forgetDevice()
     suspend fun setAutoReconnect(enabled: Boolean)
+    suspend fun setPeriodicScanWhenAway(enabled: Boolean)
+    suspend fun acknowledgePeriodicScanPrompt()
+    suspend fun setCarBluetooth(address: String?, name: String?)
+    suspend fun recordAwaySession(sinceMillis: Long, reason: AwayReason)
+    suspend fun clearAwaySession()
     suspend fun setDebugLoggingEnabled(enabled: Boolean)
     suspend fun setGarageThemeId(themeId: String)
     suspend fun acceptRiskNotice()
@@ -56,6 +62,12 @@ class SettingsRepository @Inject constructor(
         val ConnectInCar = booleanPreferencesKey("connect_in_car")
         val HeadUnitPriorityEnabled = booleanPreferencesKey("head_unit_priority_enabled")
         val AutoReconnect = booleanPreferencesKey("auto_reconnect")
+        val PeriodicScanWhenAway = booleanPreferencesKey("periodic_scan_when_away")
+        val PeriodicScanPromptAnswered = booleanPreferencesKey("periodic_scan_prompt_answered")
+        val CarBluetoothAddress = stringPreferencesKey("car_bluetooth_address")
+        val CarBluetoothName = stringPreferencesKey("car_bluetooth_name")
+        val AwaySinceMillis = androidx.datastore.preferences.core.longPreferencesKey("away_since_millis")
+        val AwayReasonName = stringPreferencesKey("away_reason")
         val DebugLoggingEnabled = booleanPreferencesKey("debug_logging_enabled")
         val GarageThemeId = stringPreferencesKey("garage_theme_id")
         val RiskNoticeAcceptedAt = androidx.datastore.preferences.core.longPreferencesKey("risk_notice_accepted_at")
@@ -76,6 +88,14 @@ class SettingsRepository @Inject constructor(
             connectInCar = preferences[Keys.ConnectInCar] ?: true,
             headUnitPriorityEnabled = preferences[Keys.HeadUnitPriorityEnabled] ?: true,
             autoReconnect = preferences[Keys.AutoReconnect] ?: true,
+            periodicScanWhenAway = preferences[Keys.PeriodicScanWhenAway] ?: false,
+            periodicScanPromptAnswered = preferences[Keys.PeriodicScanPromptAnswered] ?: false,
+            carBluetoothAddress = preferences[Keys.CarBluetoothAddress],
+            carBluetoothName = preferences[Keys.CarBluetoothName],
+            awaySinceMillis = preferences[Keys.AwaySinceMillis] ?: 0L,
+            awayReason = preferences[Keys.AwayReasonName]?.let { stored ->
+                runCatching { AwayReason.valueOf(stored) }.getOrNull()
+            },
             debugLoggingEnabled = preferences[Keys.DebugLoggingEnabled] ?: true,
             garageThemeId = preferences[Keys.GarageThemeId] ?: "studio-dark",
             riskNoticeAcceptedAt = preferences[Keys.RiskNoticeAcceptedAt] ?: 0L,
@@ -180,6 +200,50 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    override suspend fun setPeriodicScanWhenAway(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.PeriodicScanWhenAway] = enabled
+            preferences[Keys.PeriodicScanPromptAnswered] = true
+        }
+    }
+
+    override suspend fun acknowledgePeriodicScanPrompt() {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.PeriodicScanPromptAnswered] = true
+        }
+    }
+
+    override suspend fun setCarBluetooth(address: String?, name: String?) {
+        context.settingsDataStore.edit { preferences ->
+            if (address.isNullOrBlank()) {
+                preferences.remove(Keys.CarBluetoothAddress)
+                preferences.remove(Keys.CarBluetoothName)
+            } else {
+                preferences[Keys.CarBluetoothAddress] = address
+                val label = name?.trim().orEmpty()
+                if (label.isEmpty()) {
+                    preferences.remove(Keys.CarBluetoothName)
+                } else {
+                    preferences[Keys.CarBluetoothName] = label
+                }
+            }
+        }
+    }
+
+    override suspend fun recordAwaySession(sinceMillis: Long, reason: AwayReason) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.AwaySinceMillis] = sinceMillis
+            preferences[Keys.AwayReasonName] = reason.name
+        }
+    }
+
+    override suspend fun clearAwaySession() {
+        context.settingsDataStore.edit { preferences ->
+            preferences.remove(Keys.AwaySinceMillis)
+            preferences.remove(Keys.AwayReasonName)
+        }
+    }
+
     override suspend fun setDebugLoggingEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.DebugLoggingEnabled] = enabled
@@ -222,6 +286,8 @@ class SettingsRepository @Inject constructor(
             backup.connectInCar?.let { preferences[Keys.ConnectInCar] = it }
             backup.headUnitPriorityEnabled?.let { preferences[Keys.HeadUnitPriorityEnabled] = it }
             backup.autoReconnect?.let { preferences[Keys.AutoReconnect] = it }
+            backup.periodicScanWhenAway?.let { preferences[Keys.PeriodicScanWhenAway] = it }
+            backup.periodicScanPromptAnswered?.let { preferences[Keys.PeriodicScanPromptAnswered] = it }
             backup.garageThemeId?.let { preferences[Keys.GarageThemeId] = it }
             backup.selectedVehicleId?.let { preferences[Keys.SelectedVehicleId] = it }
             backup.driveModeEnabled?.let { preferences[Keys.DriveModeEnabled] = it }

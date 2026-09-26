@@ -7,12 +7,16 @@ import com.akrapovic.soundkit.community.ble.BleConnectionManager
 import com.akrapovic.soundkit.community.ble.BleScanner
 import com.akrapovic.soundkit.community.ble.BleScannerGateway
 import com.akrapovic.soundkit.community.ble.RetryPolicy
+import com.akrapovic.soundkit.community.car.CarPresenceMonitor
+import com.akrapovic.soundkit.community.car.CarPresenceSource
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.BleRepositoryImpl
 import com.akrapovic.soundkit.community.data.RuleExecutionLogRepository
 import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
 import com.akrapovic.soundkit.community.data.SettingsRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
+import com.akrapovic.soundkit.community.domain.SystemWallClock
+import com.akrapovic.soundkit.community.domain.WallClock
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -43,6 +47,14 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindRuleExecutionLogStore(impl: RuleExecutionLogRepository): RuleExecutionLogStore
+
+    @Binds
+    @Singleton
+    abstract fun bindCarPresenceSource(impl: CarPresenceMonitor): CarPresenceSource
+
+    @Binds
+    @Singleton
+    abstract fun bindWallClock(impl: SystemWallClock): WallClock
 }
 
 @Module

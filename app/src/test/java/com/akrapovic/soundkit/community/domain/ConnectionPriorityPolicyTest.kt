@@ -17,8 +17,8 @@ class ConnectionPriorityPolicyTest {
 
     @Test
     fun primaryControllerFollowsCarSession() {
-        assertTrue(ConnectionPriorityPolicy.isPrimaryController(carSessionActive = true))
-        assertFalse(ConnectionPriorityPolicy.isPrimaryController(carSessionActive = false))
+        assertTrue(ConnectionPriorityPolicy.isPrimaryController(inCar = true))
+        assertFalse(ConnectionPriorityPolicy.isPrimaryController(inCar = false))
     }
 
     @Test
@@ -27,14 +27,14 @@ class ConnectionPriorityPolicyTest {
             ConnectionPriorityPolicy.shouldAutoConnectOnLaunch(
                 settings = settings,
                 connectionState = ConnectionState.Disconnected,
-                carSessionActive = true,
+                inCar = true,
             ),
         )
         assertFalse(
             ConnectionPriorityPolicy.shouldAutoConnectOnLaunch(
                 settings = settings,
                 connectionState = ConnectionState.Disconnected,
-                carSessionActive = false,
+                inCar = false,
             ),
         )
     }
@@ -46,7 +46,7 @@ class ConnectionPriorityPolicyTest {
             ConnectionPriorityPolicy.shouldAutoConnectOnLaunch(
                 settings = legacy,
                 connectionState = ConnectionState.Disconnected,
-                carSessionActive = false,
+                inCar = false,
             ),
         )
     }
@@ -56,7 +56,7 @@ class ConnectionPriorityPolicyTest {
         assertTrue(
             ConnectionPriorityPolicy.shouldAutoReconnect(
                 settings = settings,
-                carSessionActive = true,
+                inCar = true,
                 userRequestedControl = false,
                 yieldState = ConnectionYieldState.None,
             ),
@@ -64,7 +64,7 @@ class ConnectionPriorityPolicyTest {
         assertFalse(
             ConnectionPriorityPolicy.shouldAutoReconnect(
                 settings = settings,
-                carSessionActive = false,
+                inCar = false,
                 userRequestedControl = false,
                 yieldState = ConnectionYieldState.None,
             ),
@@ -72,7 +72,7 @@ class ConnectionPriorityPolicyTest {
         assertTrue(
             ConnectionPriorityPolicy.shouldAutoReconnect(
                 settings = settings,
-                carSessionActive = false,
+                inCar = false,
                 userRequestedControl = true,
                 yieldState = ConnectionYieldState.None,
             ),
@@ -80,7 +80,7 @@ class ConnectionPriorityPolicyTest {
         assertFalse(
             ConnectionPriorityPolicy.shouldAutoReconnect(
                 settings = settings,
-                carSessionActive = false,
+                inCar = false,
                 userRequestedControl = true,
                 yieldState = ConnectionYieldState.Yielded(ConnectionYieldReason.HeadUnitMayBeActive),
             ),

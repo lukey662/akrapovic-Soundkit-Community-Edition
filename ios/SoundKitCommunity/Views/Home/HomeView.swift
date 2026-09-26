@@ -35,7 +35,7 @@ struct HomeView: View {
         switch bleManager.connectionPhase {
         case .connecting, .preparing, .connected, .reconnecting, .error:
             return true
-        case .disconnected, .scanning:
+        case .disconnected, .scanning, .away:
             return false
         }
     }
@@ -191,6 +191,8 @@ struct ConnectedDeviceView: View {
                 return "Connection error · \(message)"
             }
             return "Connection needs attention"
+        case .away(let since, let leftCar):
+            return AwayCopy.message(leftCar: leftCar, since: since)
         case .disconnected, .scanning:
             return "Disconnected"
         }
@@ -223,6 +225,7 @@ struct ConnectedDeviceView: View {
         case .connected: return .green
         case .connecting, .preparing, .reconnecting: return .orange
         case .error: return .red
+        case .away: return theme.muted
         case .disconnected, .scanning: return theme.muted
         }
     }
@@ -367,6 +370,7 @@ private struct ValveVisual: View {
 struct ScanView: View {
     @EnvironmentObject private var bleManager: BLEManager
     @EnvironmentObject private var viewModel: SoundKitViewModel
+    @EnvironmentObject private var settingsStore: SettingsStore
     @Environment(\.garageTheme) private var theme
     @State private var showTakeControlConfirm = false
 
@@ -376,6 +380,35 @@ struct ScanView: View {
                 .font(.largeTitle.bold())
             Text("Bluetooth only — nothing leaves your phone.")
                 .foregroundStyle(theme.muted)
+
+            if case .away(let since, let leftCar) = bleManager.connectionPhase {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(leftCar ? "Left the car" : "Receiver out of range")
+                        .font(.headline)
+                    Text(AwayCopy.message(leftCar: leftCar, since: since))
+                        .font(.subheadline)
+                        .foregroundStyle(theme.muted)
+                    Button("Connect") { bleManager.retryConnection() }
+                        .buttonStyle(PrimaryButtonStyle())
+                    if !settingsStore.settings.periodicScanPromptAnswered {
+                        Text("Scan for the receiver occasionally while you're away?")
+                            .font(.subheadline)
+                        Button("Scan occasionally") {
+                            settingsStore.update {
+                                $0.periodicScanWhenAway = true
+                                $0.periodicScanPromptAnswered = true
+                            }
+                            bleManager.awayScanPreferenceChanged()
+                        }
+                        Button("Not now") {
+                            settingsStore.update { $0.periodicScanPromptAnswered = true }
+                        }
+                    }
+                }
+                .padding(12)
+                .background(theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
 
             if case .yielded = bleManager.connectionYieldState {
                 VStack(alignment: .leading, spacing: 8) {

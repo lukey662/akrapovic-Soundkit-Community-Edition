@@ -195,7 +195,7 @@ public availability without the corresponding gate evidence.
 
 The car surface uses the Android for Cars App Library **IoT** category (`androidx.car.app.category.IOT`). It is local-only and delegates all BLE work to the same repository path as the phone UI, including state-gated toggle safety.
 
-When the car session opens, the app starts the BLE foreground service and auto-connects to the remembered receiver only when **Connect in car** is enabled. The `GridTemplate` provides separate **Open** and **Close** actions when the receiver is connected and status is known; the current-state action is inert and both are inert while a command runs. Unknown and not-ready receiver states hide actions. Onboarding, BLE permission, and receiver setup remain phone-only and show **Finish setup on phone** on the car display.
+When the car session opens, the app starts the BLE foreground service from the application context and auto-connects to the remembered receiver only when **Connect in car** is enabled. While the link is still coming up, the car shows a loading template. Disconnected, left-car, out-of-range, and unknown states show a status message. The `GridTemplate` provides separate **Open** and **Close** actions only when the receiver is connected and status is known; the current-state action is inert and both are inert while a command runs. Onboarding, BLE permission, and receiver setup remain phone-only and show **Finish setup on phone** on the car display.
 
 Diagnostics exports record Car App registration, package suffix, manifest Car API level, Bluetooth permission readiness, saved receiver, `connectInCar`, and current car-session status.
 
@@ -207,8 +207,9 @@ For **personal / debug** use on a standard head unit (USB or wireless Android Au
 
 1. Connect to your receiver once on the phone so it is remembered.
 2. **Pixel / modern Android:** Settings → Connected devices → Connection preferences → **Android Auto** (or search Settings). Tap **Version** 10× → **Developer mode**.
-3. Enable **Unknown sources** (required for sideloaded Car apps).
-4. Plug into the car or use wireless AA; open the AA launcher and launch **Sound Kit**.
+3. Enable **Unknown sources** (required for sideloaded Car apps). A stock launcher will not list this app without it.
+4. **Customize launcher** and enable this exact package. Debug installs use `com.akrapovic.soundkit.community.debug`.
+5. Plug into the car or use wireless AA; open the AA launcher and launch **Sound Kit** while parked.
 
 Use the full checklist in `TESTING.md` § Projected Android Auto Validation.
 

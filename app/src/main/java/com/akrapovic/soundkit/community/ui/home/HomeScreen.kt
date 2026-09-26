@@ -24,6 +24,7 @@ fun HomeScreen(
     onTakeControl: () -> Unit = {},
     onSetDefaultReceiver: (String) -> Unit = {},
     onOpenDriveMode: () -> Unit = {},
+    onPeriodicScanAnswer: (Boolean) -> Unit = {},
 ) {
     if (state.showsControlSection()) {
         ConnectedDeviceScreen(
@@ -48,6 +49,7 @@ fun HomeScreen(
             onTakeControl = onTakeControl,
             onSetDefaultReceiver = onSetDefaultReceiver,
             onOpenDriveMode = onOpenDriveMode,
+            onPeriodicScanAnswer = onPeriodicScanAnswer,
         )
     }
 }
@@ -61,6 +63,7 @@ private fun SoundKitUiState.showsControlSection(): Boolean {
         ConnectionState.Disconnected,
         ConnectionState.Scanning,
         is ConnectionState.Error,
+        is ConnectionState.Away,
         -> false
     }
 }

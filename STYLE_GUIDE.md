@@ -20,7 +20,7 @@
 - Haptics communicate a completed valve command or a command failure only; respect system reduced-motion settings and never make animation the only state indicator.
 - Keep vehicle-use UI simple and low distraction.
 - Car App screens use typed presenter models and low-distraction templates; setup, permissions, and receiver selection always redirect to the phone.
-- Car templates show only status and discrete Open/Close actions. Hide controls for unknown or not-ready state; make current-state and in-flight actions inert.
+- Car templates show a loading state while connecting, a status message when controls are unavailable, and discrete Open/Close actions only when the receiver is ready. Never build an idle grid with no items. Make current-state and in-flight actions inert.
 
 ## BLE
 

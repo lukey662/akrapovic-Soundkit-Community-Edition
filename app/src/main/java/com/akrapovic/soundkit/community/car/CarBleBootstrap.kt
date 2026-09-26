@@ -13,19 +13,27 @@ import kotlinx.coroutines.launch
  * Android Auto / car session opens, if the separate car connection preference permits it.
  */
 object CarBleBootstrap {
+    /**
+     * @return false when the foreground service could not start, so the car screen can retry.
+     */
     fun onCarEntry(
         context: Context,
         repository: BleRepository,
         settings: SoundKitSettings,
         scope: CoroutineScope,
-    ) {
-        BleConnectionService.start(context)
-        if (!settings.onboardingCompleted) return
-        val device = RememberedDeviceConnector.defaultDevice(settings) ?: return
-        scope.launch {
-            if (RememberedDeviceConnector.shouldConnectInCar(repository.connectionState.value, settings)) {
-                repository.connect(device, userInitiated = false)
+    ): Boolean {
+        return try {
+            BleConnectionService.start(context.applicationContext)
+            if (!settings.onboardingCompleted) return true
+            val device = RememberedDeviceConnector.defaultDevice(settings) ?: return true
+            scope.launch {
+                if (RememberedDeviceConnector.shouldConnectInCar(repository.connectionState.value, settings)) {
+                    repository.connect(device, userInitiated = false)
+                }
             }
+            true
+        } catch (_: RuntimeException) {
+            false
         }
     }
 }

@@ -28,7 +28,7 @@ object CarAppDiagnostics {
             appendLine("connectInCar=$connectInCar")
             appendLine("carSessionActive=$carSessionActive")
             appendLine("hostStatus=${if (carSessionActive) "session active" else "no active car host session"}")
-            appendLine("androidAutoNote=Settings>Connected devices>Android Auto; enable Developer mode and Unknown sources")
+            appendLine("androidAutoNote=Developer mode, Unknown sources, and Customize launcher must enable ${context.packageName}")
         }
     }
 

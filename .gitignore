@@ -10,4 +10,5 @@ reverse/
 *.apk
 *.aab
 *.hprof
+node_modules/
 

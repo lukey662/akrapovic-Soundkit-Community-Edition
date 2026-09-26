@@ -80,4 +80,6 @@ object BleTimeouts {
     const val COMMAND_CONFIRMATION_MS = 5_000L
     const val ACTIVE_SCAN_MS = 15_000L
     const val LOW_LATENCY_SCAN_MS = 10_000L
+    const val AWAY_SCAN_WINDOW_MS = 8_000L
+    const val AWAY_SCAN_GAP_MS = 120_000L
 }

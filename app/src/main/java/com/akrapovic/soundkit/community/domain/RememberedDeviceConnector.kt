@@ -29,6 +29,7 @@ object RememberedDeviceConnector {
         return when (connectionState) {
             ConnectionState.Disconnected,
             is ConnectionState.Error,
+            is ConnectionState.Away,
             -> true
             ConnectionState.Scanning,
             is ConnectionState.Connecting,

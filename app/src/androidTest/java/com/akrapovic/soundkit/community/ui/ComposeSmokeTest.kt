@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.SdkSuppress
+import com.akrapovic.soundkit.community.car.CarPresence
+import com.akrapovic.soundkit.community.car.CarPresenceSource
 import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
@@ -342,6 +344,7 @@ class ComposeSmokeTest {
                         valveCommandCoordinator,
                     ),
                     carSessionTracker = carSessionTracker,
+                    carPresence = IdleCarPresence,
                     valveCommandCoordinator = valveCommandCoordinator,
                 ),
                 blePermissions = emptyList(),
@@ -386,6 +389,7 @@ class ComposeSmokeTest {
                         valveCommandCoordinator,
                     ),
                     carSessionTracker = carSessionTracker,
+                    carPresence = IdleCarPresence,
                     valveCommandCoordinator = valveCommandCoordinator,
                 ),
                 blePermissions = emptyList(),
@@ -478,6 +482,10 @@ class ComposeSmokeTest {
     }
 }
 
+private object IdleCarPresence : CarPresenceSource {
+    override val presence = MutableStateFlow(CarPresence())
+}
+
 private class FakeBleRepositoryForSmoke : BleRepository {
     override val discoveredDevices = MutableStateFlow<List<SoundKitDevice>>(emptyList())
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
@@ -551,6 +559,26 @@ private class FakeSettingsStoreForSmoke(
 
     override suspend fun setAutoReconnect(enabled: Boolean) {
         settings.value = settings.value.copy(autoReconnect = enabled)
+    }
+
+    override suspend fun setPeriodicScanWhenAway(enabled: Boolean) {
+        settings.value = settings.value.copy(periodicScanWhenAway = enabled, periodicScanPromptAnswered = true)
+    }
+
+    override suspend fun acknowledgePeriodicScanPrompt() {
+        settings.value = settings.value.copy(periodicScanPromptAnswered = true)
+    }
+
+    override suspend fun setCarBluetooth(address: String?, name: String?) {
+        settings.value = settings.value.copy(carBluetoothAddress = address, carBluetoothName = name)
+    }
+
+    override suspend fun recordAwaySession(sinceMillis: Long, reason: com.akrapovic.soundkit.community.domain.AwayReason) {
+        settings.value = settings.value.copy(awaySinceMillis = sinceMillis, awayReason = reason)
+    }
+
+    override suspend fun clearAwaySession() {
+        settings.value = settings.value.copy(awaySinceMillis = 0L, awayReason = null)
     }
 
     override suspend fun setDebugLoggingEnabled(enabled: Boolean) {
