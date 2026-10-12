@@ -75,7 +75,7 @@ fun SettingsScreen(
         AkraListGroup {
             AkraSwitchRow(
                 title = "Head unit priority",
-                subtitle = "When this phone is on the car's Bluetooth or Android Auto, it controls the Sound Kit. Other phones won't auto-connect.",
+                subtitle = "This phone prefers the receiver while it is on the car's Bluetooth or Android Auto. If another phone already has it, this phone waits until you take control.",
                 checked = state.settings.headUnitPriorityEnabled,
                 onCheckedChange = onHeadUnitPriorityChanged,
             )

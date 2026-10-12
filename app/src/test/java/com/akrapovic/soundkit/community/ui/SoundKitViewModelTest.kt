@@ -77,6 +77,7 @@ class SoundKitViewModelTest {
                 executionLog = NoopRuleExecutionLogStore(),
                 diagnosticsRepository = diagnosticsRepository,
                 valveCommandCoordinator = valveCommandCoordinator,
+                clock = com.akrapovic.soundkit.community.domain.SystemWallClock(),
             ),
             carSessionTracker = carSessionTracker,
             carPresence = FakeCarPresenceSource(),

@@ -132,13 +132,15 @@ Clearing app data resets onboarding. Existing installs see the full screen again
 - **Settings** lists saved receivers, default star, independent **Connect on launch** and **Connect in car** toggles, and per-receiver remove.
 - **Home (scan)** shows saved chips and marks default devices; connecting saves/updates the receiver and sets default when appropriate.
 - **`RememberedDeviceConnector`** (domain) keeps phone launch (`connectOnLaunch`) and car session entry (`connectInCar`) policies separate from post-drop **auto reconnect** in `BleRepository`.
+- A process that starts already in the car connects once when **Connect in car** and auto-reconnect are on. An away card older than 12 hours is dropped, and dismissing it forgets the session. Only the saved car’s Bluetooth link, or Android Auto itself, may wake that card.
+- With **Head unit priority** on, two phones in the car do not both keep retrying. The one that loses the link waits and can take control; the one that leaves releases the receiver after a short grace.
 
 ## Drive mode
 
 Entry: **Settings** (full controls) or **Home** shortcut → Drive mode screen.
 
 - Set **preferred valves** (Open or Closed) applied when connected and ready.
-- Optional **quiet neighbours** window (editable **Start** / **End** times in Settings; default 06:00–09:00): after each connect during the window, hold Closed for N minutes (default **3**), then apply preferred mode. Set e.g. **03:00–09:00** for early starts. If end is earlier than start (e.g. **22:00–06:00**), the window runs overnight into the next morning. Manual open/close from Home, notification, or Android Auto wins for that connect session.
+- Optional **quiet neighbours** window (editable **Start** / **End** times in Settings; default 06:00–09:00): after each connect during the window, hold Closed for N minutes (default **3**), then apply preferred mode. While that hold is running, Home, the Drive mode row, the notification, and the Android Auto title count down to the open. The end time is saved so a service restart finishes the remainder instead of starting another full hold. Set e.g. **03:00–09:00** for early starts. If end is earlier than start (e.g. **22:00–06:00**), the window runs overnight into the next morning. Manual open/close from Home, notification, or Android Auto wins for that connect session.
 - **Pause drive mode** from Settings or the foreground notification.
 - Drive mode applies only when **connected**, valve state is **known**, and the receiver is **not** in status `0x04`.
 - **Auto-reconnect** stops after 8 attempts (~90s backoff); honors the Settings toggle for initial failures too; use **Try again** on Home if unreachable.
@@ -195,11 +197,11 @@ public availability without the corresponding gate evidence.
 
 The car surface uses the Android for Cars App Library **IoT** category (`androidx.car.app.category.IOT`). It is local-only and delegates all BLE work to the same repository path as the phone UI, including state-gated toggle safety.
 
-When the car session opens, the app starts the BLE foreground service from the application context and auto-connects to the remembered receiver only when **Connect in car** is enabled. While the link is still coming up, the car shows a loading template. Disconnected, left-car, out-of-range, and unknown states show a status message. The `GridTemplate` provides separate **Open** and **Close** actions only when the receiver is connected and status is known; the current-state action is inert and both are inert while a command runs. Onboarding, BLE permission, and receiver setup remain phone-only and show **Finish setup on phone** on the car display.
+When the car session opens, the app starts the BLE foreground service from the application context and auto-connects to the remembered receiver only when **Connect in car** is enabled. While the link is still coming up, the car shows a loading template. Disconnected, left-car, out-of-range, and unknown states show a status message. The `GridTemplate` provides separate **Open** and **Close** actions only when the receiver is connected and status is known; the title shows that status, including a quiet-start countdown. The current-state action is inert and both are inert while a command runs. Onboarding, BLE permission, and receiver setup remain phone-only and show **Finish setup on phone** on the car display.
 
 Diagnostics exports record Car App registration, package suffix, manifest Car API level, Bluetooth permission readiness, saved receiver, `connectInCar`, and current car-session status.
 
-The manifest must declare `com.google.android.gms.car.application` pointing at `res/xml/automotive_app_desc.xml` (with `<uses name="template" />`).
+The manifest must declare `com.google.android.gms.car.application` pointing at `res/xml/automotive_app_desc.xml` (with `<uses name="template" />`). `SoundKitCarAppService` sets `android:icon` and `android:label` so the host can show the app in the launcher. The category stays IoT.
 
 ### Projected Android Auto (phone → car, sideload)
 

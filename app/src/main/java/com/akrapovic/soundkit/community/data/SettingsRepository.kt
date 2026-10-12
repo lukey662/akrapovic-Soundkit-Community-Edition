@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.akrapovic.soundkit.community.car.CarAddressMirror
 import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
@@ -15,6 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.settingsDataStore by preferencesDataStore(name = "soundkit_settings")
@@ -48,6 +50,11 @@ interface SettingsStore {
     suspend fun setDriveModeEnabled(enabled: Boolean)
     suspend fun setPreferredValveMode(mode: PreferredValveMode)
     suspend fun setQuietStart(settings: QuietStartSettings)
+    suspend fun setQuietHoldEndsAt(endsAtMillis: Long?)
+}
+
+internal suspend fun readStoredCarBluetoothAddress(context: Context): String? {
+    return context.settingsDataStore.data.first()[stringPreferencesKey("car_bluetooth_address")]
 }
 
 @Singleton
@@ -78,6 +85,7 @@ class SettingsRepository @Inject constructor(
         val DriveModeEnabled = booleanPreferencesKey("drive_mode_enabled")
         val PreferredValveMode = stringPreferencesKey("preferred_valve_mode")
         val QuietStartJson = stringPreferencesKey("quiet_start_json")
+        val QuietHoldEndsAtMillis = androidx.datastore.preferences.core.longPreferencesKey("quiet_hold_ends_at_millis")
     }
 
     override val settings: Flow<SoundKitSettings> = context.settingsDataStore.data.map { preferences ->
@@ -108,6 +116,7 @@ class SettingsRepository @Inject constructor(
                 ?.let { runCatching { PreferredValveMode.valueOf(it) }.getOrNull() }
                 ?: PreferredValveMode.Open,
             quietStart = QuietStartCodec.decode(preferences[Keys.QuietStartJson]),
+            quietHoldEndsAtMillis = preferences[Keys.QuietHoldEndsAtMillis] ?: 0L,
         )
     }
 
@@ -214,6 +223,7 @@ class SettingsRepository @Inject constructor(
     }
 
     override suspend fun setCarBluetooth(address: String?, name: String?) {
+        CarAddressMirror.write(context, address)
         context.settingsDataStore.edit { preferences ->
             if (address.isNullOrBlank()) {
                 preferences.remove(Keys.CarBluetoothAddress)
@@ -323,6 +333,16 @@ class SettingsRepository @Inject constructor(
     override suspend fun setQuietStart(settings: QuietStartSettings) {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.QuietStartJson] = QuietStartCodec.encode(settings)
+        }
+    }
+
+    override suspend fun setQuietHoldEndsAt(endsAtMillis: Long?) {
+        context.settingsDataStore.edit { preferences ->
+            if (endsAtMillis == null || endsAtMillis <= 0L) {
+                preferences.remove(Keys.QuietHoldEndsAtMillis)
+            } else {
+                preferences[Keys.QuietHoldEndsAtMillis] = endsAtMillis
+            }
         }
     }
 

@@ -31,8 +31,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class SoundKitCarScreen(
@@ -51,6 +52,7 @@ class SoundKitCarScreen(
     private var settingsSnapshot = SoundKitSettings()
     private var settingsReady = false
     private var didBootstrap = false
+    private var quietHoldEndsAt: Long? = null
 
     init {
         carSessionTracker.beginSession()
@@ -70,7 +72,7 @@ class SoundKitCarScreen(
             }
         }
         scope.launch {
-            combine(
+            val render = combine(
                 settingsStore.settings,
                 repository.connectionState,
                 repository.valveState,
@@ -79,8 +81,16 @@ class SoundKitCarScreen(
             ) { settings, connection, valve, status, commandPhase ->
                 CarRenderState(settings, connection, valve, status, commandPhase)
             }
-                .distinctUntilChanged()
-                .collect { invalidate() }
+            combine(render, driveModeEngine.quietHoldEndsAt) { state, endsAt ->
+                quietHoldEndsAt = endsAt
+                state
+            }.collect { invalidate() }
+        }
+        scope.launch {
+            while (isActive) {
+                delay(1_000)
+                if (quietHoldEndsAt != null) invalidate()
+            }
         }
     }
 
@@ -105,6 +115,8 @@ class SoundKitCarScreen(
                 valveState = valveState,
                 receiverStatusMessage = receiverStatusMessage,
                 commandPhase = valveCommandCoordinator.commandPhase.value,
+                quietHoldEndsAtMillis = driveModeEngine.quietHoldEndsAt.value,
+                nowMillis = System.currentTimeMillis(),
             )
         ) {
             is CarScreenModel.SetupRequired -> MessageTemplate.Builder(model.message)
@@ -128,7 +140,7 @@ class SoundKitCarScreen(
 
     private fun buildGridTemplate(model: CarScreenModel.Controls): Template {
         return GridTemplate.Builder()
-            .setTitle("Sound Kit")
+            .setTitle(model.status)
             .setHeaderAction(Action.APP_ICON)
             .setSingleList(
                 ItemList.Builder()

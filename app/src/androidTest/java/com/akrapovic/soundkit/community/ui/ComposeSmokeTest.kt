@@ -70,6 +70,7 @@ private fun smokeDriveModeEngine(
     executionLog = SmokeRuleExecutionLogStore(),
     diagnosticsRepository = diagnosticsRepository,
     valveCommandCoordinator = valveCommandCoordinator,
+    clock = com.akrapovic.soundkit.community.domain.SystemWallClock(),
 )
 
 @SdkSuppress(maxSdkVersion = 35)
@@ -495,6 +496,7 @@ private class FakeBleRepositoryForSmoke : BleRepository {
         com.akrapovic.soundkit.community.domain.ConnectionYieldState.None,
     )
     override val isScanning = MutableStateFlow(false)
+    override val startupSettled = MutableStateFlow(true)
 
     override fun startScan() {
         isScanning.value = true
@@ -513,6 +515,10 @@ private class FakeBleRepositoryForSmoke : BleRepository {
     }
 
     override suspend fun disconnect() {
+        connectionState.value = ConnectionState.Disconnected
+    }
+
+    override suspend fun dismissAway() {
         connectionState.value = ConnectionState.Disconnected
     }
 
@@ -621,5 +627,9 @@ private class FakeSettingsStoreForSmoke(
 
     override suspend fun setQuietStart(quietStart: QuietStartSettings) {
         settings.value = settings.value.copy(quietStart = quietStart)
+    }
+
+    override suspend fun setQuietHoldEndsAt(endsAtMillis: Long?) {
+        settings.value = settings.value.copy(quietHoldEndsAtMillis = endsAtMillis ?: 0L)
     }
 }

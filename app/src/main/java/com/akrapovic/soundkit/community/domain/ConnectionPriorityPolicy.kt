@@ -32,12 +32,12 @@ object ConnectionPriorityPolicy {
         return userRequestedControl
     }
 
-    fun shouldEnterYieldOnContention(
-        settings: SoundKitSettings,
-        inCar: Boolean,
-    ): Boolean {
-        if (!settings.headUnitPriorityEnabled) return false
-        return !isPrimaryController(inCar)
+    /**
+     * Another phone already holds the receiver. Yield even when this phone is also in the car,
+     * so two phones do not retry against each other. Head-unit priority off keeps the old race.
+     */
+    fun shouldEnterYieldOnContention(settings: SoundKitSettings): Boolean {
+        return settings.headUnitPriorityEnabled
     }
 
     /**

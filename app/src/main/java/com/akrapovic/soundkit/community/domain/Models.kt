@@ -127,7 +127,11 @@ data class SoundKitSettings(
     /** Paired classic Bluetooth device that means "this phone is in the car". */
     val carBluetoothAddress: String? = null,
     val carBluetoothName: String? = null,
-    /** Survives process death so the shade can still say when the phone left. */
+    /**
+     * Survives process death so the shade can still say when the phone left.
+     * Forgotten after [com.akrapovic.soundkit.community.domain.AwaySessionPolicy.MAX_AGE_MS]
+     * and when the user dismisses the notification.
+     */
     val awaySinceMillis: Long = 0L,
     val awayReason: AwayReason? = null,
     val debugLoggingEnabled: Boolean = true,
@@ -140,6 +144,8 @@ data class SoundKitSettings(
     val driveModeEnabled: Boolean = true,
     val preferredValveMode: PreferredValveMode = PreferredValveMode.Open,
     val quietStart: QuietStartSettings = QuietStartSettings(),
+    /** Epoch millis when a timed quiet hold should release. 0 means no hold is running. */
+    val quietHoldEndsAtMillis: Long = 0L,
 ) {
     val riskNoticeAccepted: Boolean get() = riskNoticeAcceptedAt > 0L
     val onboardingCompleted: Boolean get() = onboardingCompletedAt > 0L

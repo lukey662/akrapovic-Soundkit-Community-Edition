@@ -86,4 +86,14 @@ class ConnectionPriorityPolicyTest {
             ),
         )
     }
+
+    @Test
+    fun contentionYieldsEvenWhenThisPhoneIsInTheCar() {
+        assertTrue(ConnectionPriorityPolicy.shouldEnterYieldOnContention(settings))
+        assertFalse(
+            ConnectionPriorityPolicy.shouldEnterYieldOnContention(
+                settings.copy(headUnitPriorityEnabled = false),
+            ),
+        )
+    }
 }

@@ -118,6 +118,9 @@ class ServiceAndManifestSmokeTest {
         val matches = context.packageManager.queryIntentServices(intent, PackageManager.GET_META_DATA)
 
         assertTrue(matches.any { it.serviceInfo.name == SoundKitCarAppService::class.java.name })
+        val service = matches.first { it.serviceInfo.name == SoundKitCarAppService::class.java.name }.serviceInfo
+        assertTrue(service.icon != 0)
+        assertTrue(service.labelRes != 0 || !service.nonLocalizedLabel.isNullOrBlank())
     }
 }
 

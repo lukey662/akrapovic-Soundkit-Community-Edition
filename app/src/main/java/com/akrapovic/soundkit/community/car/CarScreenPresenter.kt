@@ -3,6 +3,7 @@ package com.akrapovic.soundkit.community.car
 import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.CommandPhase
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.QuietHoldCopy
 import com.akrapovic.soundkit.community.domain.ValveState
 
 /**
@@ -18,6 +19,8 @@ object CarScreenPresenter {
         valveState: ValveState,
         receiverStatusMessage: String?,
         commandPhase: CommandPhase,
+        quietHoldEndsAtMillis: Long? = null,
+        nowMillis: Long = 0L,
     ): CarScreenModel {
         val setupReason = when {
             !onboardingCompleted -> "Finish setup on phone"
@@ -39,7 +42,8 @@ object CarScreenPresenter {
         // A GridTemplate cannot be loading and have a list, and it cannot be idle with neither.
         // Loading is only for the empty connecting state. A command keeps the grid and disables taps.
         return CarScreenModel.Controls(
-            status = receiverStatusMessage ?: connectionState.statusText(valveState),
+            status = receiverStatusMessage
+                ?: connectionState.statusText(valveState, quietHoldEndsAtMillis, nowMillis),
             loading = !controlsVisible && connectionInFlight,
             showControls = controlsVisible,
             openEnabled = controlsVisible && valveState == ValveState.Closed && !commandInFlight,
@@ -51,12 +55,16 @@ object CarScreenPresenter {
         return this is CommandPhase.Writing || this is CommandPhase.AwaitingConfirmation
     }
 
-    private fun ConnectionState.statusText(valveState: ValveState): String = when (this) {
+    private fun ConnectionState.statusText(
+        valveState: ValveState,
+        quietHoldEndsAtMillis: Long?,
+        nowMillis: Long,
+    ): String = when (this) {
         ConnectionState.Disconnected -> "Receiver disconnected"
         ConnectionState.Scanning -> "Connecting"
         is ConnectionState.Connecting -> "Connecting"
         is ConnectionState.Reconnecting -> "Connecting"
-        is ConnectionState.Connected -> valveState.statusText()
+        is ConnectionState.Connected -> valveState.statusText(quietHoldEndsAtMillis, nowMillis)
         is ConnectionState.Error -> "Connection failed"
         is ConnectionState.Away -> when (reason) {
             AwayReason.LeftCar -> "Left the car"
@@ -64,10 +72,15 @@ object CarScreenPresenter {
         }
     }
 
-    private fun ValveState.statusText(): String = when (this) {
-        ValveState.Closed -> "Closed"
-        ValveState.Open -> "Open"
-        ValveState.Unknown -> "Checking status"
+    private fun ValveState.statusText(quietHoldEndsAtMillis: Long?, nowMillis: Long): String {
+        if (this == ValveState.Closed && quietHoldEndsAtMillis != null && quietHoldEndsAtMillis > nowMillis) {
+            return QuietHoldCopy.shortStatus(quietHoldEndsAtMillis, nowMillis)
+        }
+        return when (this) {
+            ValveState.Closed -> "Closed"
+            ValveState.Open -> "Open"
+            ValveState.Unknown -> "Checking status"
+        }
     }
 }
 

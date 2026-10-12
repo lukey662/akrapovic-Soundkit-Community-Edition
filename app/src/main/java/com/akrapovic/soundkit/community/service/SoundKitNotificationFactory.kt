@@ -45,6 +45,7 @@ class SoundKitNotificationFactory @Inject constructor(
         driveModeEnabled: Boolean = true,
         driveModePaused: Boolean = automationPaused,
         periodicScanWhenAway: Boolean = false,
+        quietHoldEndsAtMillis: Long? = null,
     ): Notification {
         val presentation = NotificationCopy.build(
             connectionState = connectionState,
@@ -55,6 +56,7 @@ class SoundKitNotificationFactory @Inject constructor(
             driveModePaused = driveModePaused,
             lastExecution = lastExecution,
             periodicScanWhenAway = periodicScanWhenAway,
+            quietHoldEndsAtMillis = quietHoldEndsAtMillis,
         )
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -72,6 +74,23 @@ class SoundKitNotificationFactory @Inject constructor(
             .setOngoing(presentation.ongoing)
             .setOnlyAlertOnce(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+
+        presentation.chronometerEndsAtMillis?.let { endsAt ->
+            builder.setWhen(endsAt)
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
+        }
+        if (presentation.dismissibleAway) {
+            builder.setDeleteIntent(
+                PendingIntent.getService(
+                    context,
+                    7,
+                    Intent(context, BleConnectionService::class.java)
+                        .setAction(BleConnectionService.ACTION_DISMISS_AWAY),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ),
+            )
+        }
 
         if (presentation.connectEnabled) {
             builder.addAction(action(R.string.notification_action_connect, BleConnectionService.ACTION_CONNECT, 6))

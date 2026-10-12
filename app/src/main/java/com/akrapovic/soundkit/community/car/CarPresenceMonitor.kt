@@ -75,6 +75,7 @@ class CarPresenceMonitor @Inject constructor(
         scope.launch {
             settingsStore.settings.collect { settings ->
                 savedAddress = settings.carBluetoothAddress
+                CarAddressMirror.write(context, savedAddress)
                 refreshConnectedProfiles()
                 publish()
             }

@@ -106,7 +106,8 @@ class SoundKitViewModel @Inject constructor(
         commandInFlight,
         lastError,
         hasPendingCrash,
-    ) { core, inFlight, error, pendingCrash ->
+        driveModeEngine.quietHoldEndsAt,
+    ) { core, inFlight, error, pendingCrash, quietHoldEndsAt ->
         SoundKitUiState(
             devices = core.devices,
             connectionState = core.connectionState,
@@ -119,6 +120,7 @@ class SoundKitViewModel @Inject constructor(
             connectionYieldState = core.connectionYieldState,
             protocolVerified = SoundKitProtocol.VERIFIED,
             hasPendingCrash = pendingCrash,
+            quietHoldEndsAtMillis = quietHoldEndsAt,
         )
     }.stateIn(
         scope = viewModelScope,

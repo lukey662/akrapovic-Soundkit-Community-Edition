@@ -576,3 +576,25 @@ After the receiver drops, the app retried about eight times and then stored `Con
 - The shade no longer looks like a failure after a normal exit, and it can show when the phone left.
 - Stock Android Auto still will not list a sideloaded IoT app until Unknown sources and Customize launcher are on for this package id. Play listing stays a non-goal.
 - iOS uses the same away copy. CarPlay stays off. iOS presence is the car-audio route, which is a weaker signal than Android's Bluetooth profile.
+
+## 2026-10-12: One receiver, a quiet countdown, and a real launcher icon
+
+### Context
+
+Days after a drive, the shade still said “Left the car at 9:40 am” because the away timestamp was restored on any Bluetooth event. Auto-connect also missed a process that started already on the car link unless that old timestamp existed. Two phones in the car both behaved as the owner. Timed quiet start closed the valves with no remaining-time display. The Android Auto service had no icon or label, which the host uses to represent the app in the launcher.
+
+### Decision
+
+- Forget an away session after 12 hours and when the notification is dismissed. Start the connection service from Bluetooth only for the saved car, or from an Android Auto connection update.
+- If the process starts already in the car, connect once. A user disconnect still suppresses that.
+- With head-unit priority on, contention yields even when this phone is in the car. The phone that leaves releases the GATT link after 15 seconds. The waiting phone probes slowly while it stays in the car. Take control still connects immediately.
+- Publish and persist the quiet-hold end time. Home, the drive-mode row, the notification chronometer, and the car screen title show the countdown.
+- Set `android:icon` and `android:label` on `SoundKitCarAppService`. Keep the IoT category. Do not reclassify the app as POI or navigation.
+
+### Consequences
+
+- A headphone or watch connection no longer republishes last week’s leave card.
+- Two phones in the same car stop retrying against each other. The phone that stays can pick up the receiver after the other one leaves.
+- The quiet-start open still happens if the service process dies mid-hold.
+- Android Auto can show the icon only after Developer mode, Unknown sources, and Customize launcher for this package. A Play Store listing is still out of scope.
+

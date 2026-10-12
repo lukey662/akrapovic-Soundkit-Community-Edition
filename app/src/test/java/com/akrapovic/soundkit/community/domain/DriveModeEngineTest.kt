@@ -25,6 +25,8 @@ class DriveModeEngineTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule(StandardTestDispatcher())
 
+    private val clock = com.akrapovic.soundkit.community.test.FixedClock()
+
     @Test
     fun skipsWhenDriveModeDisabled() = runTest(mainDispatcherRule.dispatcher) {
         val log = InMemoryLog()
@@ -151,6 +153,85 @@ class DriveModeEngineTest {
         assertEquals(1, ble.closeValveCount)
     }
 
+    @Test
+    fun quietHoldPublishesAnEndTimeAndClearsItWhenTheHoldEnds() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        val ble = FakeBleRepository()
+        ble.connectionState.value = ConnectionState.Connected(device)
+        ble.valveState.value = ValveState.Open
+        ble.closeResult = CompletableDeferred(CommandResult.Success(ValveState.Closed))
+        ble.openResult = CompletableDeferred(CommandResult.Success(ValveState.Open))
+        val settings = FakeSettingsStore(SoundKitSettings(quietStart = allDayQuiet(holdMinutes = 1)))
+        val engine = engine(ble = ble, settings = settings)
+
+        engine.onConnectReady(1L, this)
+        runCurrent()
+
+        assertEquals(clock.now + 60_000L, engine.quietHoldEndsAt.value)
+        assertEquals(clock.now + 60_000L, settings.settings.value.quietHoldEndsAtMillis)
+
+        advanceTimeBy(61_000)
+        runCurrent()
+
+        assertEquals(null, engine.quietHoldEndsAt.value)
+        assertEquals(0L, settings.settings.value.quietHoldEndsAtMillis)
+        assertEquals(1, ble.openValveCount)
+    }
+
+    @Test
+    fun manualAdjustmentClearsTheQuietHoldEnd() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        val ble = FakeBleRepository()
+        ble.connectionState.value = ConnectionState.Connected(device)
+        ble.valveState.value = ValveState.Open
+        ble.closeResult = CompletableDeferred(CommandResult.Success(ValveState.Closed))
+        val engine = engine(
+            ble = ble,
+            settings = FakeSettingsStore(SoundKitSettings(quietStart = allDayQuiet(holdMinutes = 5))),
+        )
+
+        engine.onConnectReady(1L, this)
+        runCurrent()
+        engine.onUserValveAdjustment()
+
+        assertEquals(null, engine.quietHoldEndsAt.value)
+    }
+
+    @Test
+    fun persistedQuietHoldResumesTheRemainderWithoutClosingAgain() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        val ble = FakeBleRepository()
+        ble.connectionState.value = ConnectionState.Connected(device)
+        ble.valveState.value = ValveState.Closed
+        ble.openResult = CompletableDeferred(CommandResult.Success(ValveState.Open))
+        val settings = FakeSettingsStore(
+            SoundKitSettings(
+                quietStart = allDayQuiet(holdMinutes = 5),
+                quietHoldEndsAtMillis = clock.now + 30_000L,
+            ),
+        )
+        val engine = engine(ble = ble, settings = settings)
+
+        engine.onConnectReady(1L, this)
+        runCurrent()
+        assertEquals(0, ble.closeValveCount)
+        assertEquals(clock.now + 30_000L, engine.quietHoldEndsAt.value)
+
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        assertEquals(1, ble.openValveCount)
+        assertEquals(null, engine.quietHoldEndsAt.value)
+    }
+
+    private fun allDayQuiet(holdMinutes: Int) = QuietStartSettings(
+        enabled = true,
+        daysOfWeek = setOf(0, 1, 2, 3, 4, 5, 6),
+        windowStartMinute = 0,
+        windowEndMinute = 24 * 60 - 1,
+        holdClosedMinutes = holdMinutes,
+    )
+
     private fun engine(
         ble: FakeBleRepository = FakeBleRepository(),
         settings: FakeSettingsStore = FakeSettingsStore(),
@@ -162,6 +243,7 @@ class DriveModeEngineTest {
             executionLog = log,
             diagnosticsRepository = DiagnosticsRepository(),
             valveCommandCoordinator = ValveCommandCoordinator(ble),
+            clock = clock,
         )
     }
 

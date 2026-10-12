@@ -277,6 +277,10 @@ class FakeSettingsStore(
     override suspend fun setQuietStart(quietStart: com.akrapovic.soundkit.community.domain.QuietStartSettings) {
         settings.value = settings.value.copy(quietStart = quietStart)
     }
+
+    override suspend fun setQuietHoldEndsAt(endsAtMillis: Long?) {
+        settings.value = settings.value.copy(quietHoldEndsAtMillis = endsAtMillis ?: 0L)
+    }
 }
 
 class FakeBleRepository : BleRepository {
@@ -286,6 +290,7 @@ class FakeBleRepository : BleRepository {
     override val receiverStatusMessage = MutableStateFlow<String?>(null)
     override val connectionYieldState = MutableStateFlow<ConnectionYieldState>(ConnectionYieldState.None)
     override val isScanning = MutableStateFlow(false)
+    override val startupSettled = MutableStateFlow(true)
 
     var startScanCount = 0
     var stopScanCount = 0
@@ -320,6 +325,10 @@ class FakeBleRepository : BleRepository {
 
     override suspend fun disconnect() {
         disconnectCount += 1
+        connectionState.value = ConnectionState.Disconnected
+    }
+
+    override suspend fun dismissAway() {
         connectionState.value = ConnectionState.Disconnected
     }
 

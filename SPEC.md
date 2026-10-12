@@ -107,22 +107,23 @@ flowchart TD
 - `SavedReceiver`: address, name, optional nickname, `isDefault`.
 - CRUD via `SettingsStore`: save on connect (default if first), remove, set default, update nickname, forget all.
 - **Connect on launch:** one attempt per process when onboarding complete, BLE granted, `connectOnLaunch` true, and `ConnectionPriorityPolicy.shouldAutoConnectOnLaunch`. With head-unit priority on, a phone connects on launch only when it is in the car (saved car Bluetooth, Android Auto projection, or an open Sound Kit car screen).
-- **Connect in car:** a separate default-on `connectInCar` preference. It connects when a Car App session opens and, with auto-reconnect, once when the phone returns to the car. It does not alter a deliberate user disconnect.
-- **Away:** after the 8-attempt reconnect cap, the state is `Away` with a persisted time, not `Error`. Copy is “Left the car at …” or “Receiver out of range since …”. Optional low-power scan while away is off until the user opts in.
-- **Car surface:** while connecting, the IoT template is loading and has no list. Otherwise a message shows the status, including left-car and out-of-range. The Open/Close `GridTemplate` appears only for a connected, ready receiver with known valve state. The matching current-state item is inert, and both are inert during a command. Missing onboarding, Bluetooth permissions, or a default receiver show a phone-only setup message. The BLE service is started from the application context; a failed foreground start is retried.
-- **Head unit priority** (default on): “in the car” is saved car Bluetooth, Android Auto projection, or an open Sound Kit car screen. Other phones yield on BLE contention and show **Take control** on Home.
+- **Connect in car:** a separate default-on `connectInCar` preference. It connects when a Car App session opens and, with auto-reconnect, once when the phone returns to the car, including a process start that is already on the car link. It does not alter a deliberate user disconnect.
+- **Away:** after the 8-attempt reconnect cap, the state is `Away` with a persisted time, not `Error`. Copy is “Left the car at …” or “Receiver out of range since …”. The session is forgotten after 12 hours and when the user swipes the notification away. Optional low-power scan while away is off until the user opts in. Bluetooth events for devices other than the saved car do not start the service.
+- **Car surface:** while connecting, the IoT template is loading and has no list. Otherwise a message shows the status, including left-car and out-of-range. The Open/Close `GridTemplate` appears only for a connected, ready receiver with known valve state, and its title is that status (including the quiet-start countdown). The matching current-state item is inert, and both are inert during a command. Missing onboarding, Bluetooth permissions, or a default receiver show a phone-only setup message. The BLE service is started from the application context; a failed foreground start is retried. The car service declares `android:icon` and `android:label` so Android Auto can list it. Sideload still needs Developer mode, Unknown sources, and Customize launcher.
+- **Head unit priority** (default on): “in the car” is saved car Bluetooth, Android Auto projection, or an open Sound Kit car screen. Contention yields even when this phone is also in the car. Home shows **Take control**. The phone that leaves releases the link after a short grace. A waiting phone probes again slowly while it stays in the car.
 
 ## Multi-phone / same car
 
 - One BLE receiver accepts one GATT connection at a time.
 - Each phone has independent settings; no accounts or sync.
-- **Primary** (this phone is in the car): auto-connect + auto-reconnect per existing policy, including one connect when the car link returns.
-- **Secondary** (not in the car): no launch auto-connect; contention → yield; manual **Take control** sets `userRequestedControl` until disconnect.
+- **In the car:** this phone may auto-connect. If another phone already holds the receiver, a quick drop or a failed retry burst yields instead of posting “out of range”. The waiting phone probes again after 60 seconds, backing off up to 5 minutes, and **Take control** connects immediately.
+- **Leaving:** a live link is released about 15 seconds after this phone leaves, so the phone that is still in the car can take the receiver. A brief Bluetooth blip cancels that release. Leaving also clears a yield so the next drive can connect.
+- **Not in the car:** no launch auto-connect. Contention yields until **Take control**. No slow reclaim probe.
 - `headUnitPriorityEnabled = false` restores prior race behavior for power users.
 
 ## Notification and Quick Settings
 
-- Foreground notification combines connection, valve, and `receiverStatusMessage`; title uses default receiver display name when connected. Away copy omits valve and drive-mode lines and adds a Connect action. If occasional scan is off, the service drops out of the foreground and leaves a dismissible notification.
+- Foreground notification combines connection, valve, and `receiverStatusMessage`; title uses default receiver display name when connected. Away copy omits valve and drive-mode lines and adds a Connect action. Swiping that card clears the away session. If occasional scan is off, the service drops out of the foreground and leaves a dismissible notification. A car wake with nothing live to show cancels the card and stops. During a quiet-start hold the shade uses a countdown chronometer.
 - Open/Close actions only when connected, valve state known, and not in not-ready status.
 - Quick Settings tile: toggle when allowed; opens app when disconnected; inactive + `not ready` subtitle on status `04`.
 
@@ -131,7 +132,7 @@ flowchart TD
 | Piece | Status |
 |-------|--------|
 | `PreferredValveMode`, `QuietStartSettings` | DataStore via `SettingsRepository`; quiet window start/end editable in Settings |
-| `DriveModeEngine` | On first connect-ready per BLE session: quiet hold (default 3 min) → preferred mode; manual override per session |
+| `DriveModeEngine` | On first connect-ready per BLE session: quiet hold (default 3 min) → preferred mode; manual override per session. The hold end is persisted and shown as a countdown; a restart resumes the remainder |
 | `ConnectReadyObserver` | `BleConnectionService` fires drive mode only on connect-ready false→true (not on valve state changes) |
 | `RuleExecutionLog` | Ring buffer (~30 entries); reused for drive mode apply log |
 | Reconnect | `RetryPolicy.maxAttempts = 8`; give-up becomes `Away`, then one connect when the car link returns |

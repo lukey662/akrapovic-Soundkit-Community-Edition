@@ -31,9 +31,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.QuietHoldCopy
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.ui.SoundKitUiState
+import com.akrapovic.soundkit.community.ui.components.rememberQuietHoldNow
 import com.akrapovic.soundkit.community.ui.components.AkraActionButton
 import com.akrapovic.soundkit.community.ui.components.AkraBanner
 import com.akrapovic.soundkit.community.ui.components.AkraInlineStatus
@@ -61,6 +63,14 @@ fun ConnectedDeviceScreen(
     val wasCommandInFlight = remember { mutableStateOf(false) }
     val announcedError = remember { mutableStateOf<String?>(null) }
     val successRippleTrigger = remember { mutableIntStateOf(0) }
+    val quietNow = rememberQuietHoldNow(state.quietHoldEndsAtMillis)
+    val quietCountdown = state.quietHoldEndsAtMillis?.let { endsAt ->
+        if (state.valveState == ValveState.Closed && endsAt > quietNow) {
+            QuietHoldCopy.phoneHelper(endsAt, quietNow)
+        } else {
+            null
+        }
+    }
 
     LaunchedEffect(state.commandInFlight, state.lastError) {
         if (wasCommandInFlight.value && !state.commandInFlight && state.lastError == null) {
@@ -153,7 +163,7 @@ fun ConnectedDeviceScreen(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = state.valveState.helperText(state.receiverStatusMessage),
+                text = quietCountdown ?: state.valveState.helperText(state.receiverStatusMessage),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -179,6 +189,7 @@ fun ConnectedDeviceScreen(
         AkraListGroup {
             DriveModeShortcutRow(
                 settings = state.settings,
+                quietHoldEndsAtMillis = state.quietHoldEndsAtMillis,
                 onClick = onOpenDriveMode,
             )
             AkraListDivider()

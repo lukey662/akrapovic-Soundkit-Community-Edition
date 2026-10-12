@@ -18,6 +18,7 @@ data class SoundKitUiState(
     val connectionYieldState: ConnectionYieldState = ConnectionYieldState.None,
     val protocolVerified: Boolean = false,
     val hasPendingCrash: Boolean = false,
+    val quietHoldEndsAtMillis: Long? = null,
 )
 
 enum class AppScreen {

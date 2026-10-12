@@ -37,6 +37,14 @@ class CarScreenPresenterTest {
         assertFalse(closed.closeEnabled)
         assertEquals("Closed", closed.status)
 
+        val countdown = CarScreenPresenter.present(
+            true, true, true, ConnectionState.Connected(device), ValveState.Closed,
+            null, CommandPhase.Idle,
+            quietHoldEndsAtMillis = 125_000L,
+            nowMillis = 0L,
+        ) as CarScreenModel.Controls
+        assertEquals("Opening in 2:05", countdown.status)
+
         val open = present(ValveState.Open)
         assertTrue(open.showControls)
         assertFalse(open.openEnabled)

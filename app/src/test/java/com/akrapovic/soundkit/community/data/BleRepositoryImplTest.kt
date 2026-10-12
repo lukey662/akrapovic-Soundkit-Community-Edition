@@ -250,6 +250,7 @@ class BleRepositoryImplTest {
         repository.connect(device, userInitiated = false)
         connection.connectionState.value = ConnectionState.Connected(device)
         runCurrent()
+        clock.now += 4_000
         connection.connectResults = mutableListOf(Result.failure(IllegalStateException("offline")))
         connection.connectionState.value = ConnectionState.Disconnected
         advanceTimeBy(100)
@@ -290,6 +291,7 @@ class BleRepositoryImplTest {
         repository.connect(device, userInitiated = false)
         connection.connectionState.value = ConnectionState.Connected(device)
         runCurrent()
+        clock.now += 4_000
         connection.connectResults = mutableListOf(Result.failure(IllegalStateException("offline")))
         connection.connectionState.value = ConnectionState.Disconnected
         advanceTimeBy(5_000)
@@ -316,6 +318,7 @@ class BleRepositoryImplTest {
         repository.connect(device, userInitiated = false)
         connection.connectionState.value = ConnectionState.Connected(device)
         runCurrent()
+        clock.now += 4_000
         connection.connectResults = mutableListOf(Result.failure(IllegalStateException("offline")))
         connection.connectionState.value = ConnectionState.Disconnected
         runCurrent()
@@ -341,6 +344,7 @@ class BleRepositoryImplTest {
         repository.connect(device, userInitiated = false)
         connection.connectionState.value = ConnectionState.Connected(device)
         runCurrent()
+        clock.now += 4_000
         connection.connectResults = mutableListOf(Result.failure(IllegalStateException("offline")))
         connection.connectionState.value = ConnectionState.Disconnected
         advanceTimeBy(5_000)
@@ -365,6 +369,7 @@ class BleRepositoryImplTest {
         repository.connect(device, userInitiated = false)
         connection.connectionState.value = ConnectionState.Connected(device)
         runCurrent()
+        clock.now += 4_000
         connection.connectResults = mutableListOf(Result.success(Unit))
         connection.connectionState.value = ConnectionState.Disconnected
         advanceTimeBy(100)
@@ -421,7 +426,7 @@ class BleRepositoryImplTest {
     }
 
     @Test
-    fun startupAlreadyInCarDoesNotConnectWithoutPersistedAway() = runTest(mainDispatcherRule.dispatcher) {
+    fun startupAlreadyInCarConnectsWithoutPersistedAway() = runTest(mainDispatcherRule.dispatcher) {
         val device = testDevice()
         settings.settings.value = settings.settings.value.copy(
             savedReceivers = listOf(
@@ -432,7 +437,7 @@ class BleRepositoryImplTest {
         repository()
         runCurrent()
 
-        assertTrue(connection.connectedDevices.isEmpty())
+        assertEquals(device.address, connection.connectedDevices.single().address)
     }
 
     @Test
@@ -501,12 +506,165 @@ class BleRepositoryImplTest {
         repository.connect(device, userInitiated = false)
         connection.connectionState.value = ConnectionState.Connected(device)
         runCurrent()
+        clock.now += 4_000
         connection.connectionState.value = ConnectionState.Disconnected
         advanceTimeBy(1_000)
         runCurrent()
 
         assertTrue(repository.connectionYieldState.value is ConnectionYieldState.None)
         assertTrue(connection.reconnectMarks.isNotEmpty())
+    }
+
+    @Test
+    fun staleAwaySessionIsForgottenOnStartup() = runTest(mainDispatcherRule.dispatcher) {
+        settings.settings.value = settings.settings.value.copy(
+            awaySinceMillis = clock.now - com.akrapovic.soundkit.community.domain.AwaySessionPolicy.MAX_AGE_MS - 1,
+            awayReason = AwayReason.LeftCar,
+        )
+        repository()
+        runCurrent()
+
+        assertFalse(connection.connectionState.value is ConnectionState.Away)
+        assertEquals(0L, settings.settings.value.awaySinceMillis)
+        assertTrue(connection.connectedDevices.isEmpty())
+    }
+
+    @Test
+    fun freshAwaySessionIsRestoredOnStartup() = runTest(mainDispatcherRule.dispatcher) {
+        settings.settings.value = settings.settings.value.copy(
+            awaySinceMillis = clock.now,
+            awayReason = AwayReason.LeftCar,
+        )
+        repository()
+        runCurrent()
+
+        val away = connection.connectionState.value
+        assertTrue(away is ConnectionState.Away)
+        assertEquals(clock.now, (away as ConnectionState.Away).sinceMillis)
+    }
+
+    @Test
+    fun dismissAwayClearsTheSessionWithoutConnecting() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        settings.settings.value = settings.settings.value.copy(
+            savedReceivers = listOf(
+                com.akrapovic.soundkit.community.domain.SavedReceiver(device.address, device.name, isDefault = true),
+            ),
+            awaySinceMillis = clock.now,
+            awayReason = AwayReason.LeftCar,
+        )
+        val repository = repository()
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Away(clock.now, AwayReason.LeftCar)
+        runCurrent()
+
+        repository.dismissAway()
+        runCurrent()
+
+        assertEquals(ConnectionState.Disconnected, connection.connectionState.value)
+        assertEquals(0L, settings.settings.value.awaySinceMillis)
+        assertTrue(connection.connectedDevices.isEmpty())
+    }
+
+    @Test
+    fun inCarQuickDropYieldsWithoutRecordingAway() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        settings.settings.value = settings.settings.value.copy(
+            savedReceivers = listOf(
+                com.akrapovic.soundkit.community.domain.SavedReceiver(device.address, device.name, isDefault = true),
+            ),
+        )
+        carPresence.presence.value = CarPresence(bluetoothConnected = true)
+        val repository = repository()
+        runCurrent()
+        connection.connectedDevices.clear()
+        connection.reconnectMarks.clear()
+        connection.connectionState.value = ConnectionState.Connected(device)
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Disconnected
+        runCurrent()
+
+        assertTrue(repository.connectionYieldState.value is ConnectionYieldState.Yielded)
+        assertFalse(connection.connectionState.value is ConnectionState.Away)
+        assertTrue(connection.reconnectMarks.isEmpty())
+    }
+
+    @Test
+    fun yieldedPhoneInTheCarProbesAgainAfterTheCooldown() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        settings.settings.value = settings.settings.value.copy(
+            savedReceivers = listOf(
+                com.akrapovic.soundkit.community.domain.SavedReceiver(device.address, device.name, isDefault = true),
+            ),
+        )
+        carPresence.presence.value = CarPresence(bluetoothConnected = true)
+        val repository = repository()
+        runCurrent()
+        connection.connectedDevices.clear()
+        connection.connectionState.value = ConnectionState.Connected(device)
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Disconnected
+        runCurrent()
+        assertTrue(repository.connectionYieldState.value is ConnectionYieldState.Yielded)
+
+        advanceTimeBy(BleRepositoryImpl.RECLAIM_INITIAL_MS)
+        runCurrent()
+
+        assertEquals(device.address, connection.connectedDevices.single().address)
+    }
+
+    @Test
+    fun leavingCarReleasesAConnectedLinkAfterTheGracePeriod() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        settings.settings.value = settings.settings.value.copy(
+            savedReceivers = listOf(
+                com.akrapovic.soundkit.community.domain.SavedReceiver(device.address, device.name, isDefault = true),
+            ),
+        )
+        carPresence.presence.value = CarPresence(bluetoothConnected = true)
+        repository()
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Connected(device)
+        runCurrent()
+        val disconnectsBeforeLeave = connection.disconnectCount
+
+        carPresence.presence.value = CarPresence()
+        runCurrent()
+        assertEquals(disconnectsBeforeLeave, connection.disconnectCount)
+
+        advanceTimeBy(BleRepositoryImpl.LEAVE_GRACE_MS)
+        runCurrent()
+
+        assertTrue(connection.disconnectCount > disconnectsBeforeLeave)
+        val away = connection.connectionState.value
+        assertTrue(away is ConnectionState.Away)
+        assertEquals(AwayReason.LeftCar, (away as ConnectionState.Away).reason)
+    }
+
+    @Test
+    fun returningDuringLeaveGraceKeepsTheLink() = runTest(mainDispatcherRule.dispatcher) {
+        val device = testDevice()
+        settings.settings.value = settings.settings.value.copy(
+            savedReceivers = listOf(
+                com.akrapovic.soundkit.community.domain.SavedReceiver(device.address, device.name, isDefault = true),
+            ),
+        )
+        carPresence.presence.value = CarPresence(bluetoothConnected = true)
+        repository()
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Connected(device)
+        runCurrent()
+        val disconnects = connection.disconnectCount
+
+        carPresence.presence.value = CarPresence()
+        runCurrent()
+        carPresence.presence.value = CarPresence(bluetoothConnected = true)
+        runCurrent()
+        advanceTimeBy(BleRepositoryImpl.LEAVE_GRACE_MS)
+        runCurrent()
+
+        assertEquals(disconnects, connection.disconnectCount)
+        assertTrue(connection.connectionState.value is ConnectionState.Connected)
     }
 }
 

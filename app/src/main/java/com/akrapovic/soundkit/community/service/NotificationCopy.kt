@@ -16,6 +16,8 @@ data class NotificationPresentation(
     val pauseDriveModeEnabled: Boolean,
     val resumeDriveModeEnabled: Boolean,
     val connectEnabled: Boolean,
+    val dismissibleAway: Boolean = false,
+    val chronometerEndsAtMillis: Long? = null,
 )
 
 object NotificationCopy {
@@ -28,6 +30,8 @@ object NotificationCopy {
         driveModePaused: Boolean = false,
         lastExecution: RuleExecutionEntry? = null,
         periodicScanWhenAway: Boolean = false,
+        quietHoldEndsAtMillis: Long? = null,
+        nowMillis: Long = System.currentTimeMillis(),
     ): NotificationPresentation {
         val displayName = defaultReceiver?.displayName()
         val title = when (connectionState) {
@@ -35,6 +39,11 @@ object NotificationCopy {
             else -> "Sound Kit Community"
         }
         val away = connectionState is ConnectionState.Away
+        val quietCountdown = quietHoldEndsAtMillis?.takeIf { endsAt ->
+            connectionState is ConnectionState.Connected &&
+                valveState == ValveState.Closed &&
+                endsAt > nowMillis
+        }
         val statusText = connectionState.asNotificationText(displayName)
         val valveText = when {
             away -> null
@@ -45,6 +54,7 @@ object NotificationCopy {
         }
         val driveModeText = when {
             away -> null
+            quietCountdown != null -> "Quiet start"
             !driveModeEnabled -> "Drive mode off"
             driveModePaused -> "Drive mode paused"
             lastExecution?.ruleName == "Drive mode" -> "Last: Drive mode → ${lastExecution.action}"
@@ -74,6 +84,8 @@ object NotificationCopy {
             pauseDriveModeEnabled = showDriveModeActions && !driveModePaused,
             resumeDriveModeEnabled = showDriveModeActions && driveModePaused,
             connectEnabled = away,
+            dismissibleAway = away && !periodicScanWhenAway,
+            chronometerEndsAtMillis = quietCountdown,
         )
     }
 
