@@ -28,7 +28,7 @@ object CarAppDiagnostics {
             appendLine("connectInCar=$connectInCar")
             appendLine("carSessionActive=$carSessionActive")
             appendLine("hostStatus=${if (carSessionActive) "session active" else "no active car host session"}")
-            appendLine("androidAutoNote=Developer mode, Unknown sources, and Customize launcher must enable ${context.packageName}")
+            appendLine("androidAutoNote=Real cars list Car App Library apps only when installed from Play. Unknown sources does not apply. Package=${context.packageName}")
         }
     }
 

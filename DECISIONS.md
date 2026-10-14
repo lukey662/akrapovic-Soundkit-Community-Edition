@@ -598,3 +598,19 @@ Days after a drive, the shade still said “Left the car at 9:40 am” because t
 - The quiet-start open still happens if the service process dies mid-hold.
 - Android Auto can show the icon only after Developer mode, Unknown sources, and Customize launcher for this package. A Play Store listing is still out of scope.
 
+## 2026-10-14: Real cars ignore a sideloaded Car App Library app
+
+### Context
+
+After the car service gained an icon and label, a Pixel 10 Pro Fold still omitted Sound Kit from Customize launcher and from the car. Google's car testing guide, updated 6 October 2026, says a real vehicle lists an Android for Cars App Library app only when that app was installed from a trusted source such as Play Internal App Sharing or an internal test track. Unknown sources covers media, messaging notifications, and parked apps. It does not cover this library.
+
+### Decision
+
+Keep the IoT category, icon, and label. Do not relabel the service as POI or navigation. Stop instructing owners to enable Unknown sources in order to see this app. Phone notification, Quick Settings, and connect-in-car remain the controls when the launcher has no Sound Kit entry. Desktop Head Unit stays the local template check.
+
+### Consequences
+
+- An adb or APK install does not appear in Customize launcher or in the car.
+- Changing the category would not pass the trusted-source check.
+- A public Play listing stays a non-goal. An internal Play install is the only supported way onto the car screen.
+

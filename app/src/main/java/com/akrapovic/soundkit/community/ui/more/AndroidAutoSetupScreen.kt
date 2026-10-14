@@ -35,32 +35,15 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
             )
             SetupStep(
                 number = 2,
-                title = "Open Android Auto settings",
-                body = "Pixel: Settings → Connected devices → Connection preferences → Android Auto. " +
-                    "Or search Settings for “Android Auto”. Samsung: Settings → Connected devices → Android Auto.",
+                title = "Why Customize launcher is empty",
+                body = "This car screen uses the Android for Cars App Library. Google only lists those apps in a real car when the phone installed them from Play. " +
+                    "Unknown sources does not apply to this kind of app, so this install (${BuildConfig.APPLICATION_ID}) stays off the launcher.",
             )
             SetupStep(
                 number = 3,
-                title = "Enable Developer mode",
-                body = "In Android Auto settings, scroll to Version and tap it 10 times. Then open ⋮ → Developer settings.",
-            )
-            SetupStep(
-                number = 4,
-                title = "Allow unknown sources",
-                body = "In Developer settings, turn on Unknown sources (required for sideloaded Car apps).",
-            )
-            SetupStep(
-                number = 5,
-                title = "Customize launcher",
-                body = "Back in Android Auto settings → Customize launcher → enable Sound Kit if listed. " +
-                    "Enable this package: ${BuildConfig.APPLICATION_ID}. " +
-                    "A debug install ends in .debug and will not match the release name.",
-            )
-            SetupStep(
-                number = 6,
-                title = "Reconnect to the car",
-                body = "USB or wireless Android Auto, then open Sound Kit from the car launcher while parked. " +
-                    "The car screen provides separate Open and Close controls; it never uses a toggle.",
+                title = "Use the phone while parked",
+                body = "Open and close from the notification or the Quick Settings tile. " +
+                    "Connect in car still reconnects the receiver from the car's Bluetooth without a car-screen icon.",
             )
         }
 
@@ -74,9 +57,9 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "A stock Android Auto launcher will not list this sideloaded app until Unknown sources is on. " +
-                "There is no Play Store category for a valve controller, so that path stays unavailable. " +
-                "If the icon appears and then closes, reconnect while parked after the phone is already paired to the receiver.",
+            text = "A Play internal test or Internal App Sharing install is what puts Sound Kit on the car screen. " +
+                "A public Play listing is still unavailable: a valve controller does not fit a published Android Auto category. " +
+                "The Desktop Head Unit can still open this screen on a computer.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp),

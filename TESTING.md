@@ -96,7 +96,7 @@ Record results in your test notes as **Pass / Fail / Not tested**.
 | 2 | Settings → Connected devices → Connection preferences → **Android Auto** (Pixel) or search Settings; tap **Version** 10× → **Developer mode** | Developer menu visible |
 | 3 | Enable **Unknown sources** (and **Start head unit server** for DHU) | Settings stick after restart |
 | 4 | **DHU (Mac):** run Desktop Head Unit; launch **Sound Kit** from launcher | Grid shows Open/Close + status (or phone-setup message) |
-| 5 | **Real car:** plug in or wireless AA; open AA launcher → find **Sound Kit** | App listed (sideload + dev mode) |
+| 5 | **Real car:** install from Play internal sharing or an internal test track, then open the AA launcher | App listed. An `adb` install is expected to be absent; Unknown sources does not apply to the Car App Library |
 | 6 | Open Sound Kit on head unit while **parked** | Template loads without crash |
 | 7 | With remembered receiver: confirm auto-reconnect or **Connecting…** row | No need to open phone app first |
 | 8 | When connected + status known: tap **Open valves** / **Close valves** (toggle label) | Receiver accepts command |

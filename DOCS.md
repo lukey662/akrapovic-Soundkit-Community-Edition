@@ -203,19 +203,15 @@ Diagnostics exports record Car App registration, package suffix, manifest Car AP
 
 The manifest must declare `com.google.android.gms.car.application` pointing at `res/xml/automotive_app_desc.xml` (with `<uses name="template" />`). `SoundKitCarAppService` sets `android:icon` and `android:label` so the host can show the app in the launcher. The category stays IoT.
 
-### Projected Android Auto (phone → car, sideload)
+### Projected Android Auto (phone → car)
 
-For **personal / debug** use on a standard head unit (USB or wireless Android Auto):
+Google's car testing guide (6 October 2026) requires a real vehicle to install an Android for Cars App Library app from a trusted source. **Unknown sources does not apply** to this library, so an `adb` or APK install is absent from Customize launcher and from the car. Debug package id `com.akrapovic.soundkit.community.debug` does not change that.
 
-1. Connect to your receiver once on the phone so it is remembered.
-2. **Pixel / modern Android:** Settings → Connected devices → Connection preferences → **Android Auto** (or search Settings). Tap **Version** 10× → **Developer mode**.
-3. Enable **Unknown sources** (required for sideloaded Car apps). A stock launcher will not list this app without it.
-4. **Customize launcher** and enable this exact package. Debug installs use `com.akrapovic.soundkit.community.debug`.
-5. Plug into the car or use wireless AA; open the AA launcher and launch **Sound Kit** while parked.
+The supported way onto the car screen is Play **Internal App Sharing** or an **internal test track**. That is not a public listing. A public Play listing stays a non-goal because valve control does not fit a published category. Reclassifying the service as POI or navigation would not pass the install-source check.
 
-Use the full checklist in `TESTING.md` § Projected Android Auto Validation.
+Until that install exists, control the valves from the phone notification, the Quick Settings tile, or connect-in-car when the phone joins the car's Bluetooth.
 
-**Play Store listing** for projected Android Auto is still a **non-goal** (valve control does not fit Google's published categories). Sideload + developer mode is the supported path for projected testing.
+Use the checklist in `TESTING.md` § Projected Android Auto Validation.
 
 ### Fallback without the AA launcher
 
@@ -237,7 +233,7 @@ Built-in head units (Polestar, Volvo, etc.) can host IoT Car apps without phone 
 
 ### Distribution and approval boundaries
 
-- Android Auto's IoT surface supports DHU, Automotive OS, and sideloaded projected testing with developer settings. A projected Google Play listing is not planned; do not represent it as supported distribution.
+- Android Auto's IoT surface supports DHU and Automotive OS. A real car lists it only after a Play internal install. A public projected Play listing is not planned.
 - iOS Siri App Intents can ship independently after physical BLE validation. They fail safely if a locked/background phone cannot restore a ready BLE connection in time.
 - CarPlay is entitlement-gated and not approved. Do not enable, advertise, or submit its scene until Apple approves the driving-task entitlement and the provisioning profile includes it. Approval still does not guarantee App Store acceptance for safety-, noise-, or emissions-sensitive valve control.
 
