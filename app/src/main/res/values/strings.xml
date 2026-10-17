@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Sound Kit Community</string>
+    <string name="app_name">Car Sound Kit Control</string>
     <string name="quick_tile_label">Valve Control</string>
     <string name="notification_channel_name">Sound Kit connection</string>
     <string name="notification_channel_description">Persistent BLE connection and valve control status</string>
@@ -20,4 +20,3 @@
     <string name="shortcut_valve_status">Valve status</string>
     <string name="shortcut_valve_status_long">Get exhaust valve status</string>
 </resources>
-

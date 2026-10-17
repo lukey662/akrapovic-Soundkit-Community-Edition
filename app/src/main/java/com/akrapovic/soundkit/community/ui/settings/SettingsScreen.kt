@@ -164,7 +164,7 @@ fun SettingsScreen(
             AkraListRow(
                 title = "Background connection",
                 subtitle = if (ignoringOptimizations) {
-                    "Battery optimization disabled — good for reliability"
+                    "Battery optimization disabled. Good for reliability"
                 } else {
                     "Allow background use for a steadier link"
                 },

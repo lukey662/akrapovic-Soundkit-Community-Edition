@@ -304,8 +304,8 @@ private fun ValveState.displayTitle(): String = when (this) {
 private fun ValveState.helperText(receiverNotReady: String?): String {
     if (receiverNotReady != null) return receiverNotReady
     return when (this) {
-        ValveState.Open -> "Sport mode — valves are open."
-        ValveState.Closed -> "Quiet mode — valves are closed."
+        ValveState.Open -> "Sport mode: valves are open."
+        ValveState.Closed -> "Quiet mode: valves are closed."
         ValveState.Unknown -> "Waiting for the receiver."
     }
 }

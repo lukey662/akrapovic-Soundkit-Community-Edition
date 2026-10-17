@@ -97,7 +97,7 @@ fun ScanScreen(
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
             title = "Connect",
-            subtitle = "Bluetooth only — nothing leaves your phone.",
+            subtitle = "Bluetooth only. Nothing leaves your phone.",
             titleModifier = Modifier.semantics { heading() },
             compact = true,
         )
@@ -315,6 +315,6 @@ private fun DeviceRow(
 private fun signalText(rssi: Int): String = when {
     rssi >= -55 -> "Strong signal"
     rssi >= -75 -> "Good signal"
-    rssi >= -85 -> "Weak — move closer (~20 m)"
-    else -> "Very weak — move closer"
+    rssi >= -85 -> "Weak. Move closer (~20 m)"
+    else -> "Very weak. Move closer"
 }

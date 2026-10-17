@@ -1,0 +1,1 @@
+0.3.2: Softened the workshop look with warmer charcoal depth, amber actions, and rounder controls so screens feel less flat and square.

@@ -35,8 +35,8 @@ object NotificationCopy {
     ): NotificationPresentation {
         val displayName = defaultReceiver?.displayName()
         val title = when (connectionState) {
-            is ConnectionState.Connected -> displayName ?: "Sound Kit Community"
-            else -> "Sound Kit Community"
+            is ConnectionState.Connected -> displayName ?: "Car Sound Kit Control"
+            else -> "Car Sound Kit Control"
         }
         val away = connectionState is ConnectionState.Away
         val quietCountdown = quietHoldEndsAtMillis?.takeIf { endsAt ->

@@ -20,7 +20,7 @@ class AwayAndQuietCopyTest {
         val now = 1_000L
         val endsAt = now + (2 * 60 + 5) * 1_000L
         assertEquals("2:05", QuietHoldCopy.formatRemaining(endsAt, now))
-        assertEquals("Quiet start — opening in 2:05", QuietHoldCopy.phoneHelper(endsAt, now))
+        assertEquals("Quiet start: opening in 2:05", QuietHoldCopy.phoneHelper(endsAt, now))
         assertEquals("Opening in 2:05", QuietHoldCopy.shortStatus(endsAt, now))
         assertEquals("0:00", QuietHoldCopy.formatRemaining(now, now + 5_000L))
     }

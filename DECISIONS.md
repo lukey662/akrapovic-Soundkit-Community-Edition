@@ -614,3 +614,48 @@ Keep the IoT category, icon, and label. Do not relabel the service as POI or nav
 - Changing the category would not pass the trusted-source check.
 - A public Play listing stays a non-goal. An internal Play install is the only supported way onto the car screen.
 
+## 2026-10-15: Internal Play track for the car launcher
+
+### Context
+
+A real car lists this Car App Library app only after Play installs `com.akrapovic.soundkit.community`. The debug package already on the Pixel is a different id and stays invisible to Customize launcher. New Play apps must target Android 16 (API 36). A release build also rejects any Android Auto host whose signing certificate is not in the local allowlist.
+
+### Decision
+
+Ship phone `compileSdk` and `targetSdk` 36. Leave the Wear module at 35 and out of this upload. Keep the six host digests after they matched the AndroidX `hosts_allowlist_sample` on 15 October 2026. Publish version `0.3.0` (versionCode 3) to the Play internal testing track only, with the Android Auto form factor left active for that test. Store title, short description, and graphics must not present the app as an Akrapovič product. Do not apply for production, and do not send public Android Auto for review.
+
+## 2026-10-15: Store title Car Sound Kit Control
+
+### Context
+
+Owners search Play for the abandoned Akrapovič Car Sound Kit phone app. The previous title Sound Kit Community was accurate but hard to discover. Putting Akrapovič in the store title would present the app as an official product.
+
+### Decision
+
+Rename the launcher and Play title to **Car Sound Kit Control**. Put Akrapovič and Car Sound Kit in the short and full descriptions for search, keep the not-affiliated disclaimer, and leave package id `com.akrapovic.soundkit.community` unchanged.
+
+### Consequences
+
+- Search can hit the product phrase without a trademark title.
+- Short in-app chrome and Android Auto template titles can stay Sound Kit.
+- Existing installs keep the same package and update in place.
+- Testers install from the internal opt-in link, not from `adb`. The debug app can stay installed beside it.
+- A stale host allowlist would have shown the icon and then failed the car host check. No digest change was required.
+- Production stays unavailable on this new app until the dashboard requirements are met and the internal install is confirmed in the car.
+
+## 2026-10-15: Workshop UI softer radii and richer color
+
+### Context
+
+Workshop-instrument concepts were approved, but review called the first afters a bit square and flat colour-wise.
+
+### Decision
+
+Ship the Compose redesign with soft 20dp surfaces / 14dp CTAs (not hard rectangles, not full pills), Studio Workshop warm charcoal + amber as the default theme, subtle shell and card vertical gradients, and surface-tinted hairline outlines. Keep brand garage families; only Studio’s default palette shifts away from navy/blue.
+
+### Consequences
+
+- Version `0.3.2` carries the visual update on the internal track.
+- Theme id `studio-dark` is unchanged so saved settings keep working.
+- Play phone screenshots can be refreshed after device confirmation.
+

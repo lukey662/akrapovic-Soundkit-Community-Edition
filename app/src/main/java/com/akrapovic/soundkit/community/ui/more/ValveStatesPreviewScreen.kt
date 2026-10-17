@@ -36,25 +36,25 @@ fun ValveStatesPreviewScreen(
 
         ValveStateCard(
             title = "Closed",
-            subtitle = "Quiet — disc seals the bore, no heat glow.",
+            subtitle = "Quiet: disc seals the bore, no heat glow.",
             state = ValveState.Closed,
             commandInFlight = false,
         )
         ValveStateCard(
             title = "Open",
-            subtitle = "Sport — disc tilts open, amber heat visible.",
+            subtitle = "Sport: disc tilts open, amber heat visible.",
             state = ValveState.Open,
             commandInFlight = false,
         )
         ValveStateCard(
             title = "Checking status",
-            subtitle = "Unknown — soft breath animation until the receiver reports.",
+            subtitle = "Unknown: soft breath animation until the receiver reports.",
             state = ValveState.Unknown,
             commandInFlight = false,
         )
         ValveStateCard(
             title = "Changing…",
-            subtitle = "Command in flight — waiting for receiver confirmation.",
+            subtitle = "Command in flight. Waiting for receiver confirmation.",
             state = ValveState.Closed,
             commandInFlight = true,
         )

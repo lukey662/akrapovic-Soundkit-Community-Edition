@@ -58,10 +58,13 @@
 - Update `BLE_PROTOCOL.md` when protocol evidence changes.
 - Update `README.md` for build, install, or user-facing workflow changes.
 
-## Visual language (Sound Kit Community)
+## Visual language (Car Sound Kit Control)
 
-- **Calm shell, loud moment**: flat backgrounds and list rows by default; reserve emphasis for Home valve state and primary CTAs.
-- Use **`AkraSurface`** for grouped content (16dp radius, no shadow, optional hairline). Use **`AkraElevated`** only for modals, empty states, and blocking panels.
+- **Workshop instrument**: warm charcoal depth, soft titanium lift, amber actions. Exhaust tip is the only loud moment.
+- Default Studio theme is **Studio Workshop** (warm charcoal / amber), not navy/blue. Brand garage themes keep their own accents.
+- Shell and surfaces use **subtle vertical gradients** (`gradientStart`→`gradientEnd`, `cardGradientStart`→`cardGradientEnd`) so panels read less flat; keep contrast calm.
+- **`AkraSurface` / `AkraListGroup`**: 20dp radius, soft hairline (`outlineVariant` ~55% alpha), theme card gradient fill. **`AkraElevated`**: same shape, light shadow for modals/empty/blocking only.
+- **`AkraButtonShape`**: 14dp soft rounded (not full pill, not hard square). Segments use **`AkraSegmentShape`** (12dp).
 - Prefer **`AkraListGroup` / `AkraListRow`** for Settings, More, and secondary actions — not a full card per row.
 - **`AkraHeroHeader`**: compact title + one subtitle on secondary screens; Home uses inline status + valve hero instead of a page hero.
 - **Status**: inline dot + text (`AkraInlineStatus`) or slim **`AkraBanner`** for errors/reconnect — not stacked cards with pills.
@@ -71,8 +74,7 @@
 - Garage themes are brand-inspired families with Light/Dark variants. Themes change accent, background, and preview strip colors — layout stays the same.
 - Brand marks load from local `brand_*.xml` drawables. Only ship marks you have rights to use.
 - Prefer theme color roles (`MaterialTheme.colorScheme.onSurface`, `onSurfaceVariant`, etc.) over fixed white/gray text.
-- **Avoid**: screen + card double gradients, 10dp shadows on every block, uppercase eyebrow labels on every screen, decorative pill bottom nav.
-- Optional accent gradients belong on Home hero glow or theme preview strips — not default card treatment.
+- **Avoid**: hard-square CTAs, full-pill primary buttons, neon dashboard chrome, uppercase eyebrow labels on every screen, heavy multi-layer shadows on every block.
 - **`ValveVisual`** is the Home exhaust-tip hero: carbon sleeve, titanium lip, dark bore, hinged disc on a horizontal axis (face-on when closed, edge-on when open), amber heat glow when open. It may animate only for unknown/busy state and is static when reduced motion is enabled. Uses [`ExhaustTipPalette`](app/src/main/java/com/akrapovic/soundkit/community/ui/components/ExhaustTipPalette.kt). Layout: `fillMaxWidth()` × ~168dp on Home. Preview all states via **More → Advanced → Developer → Valve visual states**.
 - Launcher artwork uses the photoreal exhaust-tip mark (`mipmap-*/ic_launcher_foreground.png` + dark adaptive background). Monochrome remains a vector silhouette. iOS ships the matching 1024px `AppIcon`.
 

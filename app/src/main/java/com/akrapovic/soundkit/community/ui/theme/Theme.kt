@@ -5,6 +5,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
 
 /**
  * Product palette shared by dark and light themes.
@@ -51,6 +52,8 @@ fun SoundKitTheme(
     garageTheme: GarageTheme = GarageThemePresets.first(),
     content: @Composable () -> Unit,
 ) {
+    val outline = softOutline(garageTheme.surface, garageTheme.isDark, lift = 0.14f)
+    val outlineVariant = softOutline(garageTheme.surface, garageTheme.isDark, lift = 0.08f)
     val scheme = if (garageTheme.isDark) {
         darkColorScheme(
             primary = garageTheme.accent,
@@ -64,8 +67,8 @@ fun SoundKitTheme(
             onSurface = garageTheme.onSurface,
             surfaceVariant = garageTheme.cardGradientEnd,
             onSurfaceVariant = garageTheme.muted,
-            outline = AkraColors.Titanium,
-            outlineVariant = AkraColors.Steel,
+            outline = outline,
+            outlineVariant = outlineVariant,
             error = AkraColors.Danger,
             onError = AkraColors.Pearl,
         )
@@ -82,8 +85,8 @@ fun SoundKitTheme(
             onSurface = garageTheme.onSurface,
             surfaceVariant = garageTheme.cardGradientEnd,
             onSurfaceVariant = garageTheme.muted,
-            outline = androidx.compose.ui.graphics.Color(0xFFD8D8DE),
-            outlineVariant = androidx.compose.ui.graphics.Color(0xFFE7E7EC),
+            outline = outline,
+            outlineVariant = outlineVariant,
             error = AkraColors.Danger,
             onError = AkraColors.LightSurface,
         )
@@ -95,4 +98,15 @@ fun SoundKitTheme(
             content = content,
         )
     }
+}
+
+/** Soft hairline that inherits the active surface tint instead of a fixed gray. */
+private fun softOutline(surface: Color, isDark: Boolean, lift: Float): Color {
+    val bias = if (isDark) lift else -lift * 0.55f
+    return Color(
+        red = (surface.red + bias).coerceIn(0f, 1f),
+        green = (surface.green + bias * 0.92f).coerceIn(0f, 1f),
+        blue = (surface.blue + bias * 0.82f).coerceIn(0f, 1f),
+        alpha = 1f,
+    )
 }

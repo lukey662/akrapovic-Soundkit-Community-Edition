@@ -23,7 +23,7 @@ object DiagnosticsSupport {
         vehicleLine: String?,
         connectionLine: String,
     ): String = buildString {
-        appendLine("Sound Kit Community support request")
+        appendLine("Car Sound Kit Control support request")
         appendLine("appVersion=$appVersion")
         vehicleLine?.let { appendLine(it) }
         appendLine(connectionLine)

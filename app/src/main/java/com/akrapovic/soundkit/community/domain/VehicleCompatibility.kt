@@ -26,9 +26,9 @@ data class VehicleCompatibilityEntry(
     val tierDescription: String
         get() = when (tier) {
             VehicleSupportTier.Supported ->
-                "Supported — same receiver protocol as our reference testing."
+                "Supported: same receiver protocol as our reference testing."
             VehicleSupportTier.Beta ->
-                "Beta — likely works on the same BLE protocol. If you hit issues, export diagnostics and email support@appsforgood.net."
+                "Beta: likely works on the same BLE protocol. If you hit issues, export diagnostics and email support@appsforgood.net."
             VehicleSupportTier.Unsupported ->
                 "This app needs an Akrapovič Car Sound Kit BLE receiver. Install the kit first, then return to set up."
         }

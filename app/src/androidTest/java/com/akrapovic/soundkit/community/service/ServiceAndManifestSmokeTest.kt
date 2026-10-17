@@ -27,7 +27,7 @@ class ServiceAndManifestSmokeTest {
         factory.ensureChannel()
         val notification = factory.build(ConnectionState.Disconnected, ValveState.Unknown)
 
-        assertEquals("Sound Kit Community", notification.extras.getString("android.title"))
+        assertEquals("Car Sound Kit Control", notification.extras.getString("android.title"))
         val actions = notification.actions.orEmpty().toList()
         assertFalse(actions.any { it.title.toString() == "Open" })
         assertFalse(actions.any { it.title.toString() == "Close" })

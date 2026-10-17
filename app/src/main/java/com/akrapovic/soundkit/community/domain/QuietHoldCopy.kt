@@ -4,7 +4,7 @@ import java.util.Locale
 
 object QuietHoldCopy {
     fun phoneHelper(endsAtMillis: Long, nowMillis: Long): String {
-        return "Quiet start — opening in ${formatRemaining(endsAtMillis, nowMillis)}"
+        return "Quiet start: opening in ${formatRemaining(endsAtMillis, nowMillis)}"
     }
 
     fun shortStatus(endsAtMillis: Long, nowMillis: Long): String {

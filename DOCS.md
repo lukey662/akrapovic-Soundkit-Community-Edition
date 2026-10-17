@@ -87,9 +87,9 @@ Once approved and correctly provisioned, the CarPlay scene is a shallow `CPGridT
 
 Siri shortcuts are independent of CarPlay approval:
 
-- “Open valves in Sound Kit Community”
-- “Close valves in Sound Kit Community”
-- “Get valve status in Sound Kit Community”
+- “Open valves in Car Sound Kit Control”
+- “Close valves in Car Sound Kit Control”
+- “Get valve status in Car Sound Kit Control”
 
 They run without opening the app where iOS permits it, but never start an unsafe blind command: a result is spoken as successful only after the notification-confirmed coordinator result. If Bluetooth state cannot restore or become ready in time, Siri tells the user to unlock the phone and open the app.
 
@@ -153,7 +153,7 @@ Entry: **Settings** (full controls) or **Home** shortcut → Drive mode screen.
 
 ## UI System
 
-The app uses a consumer-first companion UI built from reusable Compose components in `ui/components`. Screens should prefer calm hierarchy, rounded elevated panels, concise headers, large touch targets, and theme-driven gradients instead of square debug-style cards or protocol-heavy panels. Garage themes are persisted in DataStore and applied app-wide through `SoundKitTheme`; each brand-inspired family has explicit Light and Dark variants plus a local `brand_*.xml` mark that can be replaced with assets the user has rights to use.
+The app uses a workshop-instrument companion UI built from reusable Compose components in `ui/components`. Prefer calm hierarchy, soft 14–20dp radii (not hard squares or full pills), subtle shell/card gradients, concise headers, and large touch targets. Default Studio theme is warm charcoal with amber actions; brand garage themes keep their own accents. Garage themes are persisted in DataStore and applied app-wide through `SoundKitTheme`; each brand-inspired family has explicit Light and Dark variants plus a local `brand_*.xml` mark that can be replaced with assets the user has rights to use.
 
 **More tab:** **Settings** and **Appearance** are the primary destinations. **Advanced** opens a hub for Diagnostics, Android Auto setup, Roadmap, and Developer (detailed logs).
 
@@ -207,9 +207,11 @@ The manifest must declare `com.google.android.gms.car.application` pointing at `
 
 Google's car testing guide (6 October 2026) requires a real vehicle to install an Android for Cars App Library app from a trusted source. **Unknown sources does not apply** to this library, so an `adb` or APK install is absent from Customize launcher and from the car. Debug package id `com.akrapovic.soundkit.community.debug` does not change that.
 
-The supported way onto the car screen is Play **Internal App Sharing** or an **internal test track**. That is not a public listing. A public Play listing stays a non-goal because valve control does not fit a published category. Reclassifying the service as POI or navigation would not pass the install-source check.
+The supported install is the Play **internal testing** release of `com.akrapovic.soundkit.community`. Target build is `0.3.2` (versionCode 5) with the softer workshop UI. The store and launcher title is **Car Sound Kit Control**. The opt-in link is `https://play.google.com/apps/internaltest/4699579818900841316`. Open that link on the phone while signed into a listed tester account, install or update from Play, force-stop Android Auto, reconnect to the car, and enable **Car Sound Kit Control** in Customize launcher if it is listed. The package will not end in `.debug`.
 
-Until that install exists, control the valves from the phone notification, the Quick Settings tile, or connect-in-car when the phone joins the car's Bluetooth.
+That track is not a public listing. Production is unpublished, and public Android Auto has not been sent for review. A public projected listing stays a non-goal because valve control does not fit a published category. Reclassifying the service as POI or navigation would not pass the install-source check.
+
+The debug package can stay installed. It still will not appear in the car. Until the Play package is installed, control the valves from the phone notification, the Quick Settings tile, or connect-in-car when the phone joins the car's Bluetooth.
 
 Use the checklist in `TESTING.md` § Projected Android Auto Validation.
 
@@ -222,7 +224,7 @@ If Sound Kit never appears in the car launcher, control valves while parked via:
 
 ### Desktop Head Unit (DHU)
 
-1. Enable developer mode and **Unknown sources** on the phone (same as above).
+1. Enable Android Auto developer mode on the phone. Unknown sources does not list this Car App Library app.
 2. Enable **Start head unit server** in the Android Auto developer menu.
 3. Run the SDK DHU binary, e.g. `~/Library/Android/sdk/extras/google/auto/desktop-head-unit`.
 4. Launch **Sound Kit** from the DHU launcher; verify toggle and status match the phone.
@@ -233,7 +235,7 @@ Built-in head units (Polestar, Volvo, etc.) can host IoT Car apps without phone 
 
 ### Distribution and approval boundaries
 
-- Android Auto's IoT surface supports DHU and Automotive OS. A real car lists it only after a Play internal install. A public projected Play listing is not planned.
+- Android Auto's IoT surface supports DHU and Automotive OS. A real car lists the Play internal install of `com.akrapovic.soundkit.community`. Production is unpublished, and a public projected Play listing is not planned.
 - iOS Siri App Intents can ship independently after physical BLE validation. They fail safely if a locked/background phone cannot restore a ready BLE connection in time.
 - CarPlay is entitlement-gated and not approved. Do not enable, advertise, or submit its scene until Apple approves the driving-task entitlement and the provisioning profile includes it. Approval still does not guarantee App Store acceptance for safety-, noise-, or emissions-sensitive valve control.
 

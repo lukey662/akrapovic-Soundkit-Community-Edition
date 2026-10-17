@@ -21,14 +21,14 @@ plugins {
 
 android {
     namespace = "com.akrapovic.soundkit.community"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.akrapovic.soundkit.community"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        targetSdk = 36
+        versionCode = 5
+        versionName = "0.3.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

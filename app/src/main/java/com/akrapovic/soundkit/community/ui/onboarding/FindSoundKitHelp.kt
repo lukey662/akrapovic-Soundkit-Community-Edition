@@ -17,7 +17,7 @@ fun FindSoundKitHelp(modifier: androidx.compose.ui.Modifier = androidx.compose.u
         )
         HelpBullet("The BLE discovery name is usually SoundKit.")
         HelpBullet("The six-digit pairing PIN is printed on the receiver and in your Sound Kit manual.")
-        HelpBullet("Switch the vehicle on before scanning — the receiver needs power.")
+        HelpBullet("Switch the vehicle on before scanning. The receiver needs power.")
         HelpBullet("Install only the Akrapovič Car Sound Kit receiver, not the motorcycle app kit.")
     }
 }

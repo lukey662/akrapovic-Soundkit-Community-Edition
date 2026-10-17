@@ -1,0 +1,17 @@
+Car Sound Kit Control opens and closes the valves on an Akrapovič Car Sound Kit Bluetooth receiver from your Android phone. It is a maintained replacement for the abandoned official Akrapovič Car Sound Kit phone app.
+
+This is an independent project. It is not affiliated with, endorsed by, or supported by Akrapovič. It is for owners who already have the Car Sound Kit receiver in the car.
+
+Use the controls only while the vehicle is parked. Do not change the valves while driving.
+
+What you can do
+• Scan for the receiver, save it, and reconnect when you return to the car
+• Open or close the valves when the receiver reports a known state
+• Drive mode applies your preferred position each time you connect
+• Quiet start holds the valves closed for a few minutes, then opens them, with a countdown on the phone
+• Two phones in the same car share one receiver: the phone with the car keeps it, and the other waits
+• A notification and a Quick Settings tile work while the phone is connected
+
+The app stays on the phone. It does not use the internet, create an account, or upload logs. A diagnostics file leaves the device only when you choose to share it.
+
+Changing exhaust valves can affect noise, emissions, and warranty. You are responsible for local rules. The app shows this notice on first launch and waits for you to accept it.

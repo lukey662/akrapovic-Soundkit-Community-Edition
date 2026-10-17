@@ -84,7 +84,7 @@ fun RoadmapScreen(
 
         if (upNextItems.isEmpty() && laterItems.isEmpty()) {
             Text(
-                text = "No queued work — fixes and polish land as feedback arrives.",
+                text = "No queued work. Fixes and polish land as feedback arrives.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp),
@@ -297,7 +297,7 @@ private fun NonGoalsCard() {
         )
         nonGoalItems.forEach { item ->
             Text(
-                text = "•  ${item.title} — ${item.body}",
+                text = "•  ${item.title}: ${item.body}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -480,10 +480,10 @@ private val nonGoalItems = listOf(
     RoadmapItem("Official integration", "Not affiliated with or supported by Akrapovič d.d."),
     RoadmapItem(
         "Play Store projected AA",
-        "Public Play listing in projected Android Auto — policy does not fit a valve controller.",
+        "Public Play listing in projected Android Auto. Policy does not fit a valve controller.",
     ),
     RoadmapItem(
         "ECU sound-mode wiring",
-        "Factory adaptive vs race exhaust modes — hardware/firmware, not BLE app scope.",
+        "Factory adaptive vs race exhaust modes. Hardware/firmware, not BLE app scope.",
     ),
 )

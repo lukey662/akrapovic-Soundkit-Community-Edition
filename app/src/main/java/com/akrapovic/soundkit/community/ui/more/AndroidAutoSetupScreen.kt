@@ -21,7 +21,7 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
     AkraScreen(modifier = modifier) {
         AkraHeroHeader(
             title = "Android Auto",
-            subtitle = "Android Auto lives in system Settings on modern phones — not a launcher app.",
+            subtitle = "Android Auto lives in system Settings on modern phones, not a launcher app.",
             compact = true,
             titleModifier = Modifier.semantics { heading() },
         )

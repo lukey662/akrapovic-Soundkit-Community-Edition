@@ -50,7 +50,7 @@ fun SettingsBackupSection(
 
     AkraSectionTitle("Backup")
     Text(
-        text = "Export or restore receivers, drive mode, theme, and vehicle selection. Local only — no cloud.",
+        text = "Export or restore receivers, drive mode, theme, and vehicle selection. Local only. No cloud.",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(bottom = 8.dp),

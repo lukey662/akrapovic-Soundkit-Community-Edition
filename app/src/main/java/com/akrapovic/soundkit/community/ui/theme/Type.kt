@@ -9,8 +9,9 @@ import androidx.compose.ui.unit.sp
 /**
  * Product typographic hierarchy.
  *
- * Uses Android's system sans-serif with restrained weights and spacing so the
- * app feels closer to Apple/Uber product UI than a motorsport dashboard.
+ * System sans-serif with restrained weights. Display/title stay compact;
+ * body contrast comes from theme `onSurface` / `muted` roles (warm charcoal
+ * workshop defaults), not from loud motorsport styling.
  */
 val AkraTypography = Typography(
     displayLarge = TextStyle(

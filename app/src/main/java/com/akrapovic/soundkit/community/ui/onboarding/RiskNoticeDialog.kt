@@ -45,7 +45,7 @@ fun RiskNoticeDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Bullet("Sound Kit Community is an independent open-source project. It is not affiliated with, endorsed by, or supported by Akrapovič d.d. or the original publisher.")
+                Bullet("Car Sound Kit Control is an independent open-source project. It is not affiliated with, endorsed by, or supported by Akrapovič d.d. or the original publisher.")
                 Bullet("The valve protocol was reverse-engineered from a public APK. Behavior may differ from the official app.")
                 Bullet("Using this app may void your exhaust, vehicle, or component warranty.")
                 Bullet("Operating exhaust valves can change emissions, sound levels, and legal compliance. You are responsible for following local noise and emissions regulations.")

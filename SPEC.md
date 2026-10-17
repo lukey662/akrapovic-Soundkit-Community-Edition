@@ -17,7 +17,7 @@ Provide a modern Android app that locally controls an Akrapovic Sound Kit BLE re
 - Android release artifacts are signed only when `ANDROID_RELEASE_STORE_FILE`,
   `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`, and
   `ANDROID_RELEASE_KEY_PASSWORD` are supplied by the build environment.
-- Android and iOS marketing version: 0.3.0 (build/version code: 3).
+- Android marketing version: 0.3.1 (version code: 4). iOS remains 0.3.0 until its next cut.
 
 ## Architecture
 
@@ -40,10 +40,17 @@ flowchart TD
 
 ## Release and privacy boundaries
 
+- The phone module targets Android 16 (`compileSdk` and `targetSdk` 36) so a
+  new Play app can be uploaded. The Wear module stays at 35 and is not in the
+  Play bundle.
 - Release Android Car App sessions validate the official Android Auto and
   Automotive host package signing certificates from
-  `soundkit_car_app_hosts_allowlist`; debuggable builds alone allow all hosts
-  for DHU development.
+  `soundkit_car_app_hosts_allowlist`. Those six digests matched the AndroidX
+  `hosts_allowlist_sample` on 15 October 2026. Debuggable builds alone allow
+  all hosts for DHU development.
+- Play internal testing ships `com.akrapovic.soundkit.community` with store and
+  launcher title **Car Sound Kit Control**. Production is unpublished, and public
+  Android Auto has not been sent for review.
 - Android excludes `files/crashes/` and `files/diagnostics/` from cloud backup
   and device transfer. User-created diagnostics exports use
   `cache/diagnostics/`, which Android does not back up.
@@ -82,7 +89,7 @@ flowchart TD
 - Settings screen controls auto-reconnect, detailed local logging, remembered receiver removal (with confirmation dialog), and background connection reliability.
 - Disconnect and Forget receiver actions show a confirmation `AlertDialog` to prevent accidental in-car taps.
 - A blocking first-run "Use at your own risk" dialog is shown until the user accepts; the acceptance timestamp is persisted in DataStore.
-- Garage themes are persisted in DataStore and apply app-wide to the calmer premium companion UI. Themes are grouped into brand-inspired families, each with explicit Light and Dark variants, local brand mark drawables, and theme-driven gradients.
+- Garage themes are persisted in DataStore and apply app-wide. Default Studio is **Studio Workshop** (warm charcoal, soft titanium lift, amber actions) with subtle shell/card gradients and soft 14–20dp radii. Themes are grouped into brand-inspired families, each with explicit Light and Dark variants, local brand mark drawables, and theme-driven gradients.
 
 ## Background Behavior
 
@@ -91,7 +98,7 @@ flowchart TD
 - Android Open/Close/Status launcher-shortcut fulfillment is internal-only: `AssistantActionActivity` accepts a fixed action only, and `VoiceValveActionRouter` resolves the saved default receiver without accepting a BLE address. It reconnects only that receiver within 8 seconds and sends Open/Close through `ValveCommandCoordinator`; status reports only a known receiver notification state. Google Assistant custom App Actions are deliberately not advertised because no reliable IoT fulfillment contract is declared.
 - GATT discovery and notification subscription establish readiness; write acknowledgement is transport-only and a target-state notification confirms a command result.
 - Quick Settings tile opens the app when disconnected and toggles the last known valve state when connected.
-- Android Auto exposes minimal low-distraction controls through the IoT category. It is testable on DHU and compatible Automotive OS targets. A real car lists it only when the app is installed from Play internal sharing or an internal test track; Unknown sources does not apply to the Car App Library. A public Google Play projected listing remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
+- Android Auto exposes minimal low-distraction controls through the IoT category. It is testable on DHU and compatible Automotive OS targets. A real car lists it only when the app is installed from Play internal sharing or the internal test track; Unknown sources does not apply to the Car App Library. Version `0.3.0` is on that internal track. A public Google Play projected listing remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
 
 ## Security
 
@@ -109,7 +116,7 @@ flowchart TD
 - **Connect on launch:** one attempt per process when onboarding complete, BLE granted, `connectOnLaunch` true, and `ConnectionPriorityPolicy.shouldAutoConnectOnLaunch`. With head-unit priority on, a phone connects on launch only when it is in the car (saved car Bluetooth, Android Auto projection, or an open Sound Kit car screen).
 - **Connect in car:** a separate default-on `connectInCar` preference. It connects when a Car App session opens and, with auto-reconnect, once when the phone returns to the car, including a process start that is already on the car link. It does not alter a deliberate user disconnect.
 - **Away:** after the 8-attempt reconnect cap, the state is `Away` with a persisted time, not `Error`. Copy is “Left the car at …” or “Receiver out of range since …”. The session is forgotten after 12 hours and when the user swipes the notification away. Optional low-power scan while away is off until the user opts in. Bluetooth events for devices other than the saved car do not start the service.
-- **Car surface:** while connecting, the IoT template is loading and has no list. Otherwise a message shows the status, including left-car and out-of-range. The Open/Close `GridTemplate` appears only for a connected, ready receiver with known valve state, and its title is that status (including the quiet-start countdown). The matching current-state item is inert, and both are inert during a command. Missing onboarding, Bluetooth permissions, or a default receiver show a phone-only setup message. The BLE service is started from the application context; a failed foreground start is retried. The car service declares `android:icon` and `android:label`. A real car still lists the app only after a Play internal install.
+- **Car surface:** while connecting, the IoT template is loading and has no list. Otherwise a message shows the status, including left-car and out-of-range. The Open/Close `GridTemplate` appears only for a connected, ready receiver with known valve state, and its title is that status (including the quiet-start countdown). The matching current-state item is inert, and both are inert during a command. Missing onboarding, Bluetooth permissions, or a default receiver show a phone-only setup message. The BLE service is started from the application context; a failed foreground start is retried. The car service declares `android:icon` and `android:label`. A real car lists the Play package `com.akrapovic.soundkit.community` after the internal-test install. The `.debug` package stays off that launcher.
 - **Head unit priority** (default on): “in the car” is saved car Bluetooth, Android Auto projection, or an open Sound Kit car screen. Contention yields even when this phone is also in the car. Home shows **Take control**. The phone that leaves releases the link after a short grace. A waiting phone probes again slowly while it stays in the car.
 
 ## Multi-phone / same car

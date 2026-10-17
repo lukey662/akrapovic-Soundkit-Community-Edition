@@ -167,7 +167,7 @@ fun OnboardingFlow(
             AkraHeroHeader(
                 eyebrow = "First launch",
                 title = "Set up Sound Kit",
-                subtitle = "Finish one step at a time — each section unlocks the next.",
+                subtitle = "Finish one step at a time. Each section unlocks the next.",
                 titleModifier = Modifier.semantics {
                     heading()
                     contentDescription = "Onboarding"
@@ -197,7 +197,7 @@ fun OnboardingFlow(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Independent open-source app — not affiliated with Akrapovič. " +
+                        text = "Independent open-source app, not affiliated with Akrapovič. " +
                             "Reverse-engineered protocol; use only when parked. You accept all risk.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -353,7 +353,7 @@ fun OnboardingFlow(
                     complete = true,
                     focused = activeStepIndex == 4,
                     optional = true,
-                    collapsedSummary = "Optional — open anytime in Settings",
+                    collapsedSummary = "Optional. Open anytime in Settings",
                     modifier = if (activeStepIndex == 4) {
                         Modifier.bringIntoViewRequester(activeStepRequester)
                     } else {
@@ -361,7 +361,7 @@ fun OnboardingFlow(
                     },
                 ) {
                     Text(
-                        text = "Optional — helps Android keep BLE alive when the screen is off. You can change this anytime in Settings.",
+                        text = "Optional. Helps Android keep BLE alive when the screen is off. You can change this anytime in Settings.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -595,7 +595,7 @@ private fun RiskNoticeBullets() {
         Bullet("Not affiliated with or endorsed by Akrapovič d.d.")
         Bullet("Protocol reverse-engineered from a public APK; behavior may differ from the official app.")
         Bullet("May void exhaust or vehicle warranty; follow local noise and emissions rules.")
-        Bullet("Never operate valves while driving — parked use only with safe ventilation.")
+        Bullet("Never operate valves while driving. Parked use only with safe ventilation.")
         Bullet("Provided as-is with no warranty; you accept all risk of damage, legal exposure, or injury.")
     }
 }

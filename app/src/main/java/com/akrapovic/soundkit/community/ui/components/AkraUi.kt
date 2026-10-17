@@ -51,10 +51,12 @@ import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
 import com.akrapovic.soundkit.community.ui.theme.LocalAkraTheme
 
-val AkraSurfaceShape = RoundedCornerShape(16.dp)
+val AkraSurfaceShape = RoundedCornerShape(20.dp)
 val AkraCardShape = AkraSurfaceShape
-val AkraButtonShape = RoundedCornerShape(999.dp)
-val AkraGroupShape = RoundedCornerShape(16.dp)
+/** Soft rounded controls: not a pill, not a hard square. */
+val AkraButtonShape = RoundedCornerShape(14.dp)
+val AkraGroupShape = RoundedCornerShape(20.dp)
+val AkraSegmentShape = RoundedCornerShape(12.dp)
 
 @Composable
 fun AkraScreen(
@@ -62,13 +64,18 @@ fun AkraScreen(
     scroll: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val base = Modifier
+    val theme = LocalAkraTheme.current
+    val shell = Modifier
         .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)
+        .background(
+            Brush.verticalGradient(
+                colors = listOf(theme.gradientStart, theme.gradientEnd),
+            ),
+        )
         .padding(horizontal = 20.dp)
 
     Column(
-        modifier = modifier.then(if (scroll) base.verticalScroll(rememberScrollState()) else base),
+        modifier = modifier.then(if (scroll) shell.verticalScroll(rememberScrollState()) else shell),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content,
     )
@@ -117,6 +124,14 @@ fun AkraHeroHeader(
 }
 
 @Composable
+private fun workshopSurfaceBrush(): Brush {
+    val theme = LocalAkraTheme.current
+    return Brush.verticalGradient(
+        colors = listOf(theme.cardGradientStart, theme.cardGradientEnd),
+    )
+}
+
+@Composable
 fun AkraSurface(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
@@ -128,8 +143,8 @@ fun AkraSurface(
         modifier = modifier
             .fillMaxWidth()
             .clip(AkraSurfaceShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AkraSurfaceShape)
+            .background(workshopSurfaceBrush())
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f), AkraSurfaceShape)
             .then(clickableModifier)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -148,10 +163,10 @@ fun AkraElevated(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(6.dp, AkraSurfaceShape, clip = false)
+            .shadow(8.dp, AkraSurfaceShape, clip = false, ambientColor = Color.Black.copy(alpha = 0.35f))
             .clip(AkraSurfaceShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AkraSurfaceShape)
+            .background(workshopSurfaceBrush())
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f), AkraSurfaceShape)
             .then(clickableModifier)
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -185,8 +200,8 @@ fun AkraListGroup(
         modifier = modifier
             .fillMaxWidth()
             .clip(AkraGroupShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AkraGroupShape),
+            .background(workshopSurfaceBrush())
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f), AkraGroupShape),
         content = content,
     )
 }
@@ -325,7 +340,7 @@ fun <T> AkraSegmentedControl(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(AkraButtonShape)
+            .clip(AkraSegmentShape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -335,7 +350,7 @@ fun <T> AkraSegmentedControl(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(AkraButtonShape)
+                    .clip(AkraSegmentShape)
                     .background(
                         if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                     )

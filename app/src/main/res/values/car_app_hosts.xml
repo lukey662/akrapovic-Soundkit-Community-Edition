@@ -2,9 +2,10 @@
 <resources>
     <!--
       SHA-256 signing-certificate digests for the official Android Auto and
-      Android Automotive OS template hosts. Maintain this project-owned list
-      when AndroidX publishes a host-certificate rotation; do not use its
-      sample resource in release builds.
+      Android Automotive OS template hosts. Checked against the AndroidX
+      hosts_allowlist_sample on 15 October 2026; the six digests matched.
+      Maintain this project-owned list when AndroidX publishes a rotation.
+      Do not use its sample resource in release builds.
     -->
     <string-array name="soundkit_car_app_hosts_allowlist" translatable="false">
         <item>fdb00c43dbde8b51cb312aa81d3b5fa17713adb94b28f598d77f8eb89daceedf,com.google.android.projection.gearhead</item>

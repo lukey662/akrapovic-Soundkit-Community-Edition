@@ -149,7 +149,7 @@ fun DiagnosticsScreen(
                 onCopyEmail = { DiagnosticsSupport.copyEmailAddress(context) },
                 onEmailSupport = {
                     val intent = DiagnosticsSupport.emailSupportIntent(
-                        subject = "Sound Kit Community — Diagnostics (Android)",
+                        subject = "Car Sound Kit Control diagnostics (Android)",
                         body = supportTriageBody,
                     )
                     context.startActivity(Intent.createChooser(intent, "Email support"))

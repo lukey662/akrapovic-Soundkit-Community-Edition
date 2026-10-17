@@ -33,7 +33,7 @@ fun AdvancedScreen(
         AkraListGroup {
             AkraListRow(
                 title = "Vehicle compatibility",
-                subtitle = "Supported and Beta tiers — see COMPATIBILITY.md in the repo",
+                subtitle = "Supported and Beta tiers. See COMPATIBILITY.md in the repo",
             )
             AkraListDivider()
             AkraListRow(

@@ -4,7 +4,7 @@ import java.util.Locale
 
 object DriveModeSummary {
     fun headline(settings: SoundKitSettings): String {
-        if (!settings.driveModeEnabled) return "Off — tap to set up"
+        if (!settings.driveModeEnabled) return "Off. Tap to set up"
         val preferred = settings.preferredValveMode.name.lowercase()
         if (settings.automationPaused) return "Paused · prefers $preferred"
         if (QuietWindowEvaluator.isActive(settings.quietStart)) {
