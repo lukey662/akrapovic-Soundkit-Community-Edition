@@ -182,7 +182,7 @@ class ComposeSmokeTest {
         }
 
         composeRule
-            .onNodeWithContentDescription("Closed. Quiet mode: valves are closed.")
+            .onNodeWithContentDescription("Closed. Valves sealed")
             .assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Open exhaust valves").assertIsDisplayed()
     }

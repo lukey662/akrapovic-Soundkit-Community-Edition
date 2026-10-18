@@ -68,7 +68,11 @@ class SoundKitViewModel @Inject constructor(
             receiverStatusMessage = receiverStatusMessage,
             isScanning = isScanning,
         )
-    }.combine(bleRepository.connectionYieldState) { partial, connectionYieldState ->
+    }.combine(
+        combine(bleRepository.connectionYieldState, bleRepository.valveStateConfirmedAtMillis) { yield, confirmed ->
+            yield to confirmed
+        },
+    ) { partial, (connectionYieldState, confirmedAt) ->
         BleUiState(
             devices = partial.devices,
             connectionState = partial.connectionState,
@@ -76,6 +80,7 @@ class SoundKitViewModel @Inject constructor(
             receiverStatusMessage = partial.receiverStatusMessage,
             connectionYieldState = connectionYieldState,
             isScanning = partial.isScanning,
+            valveStateConfirmedAtMillis = confirmedAt,
         )
     }
 
@@ -88,6 +93,7 @@ class SoundKitViewModel @Inject constructor(
             connectionYieldState = ble.connectionYieldState,
             isScanning = ble.isScanning,
             settings = settings,
+            valveStateConfirmedAtMillis = ble.valveStateConfirmedAtMillis,
         )
     }
 
@@ -121,6 +127,7 @@ class SoundKitViewModel @Inject constructor(
             protocolVerified = SoundKitProtocol.VERIFIED,
             hasPendingCrash = pendingCrash,
             quietHoldEndsAtMillis = quietHoldEndsAt,
+            valveStateConfirmedAtMillis = core.valveStateConfirmedAtMillis,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -446,6 +453,7 @@ private data class BleUiState(
     val receiverStatusMessage: String?,
     val connectionYieldState: ConnectionYieldState,
     val isScanning: Boolean,
+    val valveStateConfirmedAtMillis: Long?,
 )
 
 private data class CoreUiState(
@@ -456,4 +464,5 @@ private data class CoreUiState(
     val connectionYieldState: ConnectionYieldState,
     val isScanning: Boolean,
     val settings: com.akrapovic.soundkit.community.domain.SoundKitSettings,
+    val valveStateConfirmedAtMillis: Long?,
 )

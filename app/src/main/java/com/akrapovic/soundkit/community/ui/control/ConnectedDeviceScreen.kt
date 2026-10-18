@@ -1,52 +1,68 @@
 package com.akrapovic.soundkit.community.ui.control
 
+import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import android.view.HapticFeedbackConstants
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.akrapovic.soundkit.community.ble.SoundKitProtocol
+import com.akrapovic.soundkit.community.R
+import com.akrapovic.soundkit.community.domain.CommandFailureCopy
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.QuietHoldCopy
+import com.akrapovic.soundkit.community.domain.QuietStartSettings
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
+import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.ui.SoundKitUiState
-import com.akrapovic.soundkit.community.ui.components.rememberQuietHoldNow
 import com.akrapovic.soundkit.community.ui.components.AkraActionButton
 import com.akrapovic.soundkit.community.ui.components.AkraBanner
-import com.akrapovic.soundkit.community.ui.components.AkraInlineStatus
 import com.akrapovic.soundkit.community.ui.components.AkraListDivider
 import com.akrapovic.soundkit.community.ui.components.AkraListGroup
 import com.akrapovic.soundkit.community.ui.components.AkraListRow
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
-import com.akrapovic.soundkit.community.ui.components.DriveModeShortcutRow
+import com.akrapovic.soundkit.community.ui.components.AkraStatusPill
+import com.akrapovic.soundkit.community.ui.components.BrandStripes
 import com.akrapovic.soundkit.community.ui.components.ReceiverNotReadyChecklistContent
 import com.akrapovic.soundkit.community.ui.components.ValveVisual
+import com.akrapovic.soundkit.community.ui.components.rememberQuietHoldNow
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
+import com.akrapovic.soundkit.community.ui.theme.GarageThemeFamilies
+import com.akrapovic.soundkit.community.ui.theme.LocalAkraTheme
+import java.util.Locale
+import kotlinx.coroutines.delay
 
 @Composable
 fun ConnectedDeviceScreen(
@@ -95,8 +111,34 @@ fun ConnectedDeviceScreen(
         state.valveState != ValveState.Unknown &&
         state.receiverStatusMessage == null
 
+    val theme = LocalAkraTheme.current
+    val familyName = GarageThemeFamilies.firstOrNull { it.contains(theme.id) }?.name ?: theme.name
+    val confirmedLabel = rememberConfirmedLabel(state.valveStateConfirmedAtMillis)
+
     AkraScreen(modifier = modifier) {
-        InlineStatusLine(state = state, device = connectedDevice)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Car Sound Kit",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    BrandStripes(theme)
+                    Text(
+                        text = familyName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            ReceiverChip(state = state, device = connectedDevice)
+        }
 
         if (state.connectionState is ConnectionState.Connecting) {
             AkraBanner(
@@ -117,86 +159,103 @@ fun ConnectedDeviceScreen(
             )
         }
 
-        val bannerMessage = state.receiverStatusMessage ?: state.lastError
-        if (bannerMessage != null) {
+        if (state.receiverStatusMessage != null) {
             AkraBanner(
-                title = if (state.receiverStatusMessage != null) "Receiver not ready" else "Connection issue",
-                body = bannerMessage,
-                accent = if (state.receiverStatusMessage != null) AkraColors.Amber else AkraColors.Danger,
-                actionLabel = if (state.receiverStatusMessage != null) "Learn more" else null,
-                onAction = if (state.receiverStatusMessage != null) {
-                    { showReceiverLearnMore.value = true }
-                } else {
-                    null
+                title = "Receiver not ready",
+                body = state.receiverStatusMessage,
+                accent = AkraColors.Amber,
+                actionLabel = "Learn more",
+                onAction = { showReceiverLearnMore.value = true },
+            )
+        } else if (state.lastError != null) {
+            val failure = CommandFailureCopy.from(state.lastError, state.valveState)
+            AkraBanner(
+                title = failure.title,
+                body = failure.body,
+                accent = if (state.valveState == ValveState.Unknown) AkraColors.Amber else MaterialTheme.colorScheme.error,
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = "${state.valveState.displayTitle()}. " +
+                        state.valveState.helperText(state.receiverStatusMessage)
+                    stateDescription = state.valveState.displayTitle()
+                    liveRegion = LiveRegionMode.Polite
                 },
+            contentAlignment = Alignment.Center,
+        ) {
+            ValveVisual(
+                state = state.valveState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                commandInFlight = state.commandInFlight,
+                successRippleTrigger = successRippleTrigger.intValue,
             )
         }
 
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics {
-                        contentDescription = "${state.valveState.displayTitle()}. " +
-                            state.valveState.helperText(state.receiverStatusMessage)
-                        stateDescription = state.valveState.displayTitle()
-                        liveRegion = LiveRegionMode.Polite
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                ValveVisual(
-                    state = state.valveState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(168.dp),
-                    commandInFlight = state.commandInFlight,
-                    successRippleTrigger = successRippleTrigger.intValue,
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = state.valveState.displayTitle(),
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
+                state.valveState.modeTag()?.let { tag -> AkraStatusPill(text = tag) }
             }
             Text(
-                text = state.valveState.displayTitle(),
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
                 text = quietCountdown ?: state.valveState.helperText(state.receiverStatusMessage),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
+            if (confirmedLabel != null) {
+                Text(
+                    text = confirmedLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         AkraActionButton(
-            label = if (state.commandInFlight) "Changing..." else action.button,
+            label = if (state.commandInFlight) "Changing…" else action.button,
             enabled = controlsEnabled && !state.commandInFlight,
             contentDescription = action.contentDescription,
             onClick = onToggleValve,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
         )
 
-        if (state.commandInFlight) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 2.dp,
-                )
-            }
-        }
-
         AkraListGroup {
-            DriveModeShortcutRow(
-                settings = state.settings,
-                quietHoldEndsAtMillis = state.quietHoldEndsAtMillis,
+            AkraListRow(
+                title = "Drive mode",
+                trailing = state.settings.driveModeLabel(),
+                showChevron = true,
+                leadingIcon = ImageVector.vectorResource(R.drawable.ic_row_drive),
+                onClick = onOpenDriveMode,
+            )
+            AkraListDivider()
+            AkraListRow(
+                title = "Quiet start",
+                trailing = state.settings.quietStart.windowLabel(),
+                showChevron = true,
+                leadingIcon = ImageVector.vectorResource(R.drawable.ic_row_quiet),
                 onClick = onOpenDriveMode,
             )
             AkraListDivider()
             AkraListRow(
                 title = connectedDevice?.name ?: "Receiver",
-                subtitle = connectedDevice?.address,
                 trailing = "Disconnect",
+                leadingIcon = ImageVector.vectorResource(R.drawable.ic_row_receiver),
                 onClick = { if (connectedDevice != null) showDisconnectConfirm.value = true },
                 contentDescription = "Disconnect from receiver",
             )
@@ -239,32 +298,72 @@ fun ConnectedDeviceScreen(
 }
 
 @Composable
-private fun InlineStatusLine(
-    state: SoundKitUiState,
-    device: SoundKitDevice?,
-) {
-    RowStatus(
-        label = buildString {
-            append(device?.name ?: "Sound Kit")
-            append(" · ")
-            append(state.connectionState.shortText())
-        },
-        color = when (state.connectionState) {
-            is ConnectionState.Connected -> AkraColors.Signal
-            is ConnectionState.Reconnecting -> AkraColors.Amber
-            is ConnectionState.Error -> AkraColors.Danger
-            else -> AkraColors.Mist
-        },
-    )
+private fun ReceiverChip(state: SoundKitUiState, device: SoundKitDevice?) {
+    val dot = when (state.connectionState) {
+        is ConnectionState.Connected -> AkraColors.Signal
+        is ConnectionState.Connecting, is ConnectionState.Reconnecting -> AkraColors.Amber
+        is ConnectionState.Error -> AkraColors.Danger
+        else -> AkraColors.Mist
+    }
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(dot),
+        )
+        Text(
+            text = "${device?.name ?: "Receiver"} · ${state.connectionState.shortText()}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
+    }
 }
 
+/** "Confirmed just now", "Confirmed 12 s ago", or "Confirmed 3 min ago", refreshed every 10 s. */
 @Composable
-private fun RowStatus(label: String, color: androidx.compose.ui.graphics.Color) {
-    AkraInlineStatus(
-        label = label,
-        color = color,
-        modifier = Modifier.padding(top = 8.dp),
-    )
+private fun rememberConfirmedLabel(confirmedAtMillis: Long?): String? {
+    val now by produceState(initialValue = System.currentTimeMillis(), confirmedAtMillis) {
+        while (confirmedAtMillis != null) {
+            value = System.currentTimeMillis()
+            delay(10_000)
+        }
+    }
+    if (confirmedAtMillis == null) return null
+    val seconds = ((now - confirmedAtMillis) / 1_000L).coerceAtLeast(0L)
+    return when {
+        seconds < 10 -> "Confirmed just now"
+        seconds < 60 -> "Confirmed $seconds s ago"
+        else -> "Confirmed ${seconds / 60} min ago"
+    }
+}
+
+private fun SoundKitSettings.driveModeLabel(): String = when {
+    !driveModeEnabled -> "Off"
+    automationPaused -> "Paused"
+    else -> "Auto"
+}
+
+private fun QuietStartSettings.windowLabel(): String {
+    if (!enabled) return "Off"
+    fun clock(minute: Int) = String.format(Locale.US, "%02d:%02d", minute / 60, minute % 60)
+    return "${clock(windowStartMinute)}–${clock(windowEndMinute)}"
+}
+
+private fun ValveState.modeTag(): String? = when (this) {
+    ValveState.Open -> "SPORT"
+    ValveState.Closed -> "QUIET"
+    ValveState.Unknown -> null
 }
 
 private enum class ValveAction(
@@ -302,11 +401,11 @@ private fun ValveState.displayTitle(): String = when (this) {
 }
 
 private fun ValveState.helperText(receiverNotReady: String?): String {
-    if (receiverNotReady != null) return receiverNotReady
+    if (receiverNotReady != null) return "Receiver not ready"
     return when (this) {
-        ValveState.Open -> "Sport mode: valves are open."
-        ValveState.Closed -> "Quiet mode: valves are closed."
-        ValveState.Unknown -> "Waiting for the receiver."
+        ValveState.Open -> "Full exhaust note"
+        ValveState.Closed -> "Valves sealed"
+        ValveState.Unknown -> "Waiting for the receiver"
     }
 }
 
