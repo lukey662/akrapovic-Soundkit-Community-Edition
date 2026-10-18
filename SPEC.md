@@ -45,9 +45,12 @@ flowchart TD
   Play bundle.
 - Release Android Car App sessions validate the official Android Auto and
   Automotive host package signing certificates from
-  `soundkit_car_app_hosts_allowlist`. Those six digests matched the AndroidX
-  `hosts_allowlist_sample` on 15 October 2026. Debuggable builds alone allow
-  all hosts for DHU development.
+  `soundkit_car_app_hosts_allowlist`. Six digests matched the AndroidX
+  `hosts_allowlist_sample` on 15 October 2026. A seventh digest,
+  `1ca8dcc0bed3cbd872d2cb791200c0292ca9975768a82d676b8b424fb65b5295`, is the
+  signing certificate of Android Auto 17.8.663874 installed on the Pixel.
+  The allowlist must match the installed host, not only the AndroidX sample.
+  Debuggable builds alone allow all hosts for DHU development.
 - Play internal testing ships `com.akrapovic.soundkit.community` with store and
   launcher title **Car Sound Kit Control**. Production is unpublished, and public
   Android Auto has not been sent for review.

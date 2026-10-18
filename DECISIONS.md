@@ -659,3 +659,18 @@ Ship the Compose redesign with soft 20dp surfaces / 14dp CTAs (not hard rectangl
 - Theme id `studio-dark` is unchanged so saved settings keep working.
 - Play phone screenshots can be refreshed after device confirmation.
 
+## 2026-10-18: Accept the installed Android Auto host certificate
+
+### Context
+
+Play internal `0.3.1` opened on a real car and immediately showed “Car Sound Kit Control has encountered an unexpected error”. The release build rejects any Android Auto host whose signing certificate is not in `soundkit_car_app_hosts_allowlist`. The six digests copied from the AndroidX sample on 15 October 2026 do not include the certificate that signed Android Auto 17.8.663874 on the Pixel.
+
+### Decision
+
+Add SHA-256 `1ca8dcc0bed3cbd872d2cb791200c0292ca9975768a82d676b8b424fb65b5295` for `com.google.android.projection.gearhead`. Keep the existing six digests. Do not use `ALLOW_ALL` in release. Future host rotations are checked against the certificate installed on the phone, not only the AndroidX sample.
+
+### Consequences
+
+- Version `0.3.3` (versionCode 6) is the internal build that can complete the car handshake on this Pixel.
+- A later Android Auto update with a new signing certificate will fail the same way until that digest is added.
+

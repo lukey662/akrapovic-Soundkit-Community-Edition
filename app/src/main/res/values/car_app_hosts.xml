@@ -2,15 +2,17 @@
 <resources>
     <!--
       SHA-256 signing-certificate digests for the official Android Auto and
-      Android Automotive OS template hosts. Checked against the AndroidX
-      hosts_allowlist_sample on 15 October 2026; the six digests matched.
-      Maintain this project-owned list when AndroidX publishes a rotation.
-      Do not use its sample resource in release builds.
+      Android Automotive OS template hosts. The first six matched the AndroidX
+      hosts_allowlist_sample on 15 October 2026. The fourth gearhead digest is
+      the certificate on the Pixel's Android Auto 17.8.663874 (18 October 2026).
+      Compare this list with the installed host, not only the AndroidX sample.
+      Do not use the sample resource in release builds.
     -->
     <string-array name="soundkit_car_app_hosts_allowlist" translatable="false">
         <item>fdb00c43dbde8b51cb312aa81d3b5fa17713adb94b28f598d77f8eb89daceedf,com.google.android.projection.gearhead</item>
         <item>70811a3eacfd2e83e18da9bfede52df16ce91f2e69a44d21f18ab66991130771,com.google.android.projection.gearhead</item>
         <item>1975b2f17177bc89a5dff31f9e64a6cae281a53dc1d1d59b1d147fe1c82afa00,com.google.android.projection.gearhead</item>
+        <item>1ca8dcc0bed3cbd872d2cb791200c0292ca9975768a82d676b8b424fb65b5295,com.google.android.projection.gearhead</item>
         <item>c241ffbc8e287c4e9a4ad19632ba1b1351ad361d5177b7d7b29859bd2b7fc631,com.google.android.apps.automotive.templates.host</item>
         <item>dd66deaf312d8daec7adbe85a218ecc8c64f3b152f9b5998d5b29300c2623f61,com.google.android.apps.automotive.templates.host</item>
         <item>50e603d333c6049a37bd751375d08f3bd0abebd33facd30bd17b64b89658b421,com.google.android.apps.automotive.templates.host</item>
