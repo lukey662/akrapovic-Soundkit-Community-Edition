@@ -55,7 +55,11 @@ class ValveQuickSettingsTileService : TileService() {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                             subtitle = presentation.subtitle
                         }
-                        state = if (presentation.active) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+                        state = when (presentation.tileState) {
+                            QsTileState.Active -> Tile.STATE_ACTIVE
+                            QsTileState.Inactive -> Tile.STATE_INACTIVE
+                            QsTileState.Unavailable -> Tile.STATE_UNAVAILABLE
+                        }
                         updateTile()
                     }
                 }

@@ -22,7 +22,8 @@ class QsTilePresenterTest {
 
         assertTrue(presentation.clickOpensApp)
         assertNull(presentation.valveAction)
-        assertEquals("open app", presentation.subtitle)
+        assertEquals("tap to connect", presentation.subtitle)
+        assertEquals(QsTileState.Inactive, presentation.tileState)
     }
 
     @Test
@@ -36,7 +37,7 @@ class QsTilePresenterTest {
         )
 
         assertEquals("not ready", presentation.subtitle)
-        assertFalse(presentation.active)
+        assertEquals(QsTileState.Unavailable, presentation.tileState)
         assertNull(presentation.valveAction)
     }
 
@@ -49,8 +50,8 @@ class QsTilePresenterTest {
             defaultReceiver = null,
         )
 
-        assertEquals("waiting", presentation.subtitle)
-        assertFalse(presentation.active)
+        assertEquals("checking", presentation.subtitle)
+        assertEquals(QsTileState.Unavailable, presentation.tileState)
         assertFalse(presentation.clickOpensApp)
         assertNull(presentation.valveAction)
     }
@@ -66,7 +67,21 @@ class QsTilePresenterTest {
         )
 
         assertEquals(ValveTileAction.Open, presentation.valveAction)
-        assertEquals("RS6 · closed", presentation.subtitle)
-        assertTrue(presentation.active)
+        assertEquals("closed · tap to open", presentation.subtitle)
+        assertEquals(QsTileState.Inactive, presentation.tileState)
+    }
+
+    @Test
+    fun connectedOpenIsActiveAndOffersClose() {
+        val presentation = QsTilePresenter.present(
+            connectionState = ConnectionState.Connected(testDevice()),
+            valveState = ValveState.Open,
+            receiverStatusMessage = null,
+            defaultReceiver = null,
+        )
+
+        assertEquals(ValveTileAction.Close, presentation.valveAction)
+        assertEquals(QsTileState.Active, presentation.tileState)
+        assertEquals("open · tap to close", presentation.subtitle)
     }
 }

@@ -6,8 +6,11 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.os.Build
 import android.view.View
 import android.widget.RemoteViews
+import androidx.compose.ui.graphics.toArgb
 import com.akrapovic.soundkit.community.MainActivity
 import com.akrapovic.soundkit.community.R
 import com.akrapovic.soundkit.community.domain.ConnectionState
@@ -15,10 +18,13 @@ import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.service.BleConnectionService
 import com.akrapovic.soundkit.community.service.QsTilePresenter
 import com.akrapovic.soundkit.community.service.ValveTileAction
+import com.akrapovic.soundkit.community.ui.components.ValveArtPalette
+import com.akrapovic.soundkit.community.ui.components.ValveBitmaps
+import com.akrapovic.soundkit.community.ui.theme.darkVariantFor
 
 /**
- * Home-screen widget. Valve actions always bootstrap the foreground service first,
- * and are disabled unless the same gating rules as Quick Settings allow a command.
+ * Home-screen widget: the valve art, a status line, and one action.
+ * The action follows the same gating as Quick Settings and always starts the foreground service.
  */
 class SoundKitWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -28,12 +34,15 @@ class SoundKitWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        private const val VALVE_DP = 64
+
         fun requestUpdate(
             context: Context,
             connectionState: ConnectionState = ConnectionState.Disconnected,
             valveState: ValveState = ValveState.Unknown,
             receiverStatusMessage: String? = null,
             hasDefaultReceiver: Boolean = false,
+            themeId: String? = null,
         ) {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, SoundKitWidgetProvider::class.java)
@@ -45,64 +54,73 @@ class SoundKitWidgetProvider : AppWidgetProvider() {
                 valveState = valveState,
                 receiverStatusMessage = receiverStatusMessage,
                 hasDefaultReceiver = hasDefaultReceiver,
+                themeId = themeId,
             )
             ids.forEach { id -> manager.updateAppWidget(id, views) }
         }
 
+        @Suppress("UNUSED_PARAMETER")
         private fun buildViews(
             context: Context,
             connectionState: ConnectionState = ConnectionState.Disconnected,
             valveState: ValveState = ValveState.Unknown,
             receiverStatusMessage: String? = null,
             hasDefaultReceiver: Boolean = false,
+            themeId: String? = null,
         ): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.widget_soundkit)
-            views.setOnClickPendingIntent(
-                R.id.widget_open_app,
-                pendingActivity(context, 10),
-            )
-
+            val theme = darkVariantFor(themeId)
             val presentation = QsTilePresenter.present(
                 connectionState = connectionState,
                 valveState = valveState,
                 receiverStatusMessage = receiverStatusMessage,
-                defaultReceiver = if (hasDefaultReceiver) {
-                    com.akrapovic.soundkit.community.domain.SavedReceiver(
-                        address = "widget",
-                        name = "Sound Kit",
-                        isDefault = true,
-                    )
-                } else {
-                    null
-                },
+                defaultReceiver = null,
             )
-            val canOpen = presentation.valveAction == ValveTileAction.Open
-            val canClose = presentation.valveAction == ValveTileAction.Close
+            val connected = connectionState is ConnectionState.Connected
 
-            views.setViewVisibility(R.id.widget_open_valves, if (canOpen || canClose) View.VISIBLE else View.GONE)
-            views.setViewVisibility(R.id.widget_close_valves, if (canOpen || canClose) View.VISIBLE else View.GONE)
-            views.setBoolean(R.id.widget_open_valves, "setEnabled", canOpen)
-            views.setBoolean(R.id.widget_close_valves, "setEnabled", canClose)
-            views.setTextViewText(
-                R.id.widget_status,
-                presentation.subtitle,
+            views.setOnClickPendingIntent(R.id.widget_root, pendingActivity(context, 10))
+
+            val density = context.resources.displayMetrics.density
+            val valve = ValveBitmaps.render(
+                sizePx = (VALVE_DP * density).toInt(),
+                openAmount = if (connected && valveState == ValveState.Open) 1f else 0f,
+                palette = ValveArtPalette.from(theme),
+                density = density,
             )
+            views.setImageViewBitmap(R.id.widget_valve, valve)
+            views.setInt(R.id.widget_valve, "setImageAlpha", if (connected) 255 else 128)
 
-            if (canOpen) {
-                views.setOnClickPendingIntent(
-                    R.id.widget_open_valves,
-                    pendingService(context, BleConnectionService.ACTION_OPEN, 11),
-                )
-            } else {
-                views.setOnClickPendingIntent(R.id.widget_open_valves, pendingActivity(context, 11))
+            val status = when {
+                !connected -> "Not connected · tap to open"
+                receiverStatusMessage != null -> "Receiver not ready"
+                valveState == ValveState.Open -> "Valves open"
+                valveState == ValveState.Closed -> "Valves closed"
+                else -> "Checking the valves"
             }
-            if (canClose) {
-                views.setOnClickPendingIntent(
-                    R.id.widget_close_valves,
-                    pendingService(context, BleConnectionService.ACTION_CLOSE, 12),
-                )
+            views.setTextViewText(R.id.widget_status, status)
+
+            val action = presentation.valveAction
+            if (action == null) {
+                views.setViewVisibility(R.id.widget_action, View.GONE)
             } else {
-                views.setOnClickPendingIntent(R.id.widget_close_valves, pendingActivity(context, 12))
+                views.setViewVisibility(R.id.widget_action, View.VISIBLE)
+                views.setTextViewText(
+                    R.id.widget_action,
+                    if (action == ValveTileAction.Open) "Open valves" else "Close valves",
+                )
+                val serviceAction = when (action) {
+                    ValveTileAction.Open -> BleConnectionService.ACTION_OPEN
+                    ValveTileAction.Close -> BleConnectionService.ACTION_CLOSE
+                }
+                views.setOnClickPendingIntent(R.id.widget_action, pendingService(context, serviceAction, 11))
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    views.setColorStateList(
+                        R.id.widget_action,
+                        "setBackgroundTintList",
+                        ColorStateList.valueOf(theme.button.toArgb()),
+                    )
+                    views.setTextColor(R.id.widget_action, theme.onButton.toArgb())
+                }
             }
             return views
         }

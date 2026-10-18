@@ -56,6 +56,7 @@ class BleConnectionService : LifecycleService() {
     private var notificationsSuppressed = false
     private var lastPublished: Notification? = null
     private var lastPublishedQuietAway = false
+    private var lastThemeId: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -156,14 +157,20 @@ class BleConnectionService : LifecycleService() {
                 bleRepository.receiverStatusMessage,
                 settingsStore.settings,
             ) { connection, valve, notReady, settings ->
-                SoundKitWidgetProvider.requestUpdate(
-                    context = this@BleConnectionService,
-                    connectionState = connection,
-                    valveState = valve,
-                    receiverStatusMessage = notReady,
-                    hasDefaultReceiver = settings.defaultReceiver != null,
-                )
+                WidgetSnapshot(connection, valve, notReady, settings.defaultReceiver != null, settings.garageThemeId)
             }
+                .distinctUntilChanged()
+                .collect { snapshot ->
+                    lastThemeId = snapshot.themeId
+                    SoundKitWidgetProvider.requestUpdate(
+                        context = this@BleConnectionService,
+                        connectionState = snapshot.connectionState,
+                        valveState = snapshot.valveState,
+                        receiverStatusMessage = snapshot.receiverStatusMessage,
+                        hasDefaultReceiver = snapshot.hasDefaultReceiver,
+                        themeId = snapshot.themeId,
+                    )
+                }
         }
         lifecycleScope.launch {
             var wasConnectReady = false
@@ -347,7 +354,7 @@ class BleConnectionService : LifecycleService() {
 
     override fun onDestroy() {
         // A stopped service no longer pushes widget state, so the last live valve label must go.
-        SoundKitWidgetProvider.requestUpdate(context = this)
+        SoundKitWidgetProvider.requestUpdate(context = this, themeId = lastThemeId)
         super.onDestroy()
     }
 
@@ -423,4 +430,12 @@ private data class PublishedNotification(
     val key: String,
     val quietAway: Boolean,
     val release: Boolean,
+)
+
+private data class WidgetSnapshot(
+    val connectionState: ConnectionState,
+    val valveState: com.akrapovic.soundkit.community.domain.ValveState,
+    val receiverStatusMessage: String?,
+    val hasDefaultReceiver: Boolean,
+    val themeId: String,
 )

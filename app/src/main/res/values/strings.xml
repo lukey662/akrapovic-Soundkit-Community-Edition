@@ -11,9 +11,9 @@
     <string name="notification_action_disconnect">Disconnect</string>
     <string name="notification_action_pause_drive_mode">Pause drive mode</string>
     <string name="notification_action_resume_drive_mode">Resume drive mode</string>
-    <string name="widget_description">Quick valve controls while connected</string>
+    <string name="widget_description">Valve state and one-tap control while connected</string>
     <string name="widget_subtitle">Parked use only</string>
-    <string name="widget_open_app">Open app</string>
+    <string name="widget_title">Car Sound Kit</string>
     <string name="shortcut_open_valves">Open valves</string>
     <string name="shortcut_open_valves_long">Open exhaust valves</string>
     <string name="shortcut_close_valves">Close valves</string>

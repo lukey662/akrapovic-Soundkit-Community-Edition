@@ -4,9 +4,16 @@ import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.ValveState
 
+enum class QsTileState {
+    Active,
+    Inactive,
+    /** Not tappable: the receiver is checking or not ready, so no command can be sent. */
+    Unavailable,
+}
+
 data class QsTilePresentation(
     val subtitle: String,
-    val active: Boolean,
+    val tileState: QsTileState,
     val clickOpensApp: Boolean,
     val valveAction: ValveTileAction?,
 )
@@ -16,7 +23,9 @@ enum class ValveTileAction {
     Close,
 }
 
+/** Shared by Quick Settings and the home-screen widget so both gate commands the same way. */
 object QsTilePresenter {
+    @Suppress("UNUSED_PARAMETER")
     fun present(
         connectionState: ConnectionState,
         valveState: ValveState,
@@ -25,8 +34,8 @@ object QsTilePresenter {
     ): QsTilePresentation {
         if (connectionState !is ConnectionState.Connected) {
             return QsTilePresentation(
-                subtitle = "open app",
-                active = false,
+                subtitle = "tap to connect",
+                tileState = QsTileState.Inactive,
                 clickOpensApp = true,
                 valveAction = null,
             )
@@ -34,35 +43,30 @@ object QsTilePresenter {
         if (receiverStatusMessage != null) {
             return QsTilePresentation(
                 subtitle = "not ready",
-                active = false,
+                tileState = QsTileState.Unavailable,
                 clickOpensApp = false,
                 valveAction = null,
             )
         }
-        if (valveState == ValveState.Unknown) {
-            return QsTilePresentation(
-                subtitle = "waiting",
-                active = false,
+        return when (valveState) {
+            ValveState.Unknown -> QsTilePresentation(
+                subtitle = "checking",
+                tileState = QsTileState.Unavailable,
                 clickOpensApp = false,
                 valveAction = null,
             )
+            ValveState.Open -> QsTilePresentation(
+                subtitle = "open · tap to close",
+                tileState = QsTileState.Active,
+                clickOpensApp = false,
+                valveAction = ValveTileAction.Close,
+            )
+            ValveState.Closed -> QsTilePresentation(
+                subtitle = "closed · tap to open",
+                tileState = QsTileState.Inactive,
+                clickOpensApp = false,
+                valveAction = ValveTileAction.Open,
+            )
         }
-        val name = defaultReceiver?.displayName()
-        val subtitle = when (valveState) {
-            ValveState.Open -> name?.let { "$it · open" } ?: "open"
-            ValveState.Closed -> name?.let { "$it · closed" } ?: "closed"
-            ValveState.Unknown -> "waiting"
-        }
-        val action = when (valveState) {
-            ValveState.Open -> ValveTileAction.Close
-            ValveState.Closed -> ValveTileAction.Open
-            ValveState.Unknown -> null
-        }
-        return QsTilePresentation(
-            subtitle = subtitle,
-            active = true,
-            clickOpensApp = false,
-            valveAction = action,
-        )
     }
 }
