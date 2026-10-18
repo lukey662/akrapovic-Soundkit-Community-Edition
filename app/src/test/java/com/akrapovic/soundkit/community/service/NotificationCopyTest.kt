@@ -133,4 +133,27 @@ class NotificationCopyTest {
         assertTrue(presentation.connectEnabled)
         assertFalse(presentation.openValveEnabled)
     }
+
+    @Test
+    fun errorsUsePlainLanguageAndOfferRetry() {
+        val receiver = SavedReceiver("00:11:22:33:44:55", "RS3", isDefault = true)
+        val presentation = NotificationCopy.build(
+            connectionState = ConnectionState.Error("GATT disconnected with status 133", recoverable = true),
+            valveState = ValveState.Unknown,
+            receiverStatusMessage = null,
+            defaultReceiver = receiver,
+        )
+        assertTrue(presentation.contentText.startsWith("Receiver dropped the connection"))
+        assertFalse(presentation.contentText.contains("GATT"))
+        assertTrue(presentation.retryEnabled)
+        assertFalse(presentation.connectEnabled)
+    }
+
+    @Test
+    fun connectionErrorCopyCoversKnownMessages() {
+        assertEquals("Receiver didn't respond", ConnectionErrorCopy.friendly("Service discovery failed: 129"))
+        assertEquals("Pairing was cancelled", ConnectionErrorCopy.friendly("Receiver pairing was cancelled"))
+        assertEquals("Receiver didn't start sending status", ConnectionErrorCopy.friendly("Could not enable receiver notifications"))
+        assertEquals("Connection problem", ConnectionErrorCopy.friendly("Something else"))
+    }
 }

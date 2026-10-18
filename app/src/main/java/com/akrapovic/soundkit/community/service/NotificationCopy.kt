@@ -16,6 +16,7 @@ data class NotificationPresentation(
     val pauseDriveModeEnabled: Boolean,
     val resumeDriveModeEnabled: Boolean,
     val connectEnabled: Boolean,
+    val retryEnabled: Boolean = false,
     val dismissibleAway: Boolean = false,
     val chronometerEndsAtMillis: Long? = null,
 )
@@ -84,6 +85,7 @@ object NotificationCopy {
             pauseDriveModeEnabled = showDriveModeActions && !driveModePaused,
             resumeDriveModeEnabled = showDriveModeActions && driveModePaused,
             connectEnabled = away,
+            retryEnabled = connectionState is ConnectionState.Error && defaultReceiver != null,
             dismissibleAway = away && !periodicScanWhenAway,
             chronometerEndsAtMillis = quietCountdown,
         )
@@ -95,9 +97,25 @@ object NotificationCopy {
             ConnectionState.Scanning -> "Scanning"
             is ConnectionState.Connecting -> "Connecting to ${displayName ?: device.name}"
             is ConnectionState.Connected -> "Connected"
-            is ConnectionState.Reconnecting -> "Reconnecting (attempt $attempt)"
-            is ConnectionState.Error -> "Error: $message"
+            is ConnectionState.Reconnecting -> "Reconnecting…"
+            is ConnectionState.Error -> ConnectionErrorCopy.friendly(message)
             is ConnectionState.Away -> AwayCopy.statusText(reason, sinceMillis)
+        }
+    }
+}
+
+/** Plain-language connection errors for the shade; raw GATT text stays in diagnostics. */
+object ConnectionErrorCopy {
+    private val gattStatus = Regex("status (\\d+)")
+
+    fun friendly(message: String): String {
+        val text = message.lowercase()
+        return when {
+            "gatt disconnected" in text && gattStatus.find(text) != null -> "Receiver dropped the connection"
+            "service discovery" in text || "characteristic was not found" in text -> "Receiver didn't respond"
+            "pairing" in text -> "Pairing was cancelled"
+            "notification" in text -> "Receiver didn't start sending status"
+            else -> "Connection problem"
         }
     }
 }

@@ -6,7 +6,9 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.akrapovic.soundkit.community.MainActivity
 import com.akrapovic.soundkit.community.R
@@ -15,6 +17,7 @@ import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.ValveState
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.Locale
 import javax.inject.Inject
 
 class SoundKitNotificationFactory @Inject constructor(
@@ -46,6 +49,8 @@ class SoundKitNotificationFactory @Inject constructor(
         driveModePaused: Boolean = automationPaused,
         periodicScanWhenAway: Boolean = false,
         quietHoldEndsAtMillis: Long? = null,
+        quietHoldMinutes: Int = 0,
+        nowMillis: Long = System.currentTimeMillis(),
     ): Notification {
         val presentation = NotificationCopy.build(
             connectionState = connectionState,
@@ -95,6 +100,9 @@ class SoundKitNotificationFactory @Inject constructor(
         if (presentation.connectEnabled) {
             builder.addAction(action(R.string.notification_action_connect, BleConnectionService.ACTION_CONNECT, 6))
         }
+        if (presentation.retryEnabled) {
+            builder.addAction(action(R.string.notification_action_retry, BleConnectionService.ACTION_CONNECT, 8))
+        }
         if (presentation.openValveEnabled) {
             builder.addAction(action(R.string.notification_action_open, BleConnectionService.ACTION_OPEN, 1))
         }
@@ -120,7 +128,35 @@ class SoundKitNotificationFactory @Inject constructor(
                 ),
             )
         }
-        return builder.build()
+        val notification = builder.build()
+        val endsAt = presentation.chronometerEndsAtMillis
+        if (endsAt != null && quietHoldMinutes > 0 && Build.VERSION.SDK_INT >= 36) {
+            return quietStartProgress(notification, endsAt, quietHoldMinutes, nowMillis)
+        }
+        return notification
+    }
+
+    /**
+     * Android 16 progress-style countdown for a quiet-start hold. The installed SDK has no API to
+     * request promotion to a Live Update chip, so this stays an ongoing progress notification.
+     */
+    @RequiresApi(36)
+    private fun quietStartProgress(
+        notification: Notification,
+        endsAtMillis: Long,
+        holdMinutes: Int,
+        nowMillis: Long,
+    ): Notification {
+        val totalSeconds = holdMinutes * 60
+        val remaining = ((endsAtMillis - nowMillis) / 1_000L).toInt().coerceIn(0, totalSeconds)
+        val style = Notification.ProgressStyle()
+            .setProgressSegments(listOf(Notification.ProgressStyle.Segment(totalSeconds)))
+            .setProgress(totalSeconds - remaining)
+            .setProgressTrackerIcon(Icon.createWithResource(context, R.drawable.ic_valve_tile))
+        return Notification.Builder.recoverBuilder(context, notification)
+            .setStyle(style)
+            .setShortCriticalText(String.format(Locale.US, "Opens %d:%02d", remaining / 60, remaining % 60))
+            .build()
     }
 
     private fun action(labelRes: Int, action: String, requestCode: Int): NotificationCompat.Action {

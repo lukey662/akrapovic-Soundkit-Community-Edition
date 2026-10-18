@@ -27,6 +27,8 @@ import com.akrapovic.soundkit.community.widget.SoundKitWidgetProvider
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -49,6 +51,8 @@ class BleConnectionService : LifecycleService() {
     private var lastNotificationKey: String? = null
     private var detachedForAway = false
     private val carWake = MutableStateFlow(false)
+    /** Ticks while a quiet-start hold runs so the progress notification stays current. */
+    private val holdTick = MutableStateFlow(0L)
     private var notificationsSuppressed = false
     private var lastPublished: Notification? = null
     private var lastPublishedQuietAway = false
@@ -77,9 +81,11 @@ class BleConnectionService : LifecycleService() {
                 driveModeEngine.quietHoldEndsAt,
                 carPresence.presence,
                 carSessionTracker.isCarSessionActive,
-                combine(carWake, bleRepository.startupSettled) { wake, settled -> wake to settled },
-            ) { snapshot, quietHoldEndsAt, presence, sessionActive, wakeAndSettled ->
-                val (wake, settled) = wakeAndSettled
+                combine(carWake, bleRepository.startupSettled, holdTick) { wake, settled, tick ->
+                    Triple(wake, settled, tick)
+                },
+            ) { snapshot, quietHoldEndsAt, presence, sessionActive, wakeSettledTick ->
+                val (wake, settled, tick) = wakeSettledTick
                 val inCar = presence.orSession(sessionActive)
                 val notification = notificationFactory.build(
                     connectionState = snapshot.connectionState,
@@ -91,6 +97,7 @@ class BleConnectionService : LifecycleService() {
                     lastExecution = snapshot.lastExecution,
                     periodicScanWhenAway = snapshot.settings.periodicScanWhenAway,
                     quietHoldEndsAtMillis = quietHoldEndsAt,
+                    quietHoldMinutes = snapshot.settings.quietStart.holdClosedMinutes.coerceIn(1, 15),
                 )
                 val key = listOf(
                     snapshot.connectionState.toString(),
@@ -105,6 +112,7 @@ class BleConnectionService : LifecycleService() {
                     inCar.toString(),
                     wake.toString(),
                     settled.toString(),
+                    if (quietHoldEndsAt != null) tick.toString() else "",
                 ).joinToString("|")
                 val quietAway = snapshot.connectionState is ConnectionState.Away &&
                     !snapshot.settings.periodicScanWhenAway
@@ -131,6 +139,14 @@ class BleConnectionService : LifecycleService() {
                 if (published.key == lastNotificationKey) return@collect
                 lastNotificationKey = published.key
                 publishNotification(published.notification, published.quietAway)
+            }
+        }
+        lifecycleScope.launch {
+            driveModeEngine.quietHoldEndsAt.collectLatest { endsAt ->
+                while (endsAt != null && endsAt > clock.nowMillis()) {
+                    delay(HOLD_TICK_MS)
+                    holdTick.value = clock.nowMillis()
+                }
             }
         }
         lifecycleScope.launch {
@@ -346,6 +362,7 @@ class BleConnectionService : LifecycleService() {
         const val ACTION_DISMISS_AWAY = "com.akrapovic.soundkit.community.action.DISMISS_AWAY"
         const val ACTION_STOP = "com.akrapovic.soundkit.community.action.STOP"
         private const val EXTRA_CAR_WAKE = "car_wake"
+        private const val HOLD_TICK_MS = 15_000L
 
         @Deprecated("Use ACTION_PAUSE_DRIVE_MODE", ReplaceWith("ACTION_PAUSE_DRIVE_MODE"))
         const val ACTION_PAUSE_AUTOMATION = ACTION_PAUSE_DRIVE_MODE
