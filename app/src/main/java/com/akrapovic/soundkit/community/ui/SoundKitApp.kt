@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -93,6 +95,20 @@ fun SoundKitApp(
         ?: GarageThemePresets.first()
 
     SoundKitTheme(garageTheme = activeTheme) {
+        val themeSuggestion by viewModel.themeSuggestion.collectAsStateWithLifecycle()
+        themeSuggestion?.let { suggestion ->
+            AlertDialog(
+                onDismissRequest = viewModel::dismissThemeSuggestion,
+                title = { Text("Use the ${suggestion.familyName} theme?") },
+                text = { Text("It matches your car's Bluetooth name. You can change it any time in Appearance.") },
+                confirmButton = {
+                    TextButton(onClick = viewModel::acceptThemeSuggestion) { Text("Use theme") }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::dismissThemeSuggestion) { Text("Not now") }
+                },
+            )
+        }
         if (showOnboarding) {
             OnboardingFlow(
                 blePermissionsGranted = blePermissionsGranted,

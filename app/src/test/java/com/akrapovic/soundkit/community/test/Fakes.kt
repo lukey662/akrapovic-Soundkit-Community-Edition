@@ -238,6 +238,17 @@ class FakeSettingsStore(
         settings.value = settings.value.copy(debugLoggingEnabled = enabled)
     }
 
+    override suspend fun setThemeSuggestionDismissedFor(familyId: String?) {
+        settings.value = settings.value.copy(themeSuggestionDismissedFor = familyId)
+    }
+
+    override suspend fun setCompanionAssociation(associationId: Int?, address: String?) {
+        settings.value = settings.value.copy(
+            companionAssociationId = associationId?.takeIf { address != null },
+            companionAddress = address?.takeIf { associationId != null },
+        )
+    }
+
     override suspend fun setGarageThemeId(themeId: String) {
         garageThemeChanges += themeId
         settings.value = settings.value.copy(garageThemeId = themeId)

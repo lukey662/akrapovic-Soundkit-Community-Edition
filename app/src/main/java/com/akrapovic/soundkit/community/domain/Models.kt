@@ -159,6 +159,11 @@ data class SoundKitSettings(
     val quietStart: QuietStartSettings = QuietStartSettings(),
     /** Epoch millis when a timed quiet hold should release. 0 means no hold is running. */
     val quietHoldEndsAtMillis: Long = 0L,
+    /** Garage family id the user said "Not now" to; per device, not backed up. */
+    val themeSuggestionDismissedFor: String? = null,
+    /** Android companion device association for the default receiver; per device, not backed up. */
+    val companionAssociationId: Int? = null,
+    val companionAddress: String? = null,
 ) {
     val riskNoticeAccepted: Boolean get() = riskNoticeAcceptedAt > 0L
     val onboardingCompleted: Boolean get() = onboardingCompletedAt > 0L

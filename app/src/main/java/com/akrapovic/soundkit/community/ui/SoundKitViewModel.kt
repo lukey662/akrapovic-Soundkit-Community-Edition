@@ -17,6 +17,7 @@ import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
 import com.akrapovic.soundkit.community.domain.CommandResult
 import com.akrapovic.soundkit.community.domain.CommandSource
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.CarBrandThemeMatcher
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
@@ -29,11 +30,14 @@ import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.domain.VehicleCompatibilityCatalog
+import com.akrapovic.soundkit.community.ui.theme.GarageThemeFamilies
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -237,7 +241,33 @@ class SoundKitViewModel @Inject constructor(
     fun setCarBluetooth(address: String?, name: String?) {
         viewModelScope.launch {
             settingsRepository.setCarBluetooth(address, name)
+            maybeSuggestTheme(name)
         }
+    }
+
+    private val _themeSuggestion = MutableStateFlow<ThemeSuggestion?>(null)
+    /** A one-time offer to match the garage theme to the car's Bluetooth name. */
+    val themeSuggestion: StateFlow<ThemeSuggestion?> = _themeSuggestion.asStateFlow()
+
+    private suspend fun maybeSuggestTheme(bluetoothName: String?) {
+        val familyId = CarBrandThemeMatcher.familyIdFor(bluetoothName) ?: return
+        val settings = settingsRepository.settings.first()
+        val currentFamily = GarageThemeFamilies.firstOrNull { it.contains(settings.garageThemeId) }
+        if (currentFamily?.id == familyId || settings.themeSuggestionDismissedFor == familyId) return
+        val family = GarageThemeFamilies.firstOrNull { it.id == familyId } ?: return
+        _themeSuggestion.value = ThemeSuggestion(familyId = family.id, familyName = family.name, darkThemeId = family.dark.id)
+    }
+
+    fun acceptThemeSuggestion() {
+        val suggestion = _themeSuggestion.value ?: return
+        _themeSuggestion.value = null
+        setGarageTheme(suggestion.darkThemeId)
+    }
+
+    fun dismissThemeSuggestion() {
+        val suggestion = _themeSuggestion.value ?: return
+        _themeSuggestion.value = null
+        viewModelScope.launch { settingsRepository.setThemeSuggestionDismissedFor(suggestion.familyId) }
     }
 
     fun setConnectOnLaunch(enabled: Boolean) {
@@ -479,4 +509,10 @@ private data class CoreUiState(
     val isScanning: Boolean,
     val settings: com.akrapovic.soundkit.community.domain.SoundKitSettings,
     val valveStateConfirmedAtMillis: Long?,
+)
+
+data class ThemeSuggestion(
+    val familyId: String,
+    val familyName: String,
+    val darkThemeId: String,
 )

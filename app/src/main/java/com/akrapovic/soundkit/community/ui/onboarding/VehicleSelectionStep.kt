@@ -74,7 +74,7 @@ fun VehicleSelectionContent(
         }
 
         Text(
-            text = "Pick the car with your Akrapovič Sound Kit. We use this for support and optional theme suggestions, not to limit what you can connect to.",
+            text = "Pick your car. We use it for support and optional theme suggestions, not to limit what you can connect to.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -202,7 +202,7 @@ fun VehicleSelectionContent(
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Learn about Akrapovič Sound Kit")
+                Text("About the Car Sound Kit receiver")
             }
         }
     }

@@ -51,6 +51,8 @@ interface SettingsStore {
     suspend fun setPreferredValveMode(mode: PreferredValveMode)
     suspend fun setQuietStart(settings: QuietStartSettings)
     suspend fun setQuietHoldEndsAt(endsAtMillis: Long?)
+    suspend fun setThemeSuggestionDismissedFor(familyId: String?)
+    suspend fun setCompanionAssociation(associationId: Int?, address: String?)
 }
 
 internal suspend fun readStoredCarBluetoothAddress(context: Context): String? {
@@ -86,6 +88,9 @@ class SettingsRepository @Inject constructor(
         val PreferredValveMode = stringPreferencesKey("preferred_valve_mode")
         val QuietStartJson = stringPreferencesKey("quiet_start_json")
         val QuietHoldEndsAtMillis = androidx.datastore.preferences.core.longPreferencesKey("quiet_hold_ends_at_millis")
+        val ThemeSuggestionDismissedFor = stringPreferencesKey("theme_suggestion_dismissed_for")
+        val CompanionAssociationId = androidx.datastore.preferences.core.intPreferencesKey("companion_association_id")
+        val CompanionAddress = stringPreferencesKey("companion_address")
     }
 
     override val settings: Flow<SoundKitSettings> = context.settingsDataStore.data.map { preferences ->
@@ -117,6 +122,9 @@ class SettingsRepository @Inject constructor(
                 ?: PreferredValveMode.Open,
             quietStart = QuietStartCodec.decode(preferences[Keys.QuietStartJson]),
             quietHoldEndsAtMillis = preferences[Keys.QuietHoldEndsAtMillis] ?: 0L,
+            themeSuggestionDismissedFor = preferences[Keys.ThemeSuggestionDismissedFor],
+            companionAssociationId = preferences[Keys.CompanionAssociationId],
+            companionAddress = preferences[Keys.CompanionAddress],
         )
     }
 
@@ -257,6 +265,28 @@ class SettingsRepository @Inject constructor(
     override suspend fun setDebugLoggingEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.DebugLoggingEnabled] = enabled
+        }
+    }
+
+    override suspend fun setThemeSuggestionDismissedFor(familyId: String?) {
+        context.settingsDataStore.edit { preferences ->
+            if (familyId == null) {
+                preferences.remove(Keys.ThemeSuggestionDismissedFor)
+            } else {
+                preferences[Keys.ThemeSuggestionDismissedFor] = familyId
+            }
+        }
+    }
+
+    override suspend fun setCompanionAssociation(associationId: Int?, address: String?) {
+        context.settingsDataStore.edit { preferences ->
+            if (associationId == null || address == null) {
+                preferences.remove(Keys.CompanionAssociationId)
+                preferences.remove(Keys.CompanionAddress)
+            } else {
+                preferences[Keys.CompanionAssociationId] = associationId
+                preferences[Keys.CompanionAddress] = address
+            }
         }
     }
 

@@ -23,6 +23,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -288,5 +289,33 @@ class SoundKitViewModelTest {
         }
         error("Expected UI state was not emitted")
     }
-}
 
+    @Test
+    fun carBluetoothNameSuggestsAMatchingTheme() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = viewModel()
+
+        viewModel.setCarBluetooth("AA:BB:CC:DD:EE:FF", "Audi MMI 4471")
+        advanceUntilIdle()
+        assertEquals("audi-rs", viewModel.themeSuggestion.value?.familyId)
+
+        viewModel.acceptThemeSuggestion()
+        advanceUntilIdle()
+        assertEquals("audi-rs-dark", settingsStore.settings.value.garageThemeId)
+        assertEquals(null, viewModel.themeSuggestion.value)
+    }
+
+    @Test
+    fun dismissedThemeSuggestionIsNotOfferedAgain() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = viewModel()
+
+        viewModel.setCarBluetooth("AA:BB:CC:DD:EE:FF", "BMW 52187")
+        advanceUntilIdle()
+        viewModel.dismissThemeSuggestion()
+        advanceUntilIdle()
+        viewModel.setCarBluetooth("AA:BB:CC:DD:EE:FF", "BMW 52187")
+        advanceUntilIdle()
+
+        assertEquals("bmw-m", settingsStore.settings.value.themeSuggestionDismissedFor)
+        assertEquals(null, viewModel.themeSuggestion.value)
+    }
+}
