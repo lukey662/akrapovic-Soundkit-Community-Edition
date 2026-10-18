@@ -39,6 +39,38 @@ class GarageThemeFamiliesTest {
         }
     }
 
+    @Test
+    fun mutedTextAndButtonsMeetContrast() {
+        GarageThemePresets.forEach { theme ->
+            assertTrue(
+                "${theme.id} muted contrast is too low",
+                contrastRatio(theme.muted, theme.surface) >= 4.5,
+            )
+            assertTrue(
+                "${theme.id} button label contrast is too low",
+                contrastRatio(theme.onButton, theme.button) >= 4.5,
+            )
+        }
+    }
+
+    @Test
+    fun accentIsLegibleOnItsBackground() {
+        GarageThemePresets.forEach { theme ->
+            val minimum = if (theme.isDark) 3.0 else 4.5
+            assertTrue(
+                "${theme.id} accent contrast is too low",
+                contrastRatio(theme.accent, if (theme.isDark) theme.base else theme.surface) >= minimum,
+            )
+        }
+    }
+
+    @Test
+    fun darkVariantLookupFallsBackToStudio() {
+        assertEquals("audi-rs-dark", darkVariantFor("audi-rs-light").id)
+        assertEquals("studio-dark", darkVariantFor("missing").id)
+        assertEquals("studio-dark", darkVariantFor(null).id)
+    }
+
     private fun contrastRatio(
         foreground: androidx.compose.ui.graphics.Color,
         background: androidx.compose.ui.graphics.Color,

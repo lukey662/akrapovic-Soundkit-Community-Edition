@@ -11,84 +11,79 @@ import androidx.compose.ui.graphics.Color
  * Product palette shared by dark and light themes.
  */
 object AkraColors {
-    val Ink = androidx.compose.ui.graphics.Color(0xFF000000)
-    val Carbon = androidx.compose.ui.graphics.Color(0xFF111111)
-    val Graphite = androidx.compose.ui.graphics.Color(0xFF1A1A1A)
-    val Titanium = androidx.compose.ui.graphics.Color(0xFF2C2C2E)
-    val Steel = androidx.compose.ui.graphics.Color(0xFF3A3A3C)
-    val Silver = androidx.compose.ui.graphics.Color(0xFFD6D6D8)
-    val Pearl = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
-    val Mist = androidx.compose.ui.graphics.Color(0xFF8E8E93)
-    val Amber = androidx.compose.ui.graphics.Color(0xFFBFA35A)
-    val AmberHi = androidx.compose.ui.graphics.Color(0xFFD6BD73)
-    val AmberDim = androidx.compose.ui.graphics.Color(0x44BFA35A)
-    val Signal = androidx.compose.ui.graphics.Color(0xFF34C759)
-    val Danger = androidx.compose.ui.graphics.Color(0xFFFF453A)
-    val LightBackground = androidx.compose.ui.graphics.Color(0xFFF5F5F7)
-    val LightSurface = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
-    val LightText = androidx.compose.ui.graphics.Color(0xFF111111)
-    val LightMuted = androidx.compose.ui.graphics.Color(0xFF6E6E73)
+    val Ink = Color(0xFF000000)
+    val Carbon = Color(0xFF0E0E10)
+    val Graphite = Color(0xFF151518)
+    val Titanium = Color(0xFF2A2A2E)
+    val Steel = Color(0xFF3A3A3F)
+    val Silver = Color(0xFFC9C9CF)
+    val Pearl = Color(0xFFFFFFFF)
+    val Mist = Color(0xFF8E8E96)
+    val Amber = Color(0xFFBFA35A)
+    val AmberHi = Color(0xFFD6BD73)
+    val AmberDim = Color(0x44BFA35A)
+    val Signal = Color(0xFF34C759)
+    val Danger = Color(0xFFFF453A)
+    val LightBackground = Color(0xFFF4F5F7)
+    val LightSurface = Color(0xFFFFFFFF)
+    val LightText = Color(0xFF0A0A0B)
+    val LightMuted = Color(0xFF5A5A62)
 }
 
 /**
  * App-wide theme.
  *
- * Accepts the active [GarageTheme] and maps it to Material color roles:
- *   primary          → garageTheme.accent   (amber, blue, green, etc.)
- *   secondary        → garageTheme.highlight
- *   tertiary         → garageTheme.secondaryAccent
- *   background       → garageTheme.base
- *   surface          → garageTheme.surface
+ * Maps the active [GarageTheme] to Material roles:
+ *   primary    → garageTheme.button   (filled actions)
+ *   onPrimary  → garageTheme.onButton
+ *   secondary  → garageTheme.accent   (text, icons, links)
+ *   tertiary   → garageTheme.glow     (valve heat)
+ *   background → garageTheme.base
+ *   surface    → garageTheme.surface
  *
- * Themes can be light or dark. Shared components read color roles so text
- * remains readable across both modes.
- *
- * The active theme is also provided as [LocalAkraTheme] so composables
- * that need the raw GarageTheme can read it without depending on the
- * MaterialTheme color role names.
+ * Surfaces are flat. Depth comes from one tonal step and a hairline, never a shadow.
+ * The active theme is also provided as [LocalAkraTheme].
  */
 @Composable
 fun SoundKitTheme(
     garageTheme: GarageTheme = GarageThemePresets.first(),
     content: @Composable () -> Unit,
 ) {
-    val outline = softOutline(garageTheme.surface, garageTheme.isDark, lift = 0.14f)
-    val outlineVariant = softOutline(garageTheme.surface, garageTheme.isDark, lift = 0.08f)
     val scheme = if (garageTheme.isDark) {
         darkColorScheme(
-            primary = garageTheme.accent,
-            onPrimary = AkraColors.Pearl,
-            secondary = garageTheme.highlight,
-            onSecondary = AkraColors.Pearl,
-            tertiary = garageTheme.secondaryAccent,
+            primary = garageTheme.button,
+            onPrimary = garageTheme.onButton,
+            secondary = garageTheme.accent,
+            onSecondary = AkraColors.Ink,
+            tertiary = garageTheme.glow,
             background = garageTheme.base,
             onBackground = garageTheme.onBase,
             surface = garageTheme.surface,
             onSurface = garageTheme.onSurface,
-            surfaceVariant = garageTheme.cardGradientEnd,
+            surfaceVariant = AkraColors.Graphite,
             onSurfaceVariant = garageTheme.muted,
-            outline = outline,
-            outlineVariant = outlineVariant,
+            outline = Color.White.copy(alpha = 0.12f),
+            outlineVariant = Color.White.copy(alpha = 0.07f),
             error = AkraColors.Danger,
             onError = AkraColors.Pearl,
         )
     } else {
         lightColorScheme(
-            primary = garageTheme.accent,
-            onPrimary = AkraColors.LightSurface,
-            secondary = garageTheme.highlight,
-            onSecondary = garageTheme.accent,
-            tertiary = garageTheme.secondaryAccent,
+            primary = garageTheme.button,
+            onPrimary = garageTheme.onButton,
+            secondary = garageTheme.accent,
+            onSecondary = AkraColors.Pearl,
+            tertiary = garageTheme.glow,
             background = garageTheme.base,
             onBackground = garageTheme.onBase,
             surface = garageTheme.surface,
             onSurface = garageTheme.onSurface,
-            surfaceVariant = garageTheme.cardGradientEnd,
+            surfaceVariant = Color(0xFFEEF0F3),
             onSurfaceVariant = garageTheme.muted,
-            outline = outline,
-            outlineVariant = outlineVariant,
-            error = AkraColors.Danger,
-            onError = AkraColors.LightSurface,
+            outline = Color.Black.copy(alpha = 0.12f),
+            outlineVariant = Color.Black.copy(alpha = 0.08f),
+            error = Color(0xFFC62828),
+            onError = AkraColors.Pearl,
         )
     }
     CompositionLocalProvider(LocalAkraTheme provides garageTheme) {
@@ -98,15 +93,4 @@ fun SoundKitTheme(
             content = content,
         )
     }
-}
-
-/** Soft hairline that inherits the active surface tint instead of a fixed gray. */
-private fun softOutline(surface: Color, isDark: Boolean, lift: Float): Color {
-    val bias = if (isDark) lift else -lift * 0.55f
-    return Color(
-        red = (surface.red + bias).coerceIn(0f, 1f),
-        green = (surface.green + bias * 0.92f).coerceIn(0f, 1f),
-        blue = (surface.blue + bias * 0.82f).coerceIn(0f, 1f),
-        alpha = 1f,
-    )
 }

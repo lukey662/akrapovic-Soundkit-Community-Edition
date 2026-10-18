@@ -243,7 +243,7 @@ private fun SavedReceiverChip(
             text = if (receiver.isDefault) "★ ${receiver.displayName()}" else receiver.displayName(),
             style = MaterialTheme.typography.labelLarge,
             color = if (receiver.isDefault) {
-                MaterialTheme.colorScheme.primary
+                MaterialTheme.colorScheme.secondary
             } else {
                 MaterialTheme.colorScheme.onSurface
             },

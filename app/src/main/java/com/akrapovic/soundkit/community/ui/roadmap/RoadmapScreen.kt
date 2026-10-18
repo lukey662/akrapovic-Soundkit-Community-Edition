@@ -66,7 +66,7 @@ fun RoadmapScreen(
             RoadmapSection(
                 title = "Up next",
                 subtitle = "Near-term focus",
-                accent = MaterialTheme.colorScheme.primary,
+                accent = MaterialTheme.colorScheme.secondary,
                 items = upNextItems,
                 style = RoadmapSectionStyle.Featured,
             )
@@ -104,7 +104,7 @@ fun RoadmapScreen(
 private fun RoadmapSummaryStrip(
     shippedCount: Int,
 ) {
-    AkraCard(accent = MaterialTheme.colorScheme.primary) {
+    AkraCard(accent = MaterialTheme.colorScheme.secondary) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,

@@ -32,7 +32,7 @@ fun AkraStatePanel(
             Text(
                 text = eyebrow,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.secondary,
             )
         }
         Text(

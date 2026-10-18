@@ -283,7 +283,7 @@ private fun VehicleOptionRow(
             AkraStatusPill(
                 text = entry.tierLabel.uppercase(),
                 color = when (entry.tier) {
-                    VehicleSupportTier.Supported -> MaterialTheme.colorScheme.primary
+                    VehicleSupportTier.Supported -> MaterialTheme.colorScheme.secondary
                     VehicleSupportTier.Beta -> LocalAkraTheme.current.secondaryAccent
                     VehicleSupportTier.Unsupported -> MaterialTheme.colorScheme.onSurfaceVariant
                 },

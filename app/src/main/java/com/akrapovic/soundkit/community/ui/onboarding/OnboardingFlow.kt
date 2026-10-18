@@ -340,7 +340,7 @@ fun OnboardingFlow(
                             )
                         }
                     } else {
-                        AkraStatusPill(text = "NOT REQUIRED", color = MaterialTheme.colorScheme.primary)
+                        AkraStatusPill(text = "NOT REQUIRED", color = MaterialTheme.colorScheme.secondary)
                     }
                 }
             }
@@ -451,7 +451,7 @@ private fun BreadcrumbChip(
                 .clip(CircleShape)
                 .background(
                     when {
-                        complete -> accent
+                        complete -> MaterialTheme.colorScheme.primary
                         active -> accent.copy(alpha = 0.22f)
                         else -> MaterialTheme.colorScheme.surfaceVariant
                     },
@@ -585,7 +585,7 @@ private fun OnboardingSection(
 private fun PermissionStatusPill(granted: Boolean) {
     AkraStatusPill(
         text = if (granted) "GRANTED" else "NEEDED",
-        color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        color = if (granted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 

@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -35,10 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -49,14 +48,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
-import com.akrapovic.soundkit.community.ui.theme.LocalAkraTheme
+import com.akrapovic.soundkit.community.ui.theme.GarageTheme
 
-val AkraSurfaceShape = RoundedCornerShape(20.dp)
+val AkraSurfaceShape = RoundedCornerShape(16.dp)
 val AkraCardShape = AkraSurfaceShape
 /** Soft rounded controls: not a pill, not a hard square. */
-val AkraButtonShape = RoundedCornerShape(14.dp)
-val AkraGroupShape = RoundedCornerShape(20.dp)
-val AkraSegmentShape = RoundedCornerShape(12.dp)
+val AkraButtonShape = RoundedCornerShape(13.dp)
+val AkraGroupShape = RoundedCornerShape(16.dp)
+val AkraSegmentShape = RoundedCornerShape(10.dp)
 
 @Composable
 fun AkraScreen(
@@ -64,19 +63,14 @@ fun AkraScreen(
     scroll: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val theme = LocalAkraTheme.current
     val shell = Modifier
         .fillMaxSize()
-        .background(
-            Brush.verticalGradient(
-                colors = listOf(theme.gradientStart, theme.gradientEnd),
-            ),
-        )
-        .padding(horizontal = 20.dp)
+        .background(MaterialTheme.colorScheme.background)
+        .padding(horizontal = 16.dp)
 
     Column(
         modifier = modifier.then(if (scroll) shell.verticalScroll(rememberScrollState()) else shell),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         content = content,
     )
 }
@@ -100,7 +94,7 @@ fun AkraHeroHeader(
             Text(
                 text = eyebrow,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.secondary,
             )
         }
         Text(
@@ -124,14 +118,6 @@ fun AkraHeroHeader(
 }
 
 @Composable
-private fun workshopSurfaceBrush(): Brush {
-    val theme = LocalAkraTheme.current
-    return Brush.verticalGradient(
-        colors = listOf(theme.cardGradientStart, theme.cardGradientEnd),
-    )
-}
-
-@Composable
 fun AkraSurface(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
@@ -143,10 +129,10 @@ fun AkraSurface(
         modifier = modifier
             .fillMaxWidth()
             .clip(AkraSurfaceShape)
-            .background(workshopSurfaceBrush())
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f), AkraSurfaceShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AkraSurfaceShape)
             .then(clickableModifier)
-            .padding(16.dp),
+            .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = content,
     )
@@ -163,12 +149,11 @@ fun AkraElevated(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(8.dp, AkraSurfaceShape, clip = false, ambientColor = Color.Black.copy(alpha = 0.35f))
             .clip(AkraSurfaceShape)
-            .background(workshopSurfaceBrush())
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f), AkraSurfaceShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AkraSurfaceShape)
             .then(clickableModifier)
-            .padding(18.dp),
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = content,
     )
@@ -200,8 +185,8 @@ fun AkraListGroup(
         modifier = modifier
             .fillMaxWidth()
             .clip(AkraGroupShape)
-            .background(workshopSurfaceBrush())
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f), AkraGroupShape),
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AkraGroupShape),
         content = content,
     )
 }
@@ -215,6 +200,7 @@ fun AkraListRow(
     showChevron: Boolean = false,
     onClick: (() -> Unit)? = null,
     contentDescription: String? = null,
+    leadingIcon: ImageVector? = null,
     leading: @Composable (() -> Unit)? = null,
 ) {
     val clickableModifier = clickableModifier(onClick, contentDescription ?: title)
@@ -222,15 +208,23 @@ fun AkraListRow(
         modifier = modifier
             .fillMaxWidth()
             .then(clickableModifier)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (leadingIcon != null) {
+            Icon(
+                imageVector = leadingIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
         leading?.invoke()
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             if (!subtitle.isNullOrBlank()) {
@@ -261,7 +255,7 @@ fun AkraListRow(
 @Composable
 fun AkraListDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = 16.dp),
+        modifier = Modifier.padding(start = 14.dp),
         color = MaterialTheme.colorScheme.outlineVariant,
     )
 }
@@ -296,7 +290,7 @@ fun AkraBanner(
     title: String,
     body: String,
     modifier: Modifier = Modifier,
-    accent: Color = MaterialTheme.colorScheme.primary,
+    accent: Color = MaterialTheme.colorScheme.secondary,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
@@ -304,9 +298,9 @@ fun AkraBanner(
         modifier = modifier
             .fillMaxWidth()
             .clip(AkraSurfaceShape)
-            .background(accent.copy(alpha = 0.10f))
-            .border(1.dp, accent.copy(alpha = 0.22f), AkraSurfaceShape)
-            .padding(14.dp),
+            .background(accent.copy(alpha = 0.12f))
+            .border(1.dp, accent.copy(alpha = 0.30f), AkraSurfaceShape)
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
@@ -381,9 +375,6 @@ fun AkraActionButton(
     contentDescription: String = label,
     onClick: () -> Unit,
 ) {
-    val accent = MaterialTheme.colorScheme.primary
-    val akraTheme = LocalAkraTheme.current
-    val screenBackground = MaterialTheme.colorScheme.background
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -391,36 +382,29 @@ fun AkraActionButton(
         animationSpec = spring(stiffness = 500f),
         label = "buttonScale",
     )
-    val filledGradientColors = remember(accent, akraTheme.secondaryAccent, screenBackground) {
-        filledActionGradientColors(
-            accent = accent,
-            secondaryAccent = akraTheme.secondaryAccent,
-            background = screenBackground,
-        )
-    }
-    val background = when {
-        !enabled -> Brush.linearGradient(
-            listOf(MaterialTheme.colorScheme.outlineVariant, MaterialTheme.colorScheme.outlineVariant),
-        )
-        filled -> Brush.linearGradient(filledGradientColors)
-        else -> Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
+    val container = when {
+        !enabled -> MaterialTheme.colorScheme.surfaceVariant
+        filled -> MaterialTheme.colorScheme.primary
+        else -> Color.Transparent
     }
     val textColor = when {
         !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
         filled -> MaterialTheme.colorScheme.onPrimary
-        else -> accent
+        else -> MaterialTheme.colorScheme.secondary
+    }
+    val borderColor = when {
+        !enabled -> MaterialTheme.colorScheme.outlineVariant
+        filled -> Color.Transparent
+        else -> MaterialTheme.colorScheme.outline
     }
 
     Box(
         modifier = modifier
             .scale(scale)
-            .heightIn(min = 52.dp)
+            .heightIn(min = 46.dp)
             .clip(AkraButtonShape)
-            .background(background)
-            .border(
-                BorderStroke(1.dp, if (enabled) accent.copy(alpha = if (filled) 0f else 0.35f) else AkraColors.Titanium),
-                AkraButtonShape,
-            )
+            .background(container)
+            .border(BorderStroke(1.dp, borderColor), AkraButtonShape)
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
@@ -433,12 +417,12 @@ fun AkraActionButton(
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelLarge,
             color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
         )
     }
 }
@@ -447,13 +431,13 @@ fun AkraActionButton(
 fun AkraStatusPill(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.primary,
+    color: Color = MaterialTheme.colorScheme.secondary,
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.14f))
+            .padding(horizontal = 7.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -488,12 +472,12 @@ fun AkraSwitchRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text(title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     subtitle,
@@ -509,11 +493,11 @@ fun AkraSwitchRow(
                 stateDescription = if (checked) "$title enabled" else "$title disabled"
             },
             colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.background,
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                 checkedTrackColor = MaterialTheme.colorScheme.primary,
-                uncheckedThumbColor = AkraColors.Mist,
-                uncheckedTrackColor = AkraColors.Titanium,
-                uncheckedBorderColor = AkraColors.Steel,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                uncheckedBorderColor = MaterialTheme.colorScheme.outline,
             ),
         )
     }
@@ -528,26 +512,19 @@ fun AkraButtonRow(content: @Composable RowScope.() -> Unit) {
     )
 }
 
-private const val LOW_CONTRAST_COLOR_DELTA = 0.15f
-
-private fun filledActionGradientColors(
-    accent: Color,
-    secondaryAccent: Color,
-    background: Color,
-): List<Color> {
-    val gradientEnd = if (colorsTooSimilar(secondaryAccent, background)) {
-        lerp(accent, Color.Black, 0.25f)
-    } else {
-        secondaryAccent
+/** Brand stripe strip, for example the BMW M colors. Renders nothing for themes without stripes. */
+@Composable
+fun BrandStripes(theme: GarageTheme, modifier: Modifier = Modifier) {
+    if (theme.stripes.isEmpty()) return
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        theme.stripes.forEach { stripe ->
+            Box(
+                modifier = Modifier
+                    .size(width = 8.dp, height = 2.dp)
+                    .background(stripe),
+            )
+        }
     }
-    return listOf(accent, gradientEnd)
-}
-
-private fun colorsTooSimilar(first: Color, second: Color): Boolean {
-    val delta = kotlin.math.abs(first.red - second.red) +
-        kotlin.math.abs(first.green - second.green) +
-        kotlin.math.abs(first.blue - second.blue)
-    return delta < LOW_CONTRAST_COLOR_DELTA
 }
 
 private fun clickableModifier(onClick: (() -> Unit)?, contentDescription: String?): Modifier {

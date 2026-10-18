@@ -252,7 +252,7 @@ private fun AkraTopBar(
                         .semantics { contentDescription = "Go back" },
                     contentAlignment = Alignment.Center,
                 ) {
-                    BackChevron(color = MaterialTheme.colorScheme.primary)
+                    BackChevron(color = MaterialTheme.colorScheme.secondary)
                 }
                 Spacer(Modifier.width(12.dp))
             }

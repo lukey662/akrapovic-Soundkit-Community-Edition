@@ -146,7 +146,7 @@ private fun QuietStartRows(
                         Text(
                             text = label,
                             color = if (selected) {
-                                MaterialTheme.colorScheme.primary
+                                MaterialTheme.colorScheme.secondary
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },

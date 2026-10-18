@@ -208,7 +208,7 @@ private fun VariantButton(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent)
+            .background(if (selected) MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f) else Color.Transparent)
             .clickable(onClick = onClick)
             .semantics { contentDescription = "$label theme variant" }
             .padding(vertical = 10.dp),
@@ -217,7 +217,7 @@ private fun VariantButton(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
