@@ -901,9 +901,23 @@ The 0.3.4 docs withdrew the Wear claim because the old tile launched a phone act
 
 ### Decision
 
-The watch app now uses the phone's application id so the Wearable Data Layer can link them. The phone publishes valve state and accepts Open/Close only while connected, through the coordinator as the Watch source. The watch build is 0.3.4 / versionCode 1000007 and signs with the same environment variables.
+The watch app now uses the phone's application id so the Wearable Data Layer can link them. The phone publishes valve state and accepts Open/Close only while connected, through the coordinator as the Watch source. The watch build signs with the same environment variables. The artifact that can be installed beside the phone is 0.3.5 / versionCode 1000008.
 
 ### Consequences
 
 - This supersedes "Withdraw the Wear handoff claim".
 - The Play listing needs the Wear OS form factor enabled.
+
+## 2026-10-18: Republish the redesign as 0.3.5
+
+### Context
+
+Play internal testing already had version code 7 from an earlier 0.3.4 upload. A later binary with the redesign used the same version code, and Play rejected it.
+
+### Decision
+
+Ship the current tree as phone 0.3.5 / versionCode 8 and watch 0.3.5 / versionCode 1000008 on the internal track only.
+
+### Consequences
+
+- Testers update from the existing internal opt-in link. Version code 7 stays in Play's history and is superseded on the track.

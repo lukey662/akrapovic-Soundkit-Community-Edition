@@ -2,6 +2,10 @@
 
 Android releases of Car Sound Kit Control. Store text lives in `play/listing/en-US/`.
 
+## 0.3.5 (versionCode 8) — Play internal testing
+
+Republish of the 0.3.4 feature set. Play already had version code 7 from an earlier internal build, so the phone could not receive this binary until the version code moved to 8. The watch build is 1000008.
+
 ## 0.3.4 (versionCode 7) — Play internal testing
 
 ### Fixed

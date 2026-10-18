@@ -17,7 +17,7 @@ Provide a modern Android app that locally controls an Akrapovic Sound Kit BLE re
 - Android release artifacts are signed only when `ANDROID_RELEASE_STORE_FILE`,
   `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`, and
   `ANDROID_RELEASE_KEY_PASSWORD` are supplied by the build environment.
-- Android marketing version: 0.3.4 (version code: 7). iOS remains 0.3.0 until its next cut.
+- Android marketing version: 0.3.5 (version code: 8). iOS remains 0.3.0 until its next cut.
 
 ## Architecture
 
@@ -42,7 +42,7 @@ flowchart TD
 
 - The phone module targets Android 16 (`compileSdk` and `targetSdk` 36) so a
   new Play app can be uploaded. The Wear module targets 35, shares the phone's
-  application id (`com.akrapovic.soundkit.community`, versionCode 1000007) so the
+  application id (`com.akrapovic.soundkit.community`, versionCode 1000008) so the
   Wearable Data Layer links them, and ships on the internal track as a Wear OS
   artifact. The watch sends Open/Close only; the phone accepts them only while
   connected and runs them through `ValveCommandCoordinator`.
@@ -112,7 +112,7 @@ flowchart TD
 - Android Open/Close/Status launcher-shortcut fulfillment is internal-only: `AssistantActionActivity` accepts a fixed action only, and `VoiceValveActionRouter` resolves the saved default receiver without accepting a BLE address. It reconnects only that receiver within 8 seconds and waits for the first receiver status, then sends Open/Close through `ValveCommandCoordinator`; status reports only a known receiver notification state. Google Assistant custom App Actions are deliberately not advertised because no reliable IoT fulfillment contract is declared.
 - GATT discovery and notification subscription establish readiness; write acknowledgement is transport-only and a target-state notification confirms a command result.
 - Quick Settings tile opens the app when disconnected (through a `PendingIntent` on Android 14+) and toggles the last known valve state when connected.
-- Android Auto exposes minimal low-distraction controls through the IoT category: one `GridTemplate` with a constant title and constant Status/Open/Close item titles, so status changes are template refreshes. Open and Close use `ParkedOnlyOnClickListener`; Status offers Retry when disconnected. It is testable on DHU and compatible Automotive OS targets. A real car lists it only when the app is installed from Play internal sharing or the internal test track; Unknown sources does not apply to the Car App Library. Version `0.3.4` is on that internal track. A public Google Play projected listing remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
+- Android Auto exposes minimal low-distraction controls through the IoT category: one `GridTemplate` with a constant title and constant Status/Open/Close item titles, so status changes are template refreshes. Open and Close use `ParkedOnlyOnClickListener`; Status offers Retry when disconnected. It is testable on DHU and compatible Automotive OS targets. A real car lists it only when the app is installed from Play internal sharing or the internal test track; Unknown sources does not apply to the Car App Library. Version `0.3.5` is on that internal track. A public Google Play projected listing remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
 
 ## Security
 
