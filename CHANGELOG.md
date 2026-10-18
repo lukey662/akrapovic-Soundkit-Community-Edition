@@ -2,6 +2,16 @@
 
 Android releases of Car Sound Kit Control. Store text lives in `play/listing/en-US/`.
 
+## 0.3.6 (versionCode 9) — Play internal testing
+
+### Fixed
+
+- Home while the receiver is not connected now uses the same design as the connected screen (header with receiver chip, dimmed valve, one Connect action, Drive mode / Quiet start / Receiver rows); the old "Connect" screen and the duplicate "Sound Kit" bar above Home are gone.
+- Android Auto tiles send small, immutable valve images (56dp, at most 144px) and cache them per theme, keeping every refresh well under the binder transaction budget. The car screen never throws out of `onGetTemplate`: a failure shows a message template and is recorded.
+- Diagnostics export gains a "LAST CAR ERROR" section and the car host package and API level, so a head-unit failure can be read from the phone.
+
+The watch build is 1000009.
+
 ## 0.3.5 (versionCode 8) — Play internal testing
 
 Republish of the 0.3.4 feature set. Play already had version code 7 from an earlier internal build, so the phone could not receive this binary until the version code moved to 8. The watch build is 1000008.

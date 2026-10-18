@@ -921,3 +921,33 @@ Ship the current tree as phone 0.3.5 / versionCode 8 and watch 0.3.5 / versionCo
 ### Consequences
 
 - Testers update from the existing internal opt-in link. Version code 7 stays in Play's history and is superseded on the track.
+
+## 2026-10-19: Disconnected Home shares the connected design
+
+### Context
+
+0.3.5 reached the phone, but the owner saw the old look: the receiver was not connected, and the disconnected Home (`ScanScreen`) had never been redesigned. The connected screen also drew under the old "Sound Kit" top bar, so it showed two headers.
+
+### Decision
+
+Both Home states use one shell: `HomeHeader`, the valve (dimmed and closed when not connected), a `displaySmall` state line, one filled action, and the shared Drive mode / Quiet start / Receiver rows (`HomeRows.kt`). Home draws no top bar; it pads for the status bar itself. Scanning results list below the rows only when present.
+
+### Consequences
+
+- The app keeps its shape when the link drops; "Connect" is the primary action whenever a default receiver exists.
+- Snapshots 10 (couldn't connect) and 11 (left the car) join the docs set.
+
+## 2026-10-19: Car tiles stay under the binder budget and log host failures
+
+### Context
+
+The head unit showed "Car Sound Kit Control has encountered an unexpected error" on 0.3.5 with no trace available: the Car App host draws that screen when `onGetTemplate` throws or validation fails, catches the exception itself, and the app's uncaught-exception reporter never sees it. The 0.3.4 car screen sent three mutable 96dp ARGB bitmaps per refresh (~660 KB on a Pixel), re-sent every second during a quiet hold, through a 1 MB binder budget.
+
+### Decision
+
+Tile images render at 56dp capped at 144px as immutable bitmaps, cached per theme and state, with a tinted vector fallback if rendering fails. `onGetTemplate` is wrapped: any failure is recorded by `CarErrorLog` (`files/crashes/last_car_error.txt`, plus a ring of session events with host package and car API level) and the screen returns a message template instead of failing. Diagnostics export includes the log.
+
+### Consequences
+
+- Version 0.3.6 / versionCode 9 (watch 1000009), internal track only.
+- If the error persists, Export diagnostics now carries the real exception; `car_app_hosts.xml` and the release host validator are unchanged.
