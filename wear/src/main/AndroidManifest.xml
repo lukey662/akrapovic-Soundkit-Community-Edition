@@ -12,6 +12,11 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
 
+        <!-- Needs the phone app: commands run on the phone. -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="false" />
+
         <service
             android:name="com.akrapovic.soundkit.community.SoundKitWearTileService"
             android:description="@string/tile_description"
@@ -25,6 +30,19 @@
             <meta-data
                 android:name="androidx.wear.tiles.PREVIEW"
                 android:resource="@drawable/ic_tile_preview" />
+        </service>
+
+        <service
+            android:name="com.akrapovic.soundkit.community.WearStateListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/soundkit"
+                    android:scheme="wear" />
+            </intent-filter>
         </service>
     </application>
 </manifest>

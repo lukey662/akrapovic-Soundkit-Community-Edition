@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Lets the watch app find this phone through the Wearable Data Layer. -->
+    <string-array name="android_wear_capabilities" translatable="false">
+        <item>soundkit_phone</item>
+    </string-array>
+</resources>
