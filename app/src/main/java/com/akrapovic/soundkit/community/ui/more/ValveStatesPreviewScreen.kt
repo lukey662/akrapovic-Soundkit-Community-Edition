@@ -42,7 +42,7 @@ fun ValveStatesPreviewScreen(
         )
         ValveStateCard(
             title = "Open",
-            subtitle = "Sport: disc tilts open, amber heat visible.",
+            subtitle = "Sport: disc tilts open, heat glow visible.",
             state = ValveState.Open,
             commandInFlight = false,
         )

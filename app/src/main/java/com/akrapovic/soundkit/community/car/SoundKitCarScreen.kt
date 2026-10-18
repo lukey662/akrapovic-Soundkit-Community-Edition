@@ -16,7 +16,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import com.akrapovic.soundkit.community.R
 import com.akrapovic.soundkit.community.ble.PermissionPolicy
 import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.data.BleRepository
@@ -29,6 +28,9 @@ import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.service.BleConnectionService
+import com.akrapovic.soundkit.community.ui.components.ValveArtPalette
+import com.akrapovic.soundkit.community.ui.components.ValveBitmaps
+import com.akrapovic.soundkit.community.ui.theme.darkVariantFor
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -141,7 +143,7 @@ class SoundKitCarScreen(
                         gridItem(
                             title = CarScreenPresenter.STATUS_ITEM_TITLE,
                             text = model.statusText,
-                            iconRes = R.drawable.ic_notification,
+                            icon = valveIcon(if (repository.valveState.value == ValveState.Open) 1f else 0f),
                             onClick = if (model.retryEnabled) OnClickListener { retryConnection() } else null,
                         ),
                     )
@@ -149,7 +151,7 @@ class SoundKitCarScreen(
                         gridItem(
                             title = CarScreenPresenter.OPEN_ITEM_TITLE,
                             text = null,
-                            iconRes = R.drawable.ic_valve_tile,
+                            icon = valveIcon(1f),
                             onClick = if (model.openEnabled) valveClick { openValve() } else null,
                         ),
                     )
@@ -157,7 +159,7 @@ class SoundKitCarScreen(
                         gridItem(
                             title = CarScreenPresenter.CLOSE_ITEM_TITLE,
                             text = null,
-                            iconRes = R.drawable.ic_valve_tile,
+                            icon = valveIcon(0f),
                             onClick = if (model.closeEnabled) valveClick { closeValve() } else null,
                         ),
                     )
@@ -166,10 +168,22 @@ class SoundKitCarScreen(
             .build()
     }
 
-    private fun gridItem(title: String, text: String?, iconRes: Int, onClick: OnClickListener?): GridItem {
+    /** Untinted valve art in the theme's dark glow; the car display is always dark. */
+    private fun valveIcon(openAmount: Float): CarIcon {
+        val metrics = carContext.resources.displayMetrics
+        val bitmap = ValveBitmaps.render(
+            sizePx = (TILE_IMAGE_DP * metrics.density).toInt(),
+            openAmount = openAmount,
+            palette = ValveArtPalette.from(darkVariantFor(settingsSnapshot.garageThemeId)),
+            density = metrics.density,
+        )
+        return CarIcon.Builder(IconCompat.createWithBitmap(bitmap)).build()
+    }
+
+    private fun gridItem(title: String, text: String?, icon: CarIcon, onClick: OnClickListener?): GridItem {
         val builder = GridItem.Builder()
             .setTitle(title)
-            .setImage(CarIcon.Builder(IconCompat.createWithResource(carContext, iconRes)).build())
+            .setImage(icon, GridItem.IMAGE_TYPE_LARGE)
         if (text != null) builder.setText(text)
         // GridItem has no enabled API. Omitting the click listener makes the host render it inert.
         if (onClick != null) builder.setOnClickListener(onClick)
@@ -206,6 +220,10 @@ class SoundKitCarScreen(
         return PermissionPolicy.requiredBlePermissions().all { permission ->
             ContextCompat.checkSelfPermission(carContext, permission) == PackageManager.PERMISSION_GRANTED
         }
+    }
+
+    private companion object {
+        const val TILE_IMAGE_DP = 96
     }
 
     private data class CarRenderState(

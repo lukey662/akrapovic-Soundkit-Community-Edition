@@ -28,4 +28,15 @@ class ValveStatesPaparazziTest {
             }
         }
     }
+
+    @Test
+    fun valveStatesGalleryAudiRs() {
+        paparazzi.snapshot(name = "valve-states-gallery-audi-rs") {
+            SoundKitTheme(garageTheme = GarageThemePresets.first { it.id == "audi-rs-dark" }) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    ValveStatesPreviewScreen()
+                }
+            }
+        }
+    }
 }
