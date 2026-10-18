@@ -45,6 +45,18 @@ class DiagnosticsReportBuilderTest {
     }
 
     @Test
+    fun reportIncludesLastCarErrorAfterCrashSection() {
+        val withError = builder(crash = "IllegalArgumentException: duplicate key", carError = "where=onGetTemplate")
+        val report = withError.buildDiagnosticsReport(entries = emptyList())
+
+        assertTrue(report.contains("LAST CAR ERROR START\nwhere=onGetTemplate\nLAST CAR ERROR END"))
+        assertTrue(report.indexOf("CRASH LOG END") < report.indexOf("LAST CAR ERROR START"))
+
+        val withoutError = builder(crash = null, carError = null)
+        assertTrue(withoutError.buildDiagnosticsReport(entries = emptyList()).contains("LAST CAR ERROR START\nnone\n"))
+    }
+
+    @Test
     fun writesReportFileForSharing() {
         val outputDirectory = temporaryFolder.newFolder("diagnostics")
         val builder = builder(crash = null, outputDirectory = outputDirectory)
@@ -59,6 +71,7 @@ class DiagnosticsReportBuilderTest {
     private fun builder(
         crash: String?,
         outputDirectory: File = temporaryFolder.root,
+        carError: String? = null,
     ): DiagnosticsReportBuilder {
         return DiagnosticsReportBuilder(
             metadataProvider = {
@@ -86,6 +99,7 @@ class DiagnosticsReportBuilderTest {
                     appendLine("connectInCar=$connectInCar")
                 }
             },
+            carErrorReader = { carError },
         )
     }
 }

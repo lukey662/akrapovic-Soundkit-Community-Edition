@@ -4,6 +4,7 @@ import android.content.pm.PackageManager
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
+import androidx.car.app.model.CarColor
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.GridItem
 import androidx.car.app.model.GridTemplate
@@ -12,14 +13,17 @@ import androidx.car.app.model.MessageTemplate
 import androidx.car.app.model.OnClickListener
 import androidx.car.app.model.ParkedOnlyOnClickListener
 import androidx.car.app.model.Template
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.akrapovic.soundkit.community.R
 import com.akrapovic.soundkit.community.ble.PermissionPolicy
 import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
+import com.akrapovic.soundkit.community.diagnostics.CarErrorLog
 import com.akrapovic.soundkit.community.domain.CommandPhase
 import com.akrapovic.soundkit.community.domain.CommandSource
 import com.akrapovic.soundkit.community.domain.ConnectionState
@@ -33,6 +37,7 @@ import com.akrapovic.soundkit.community.ui.components.ValveArtPalette
 import com.akrapovic.soundkit.community.ui.components.ValveBitmaps
 import com.akrapovic.soundkit.community.ui.theme.darkVariantFor
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,11 +59,23 @@ class SoundKitCarScreen(
     private val driveModeEngine: DriveModeEngine = entryPoint.driveModeEngine()
     private val valveCommandCoordinator: ValveCommandCoordinator = entryPoint.valveCommandCoordinator()
     private val carSessionTracker: CarSessionTracker = entryPoint.carSessionTracker()
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val carErrorLog: CarErrorLog = entryPoint.carErrorLog()
+
+    /** A failing collector is recorded and the screen stays alive; the host must never see a throw. */
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        carErrorLog.record("screenScope", throwable)
+    }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + exceptionHandler)
     private var settingsSnapshot = SoundKitSettings()
     private var settingsReady = false
     private var didBootstrap = false
     private var quietHoldEndsAt: Long? = null
+
+    /**
+     * Icons keyed by (themeId, openAmount). The quiet-hold countdown invalidates every second, and
+     * each invalidate must not re-render or re-send bitmaps, so the three tiles reuse these.
+     */
+    private val iconCache = HashMap<Pair<String?, Float>, CarIcon>()
 
     init {
         carSessionTracker.beginSession()
@@ -100,7 +117,20 @@ class SoundKitCarScreen(
         }
     }
 
+    /**
+     * Never throws. A throw here, or a template the host rejects, makes the host replace the app
+     * with its "unexpected error" page while the process lives on, so nothing else would record it.
+     */
     override fun onGetTemplate(): Template {
+        return runCatching { buildTemplate() }.getOrElse { throwable ->
+            carErrorLog.record("onGetTemplate", throwable)
+            runCatching { messageTemplate(ERROR_MESSAGE) }.getOrElse {
+                MessageTemplate.Builder(ERROR_MESSAGE).setTitle(CarScreenPresenter.TITLE).build()
+            }
+        }
+    }
+
+    private fun buildTemplate(): Template {
         if (settingsReady) ensureBootstrap(settingsSnapshot)
         if (!SoundKitProtocol.VERIFIED) {
             return messageTemplate("Controls are unavailable in this build.")
@@ -169,16 +199,35 @@ class SoundKitCarScreen(
             .build()
     }
 
-    /** Untinted valve art in the theme's dark glow; the car display is always dark. */
+    /**
+     * Untinted valve art in the theme's dark glow; the car display is always dark.
+     *
+     * Rendered once per (theme, openAmount) at a size the host can carry over binder. If rendering
+     * fails for any reason the tile falls back to the tinted vector glyph rather than failing the
+     * whole template.
+     */
     private fun valveIcon(openAmount: Float): CarIcon {
-        val metrics = carContext.resources.displayMetrics
-        val bitmap = ValveBitmaps.render(
-            sizePx = (TILE_IMAGE_DP * metrics.density).toInt(),
-            openAmount = openAmount,
-            palette = ValveArtPalette.from(darkVariantFor(settingsSnapshot.garageThemeId)),
-            density = metrics.density,
-        )
-        return CarIcon.Builder(IconCompat.createWithBitmap(bitmap)).build()
+        val themeId = settingsSnapshot.garageThemeId
+        return iconCache.getOrPut(themeId to openAmount) {
+            val palette = ValveArtPalette.from(darkVariantFor(themeId))
+            runCatching {
+                val metrics = carContext.resources.displayMetrics
+                val bitmap = ValveBitmaps.render(
+                    sizePx = (TILE_IMAGE_DP * metrics.density).toInt(),
+                    openAmount = openAmount,
+                    palette = palette,
+                    density = metrics.density,
+                    maxPx = TILE_IMAGE_MAX_PX,
+                )
+                CarIcon.Builder(IconCompat.createWithBitmap(bitmap)).build()
+            }.getOrElse { throwable ->
+                carErrorLog.record("valveIcon", throwable)
+                val glowArgb = palette.glow.toArgb()
+                CarIcon.Builder(IconCompat.createWithResource(carContext, R.drawable.ic_valve_tile))
+                    .setTint(CarColor.createCustom(glowArgb, glowArgb))
+                    .build()
+            }
+        }
     }
 
     private fun gridItem(title: String, text: String?, icon: CarIcon, onClick: OnClickListener?): GridItem {
@@ -224,7 +273,10 @@ class SoundKitCarScreen(
     }
 
     private companion object {
-        const val TILE_IMAGE_DP = 96
+        /** Three ARGB tiles at 56dp capped at 144px stay far below the host's 1MB binder budget. */
+        const val TILE_IMAGE_DP = 56
+        const val TILE_IMAGE_MAX_PX = 144
+        const val ERROR_MESSAGE = "Something went wrong. Open Car Sound Kit on the phone and export diagnostics."
     }
 
     private data class CarRenderState(

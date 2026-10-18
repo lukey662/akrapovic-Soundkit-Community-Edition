@@ -19,12 +19,15 @@ class DiagnosticsReportBuilder(
     private val crashReader: () -> String?,
     private val outputDirectoryProvider: () -> File,
     private val carAppReadinessProvider: (Boolean, Boolean) -> String,
+    private val carErrorReader: () -> String? = { null },
+    private val carErrorClearer: () -> Unit = {},
 ) {
     @Inject
     constructor(
         @ApplicationContext context: Context,
         crashReporter: CrashReporter,
         carSessionTracker: CarSessionTracker,
+        carErrorLog: CarErrorLog,
     ) : this(
         metadataProvider = { DiagnosticsReportMetadata.from(context) },
         crashReader = { crashReporter.readPendingCrash() },
@@ -35,9 +38,17 @@ class DiagnosticsReportBuilder(
                 hasDefaultReceiver = hasDefaultReceiver,
                 connectInCar = connectInCar,
                 carSessionActive = carSessionTracker.isCarSessionActive.value,
+                carErrorLog = carErrorLog,
             )
         },
+        carErrorReader = { carErrorLog.read() },
+        carErrorClearer = { carErrorLog.clear() },
     )
+
+    /** Dismissing the pending crash on the phone also forgets the last car error it was shown with. */
+    fun clearCarError() {
+        carErrorClearer()
+    }
 
     fun buildDiagnosticsReport(
         entries: List<DiagnosticsEntry>,
@@ -76,6 +87,10 @@ class DiagnosticsReportBuilder(
                 appendLine(crash.trimEnd())
                 appendLine("CRASH LOG END")
             }
+            appendLine()
+            appendLine("LAST CAR ERROR START")
+            appendLine(carErrorReader()?.takeIf { it.isNotBlank() }?.trimEnd() ?: "none")
+            appendLine("LAST CAR ERROR END")
         }
     }
 

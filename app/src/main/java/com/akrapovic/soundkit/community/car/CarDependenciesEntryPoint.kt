@@ -2,6 +2,7 @@ package com.akrapovic.soundkit.community.car
 
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
+import com.akrapovic.soundkit.community.diagnostics.CarErrorLog
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
 import dagger.hilt.EntryPoint
@@ -20,5 +21,6 @@ interface CarDependenciesEntryPoint {
     fun valveCommandCoordinator(): ValveCommandCoordinator
 
     fun carSessionTracker(): CarSessionTracker
-}
 
+    fun carErrorLog(): CarErrorLog
+}

@@ -451,6 +451,7 @@ class SoundKitViewModel @Inject constructor(
     }
 
     fun clearPendingCrash() {
+        diagnosticsReportBuilder.clearCarError()
         if (crashReporter.clearPendingCrash()) {
             hasPendingCrash.value = false
         }
