@@ -207,6 +207,7 @@ fun SoundKitApp(
                         onApplyDriveModeProfile = viewModel::applyDriveModeProfile,
                         onPeriodicScanChanged = viewModel::setPeriodicScanWhenAway,
                         onCarBluetoothSelected = viewModel::setCarBluetooth,
+                        onCompanionAssociationChanged = viewModel::setCompanionAssociation,
                     )
                     AppScreen.DriveMode -> DriveModeScreen(
                         modifier = modifier,

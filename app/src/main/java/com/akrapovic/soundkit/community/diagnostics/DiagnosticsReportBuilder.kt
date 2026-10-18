@@ -47,6 +47,7 @@ class DiagnosticsReportBuilder(
         vehicleDisplayName: String? = null,
         vehicleTier: String? = null,
         connectionState: String? = null,
+        companionPairing: String? = null,
     ): String {
         val metadata = metadataProvider()
         val crash = if (includeCrash) crashReader()?.takeIf { it.isNotBlank() } else null
@@ -56,6 +57,7 @@ class DiagnosticsReportBuilder(
             appendVehicleContext(vehicleDisplayName, vehicleTier, connectionState)
             appendLine()
             appendLine(carAppReadinessProvider(hasDefaultReceiver, connectInCar))
+            companionPairing?.let { appendLine("Companion pairing: $it") }
             appendLine()
             appendLine("PRIVACY NOTE")
             appendLine("Review before sending. This report may include BLE device names and MAC addresses.")

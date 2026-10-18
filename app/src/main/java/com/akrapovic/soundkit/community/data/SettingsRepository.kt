@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.akrapovic.soundkit.community.car.CarAddressMirror
+import com.akrapovic.soundkit.community.companion.CompanionPairing
 import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
@@ -168,7 +169,19 @@ class SettingsRepository @Inject constructor(
         context.settingsDataStore.edit { preferences ->
             val updated = loadReceivers(preferences).filterNot { it.address == address }
             writeReceivers(preferences, SavedReceiversCodec.normalize(updated))
+            if (preferences[Keys.CompanionAddress].equals(address, ignoreCase = true)) {
+                releaseCompanion(preferences)
+            }
         }
+    }
+
+    /** A forgotten receiver must not keep waking the app through companion pairing. */
+    private fun releaseCompanion(preferences: androidx.datastore.preferences.core.MutablePreferences) {
+        val address = preferences[Keys.CompanionAddress] ?: return
+        val id = preferences[Keys.CompanionAssociationId] ?: CompanionPairing.LEGACY_ASSOCIATION_ID
+        CompanionPairing.forget(context, id, address)
+        preferences.remove(Keys.CompanionAssociationId)
+        preferences.remove(Keys.CompanionAddress)
     }
 
     override suspend fun setDefaultReceiver(address: String) {
@@ -208,6 +221,7 @@ class SettingsRepository @Inject constructor(
     override suspend fun forgetDevice() {
         context.settingsDataStore.edit { preferences ->
             writeReceivers(preferences, emptyList())
+            releaseCompanion(preferences)
         }
     }
 

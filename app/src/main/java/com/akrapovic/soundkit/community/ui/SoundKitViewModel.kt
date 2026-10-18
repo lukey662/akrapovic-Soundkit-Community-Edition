@@ -364,6 +364,10 @@ class SoundKitViewModel @Inject constructor(
         }
     }
 
+    fun setCompanionAssociation(associationId: Int?, address: String?) {
+        viewModelScope.launch { settingsRepository.setCompanionAssociation(associationId, address) }
+    }
+
     fun setDefaultReceiver(address: String) {
         viewModelScope.launch {
             settingsRepository.setDefaultReceiver(address)
@@ -424,6 +428,7 @@ class SoundKitViewModel @Inject constructor(
             vehicleDisplayName = vehicle?.displayName,
             vehicleTier = vehicle?.tierLabel,
             connectionState = uiState.value.connectionState.toString(),
+            companionPairing = settings.companionAddress?.let { "on (association ${settings.companionAssociationId})" } ?: "off",
         )
     }
 

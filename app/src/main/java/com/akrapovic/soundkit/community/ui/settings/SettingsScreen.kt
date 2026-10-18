@@ -36,6 +36,12 @@ import com.akrapovic.soundkit.community.ui.components.AkraListRow
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
 import com.akrapovic.soundkit.community.ui.components.AkraSectionTitle
 import com.akrapovic.soundkit.community.ui.components.AkraSwitchRow
+import com.akrapovic.soundkit.community.companion.CompanionPairing
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.os.Build
+import android.app.Activity
 
 @Composable
 fun SettingsScreen(
@@ -58,6 +64,7 @@ fun SettingsScreen(
     onApplyDriveModeProfile: (com.akrapovic.soundkit.community.data.DriveModeProfile) -> Unit = {},
     onPeriodicScanChanged: (Boolean) -> Unit = {},
     onCarBluetoothSelected: (String?, String?) -> Unit = { _, _ -> },
+    onCompanionAssociationChanged: (Int?, String?) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val powerManager = remember { context.getSystemService(PowerManager::class.java) }
@@ -69,6 +76,26 @@ fun SettingsScreen(
     var showCarPicker by remember { mutableStateOf(false) }
     val carCandidates = remember(showCarPicker) { CarBluetoothCatalog.bondedCandidates(context) }
     val carLabel = state.settings.carBluetoothName ?: state.settings.carBluetoothAddress ?: "Not set"
+    val companionSupported = remember { CompanionPairing.isSupported(context) }
+    val defaultReceiver = state.settings.defaultReceiver
+    var pendingCompanionAddress by remember { mutableStateOf<String?>(null) }
+    var companionError by remember { mutableStateOf<String?>(null) }
+    val companionAssociated: (Int, String) -> Unit = { id, address ->
+        CompanionPairing.startObserving(context, id, address)
+        onCompanionAssociationChanged(id, address)
+        pendingCompanionAddress = null
+    }
+    val companionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult(),
+    ) { result ->
+        val address = pendingCompanionAddress
+        if (result.resultCode != Activity.RESULT_OK) {
+            pendingCompanionAddress = null
+        } else if (address != null && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            // Android 12 returns no association id; Android 13+ reports it through the callback.
+            companionAssociated(CompanionPairing.LEGACY_ASSOCIATION_ID, address)
+        }
+    }
 
     AkraScreen(modifier = modifier) {
         AkraSectionTitle("Connection")
@@ -114,6 +141,49 @@ fun SettingsScreen(
                 subtitle = "Occasionally look for the receiver after you leave the car",
                 checked = state.settings.periodicScanWhenAway,
                 onCheckedChange = onPeriodicScanChanged,
+            )
+            if (companionSupported && defaultReceiver != null) {
+                AkraListDivider()
+                AkraSwitchRow(
+                    title = "Wake when the receiver is nearby",
+                    subtitle = "Uses Android's companion device pairing so the app can reconnect in the background",
+                    checked = state.settings.companionAddress.equals(defaultReceiver.address, ignoreCase = true),
+                    onCheckedChange = { enabled ->
+                        companionError = null
+                        if (enabled) {
+                            pendingCompanionAddress = defaultReceiver.address
+                            CompanionPairing.request(
+                                context = context,
+                                address = defaultReceiver.address,
+                                onChooser = { sender ->
+                                    companionLauncher.launch(IntentSenderRequest.Builder(sender).build())
+                                },
+                                onCreated = { id -> companionAssociated(id, defaultReceiver.address) },
+                                onFailure = { message ->
+                                    pendingCompanionAddress = null
+                                    companionError = message
+                                },
+                            )
+                        } else {
+                            val address = state.settings.companionAddress
+                            if (address != null) {
+                                CompanionPairing.forget(
+                                    context,
+                                    state.settings.companionAssociationId ?: CompanionPairing.LEGACY_ASSOCIATION_ID,
+                                    address,
+                                )
+                            }
+                            onCompanionAssociationChanged(null, null)
+                        }
+                    },
+                )
+            }
+        }
+        companionError?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
             )
         }
 
