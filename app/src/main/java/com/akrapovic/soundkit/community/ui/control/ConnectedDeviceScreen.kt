@@ -23,7 +23,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -333,10 +334,12 @@ private fun ReceiverChip(state: SoundKitUiState, device: SoundKitDevice?) {
 /** "Confirmed just now", "Confirmed 12 s ago", or "Confirmed 3 min ago", refreshed every 10 s. */
 @Composable
 private fun rememberConfirmedLabel(confirmedAtMillis: Long?): String? {
-    val now by produceState(initialValue = System.currentTimeMillis(), confirmedAtMillis) {
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(confirmedAtMillis) {
+        now = System.currentTimeMillis()
         while (confirmedAtMillis != null) {
-            value = System.currentTimeMillis()
             delay(10_000)
+            now = System.currentTimeMillis()
         }
     }
     if (confirmedAtMillis == null) return null

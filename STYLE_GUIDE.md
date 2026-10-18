@@ -60,21 +60,29 @@
 
 ## Visual language (Car Sound Kit Control)
 
-- **Workshop instrument**: warm charcoal depth, soft titanium lift, amber actions. Exhaust tip is the only loud moment.
-- Default Studio theme is **Studio Workshop** (warm charcoal / amber), not navy/blue. Brand garage themes keep their own accents.
-- Shell and surfaces use **subtle vertical gradients** (`gradientStart`→`gradientEnd`, `cardGradientStart`→`cardGradientEnd`) so panels read less flat; keep contrast calm.
-- **`AkraSurface` / `AkraListGroup`**: 20dp radius, soft hairline (`outlineVariant` ~55% alpha), theme card gradient fill. **`AkraElevated`**: same shape, light shadow for modals/empty/blocking only.
-- **`AkraButtonShape`**: 14dp soft rounded (not full pill, not hard square). Segments use **`AkraSegmentShape`** (12dp).
-- Prefer **`AkraListGroup` / `AkraListRow`** for Settings, More, and secondary actions — not a full card per row.
-- **`AkraHeroHeader`**: compact title + one subtitle on secondary screens; Home uses inline status + valve hero instead of a page hero.
-- **Status**: inline dot + text (`AkraInlineStatus`) or slim **`AkraBanner`** for errors/reconnect — not stacked cards with pills.
-- **`AkraStatusPill`**: warnings and onboarding badges only, not connection/valve state.
-- Primary screens use plain customer language: scan nearby, connect, open valves, close valves, drive mode, settings, diagnostics.
+- **Obsidian system**: true black (dark) or cool white (light), flat surfaces, white or near-black type, one brand accent. The exhaust-tip valve is the only rich, textured element.
+- **No gradients or shadows on chrome.** Screens use solid `colorScheme.background`; `AkraSurface` / `AkraListGroup` use solid `surface` plus a 1dp `outlineVariant` hairline (white 7% on dark, black 8% on light). `AkraElevated` is one tonal step (`surfaceVariant`), never a drop shadow.
+- **Shapes**: cards and groups 16dp, buttons 13dp (46dp minimum height), segments 10dp, status pills 6dp.
+- **Color roles**: `primary` = theme `button` (filled actions), `onPrimary` = `onButton`, `secondary` = theme `accent` (text, icons, links, toggles), `tertiary` = `glow` (valve heat). Never use `primary` for text.
+- **Type scale** (`ui/theme/Type.kt`): displaySmall 24sp for the valve state, titleLarge 17, titleMedium 15, bodyLarge 15, bodyMedium 13, bodySmall 12, labelLarge 13, labelSmall 11. Nothing smaller than 11sp.
+- **Brand palettes** (`ui/theme/GarageThemes.kt`), dark accent / glow / button:
+  - Studio: `#D6BD73` / `#D6BD73` / `#D6BD73` (black label)
+  - Akrapovič-inspired: `#E1173D` / `#E1173D` / `#E1173D`, carbon base `#0B0B0C`, heat-tinted titanium lip
+  - Audi RS: progressive red `#F50537` / `#F50537` / `#E0042F` (one step deeper so white labels reach 4.5:1)
+  - BMW M: `#00AEEF` / `#00AEEF` / `#0033A0`, M stripes `#00AEEF #0033A0 #E4002B`
+  - Mercedes-AMG: silver `#C8CCCE` / Petronas teal `#00A19B` / `#C8CCCE` (black label)
+  - Porsche: crest gold `#C69632` / Porsche red `#B12B28` / `#B12B28`
+  - Volkswagen R: `#4C86E8` / `#4C86E8` / Lapiz `#2A5DB8`
+  - Lamborghini: gold `#FFC000` / `#FFC000` / `#FFC000` (black label)
+  - Light variants use a darker accent that reaches 4.5:1 on white. `GarageThemeFamiliesTest` enforces contrast for every preset.
+- **Contrast rules**: text and muted text 4.5:1 on their surface, button labels 4.5:1 on the button, accents 3:1 on dark backgrounds and 4.5:1 on light.
+- Prefer **`AkraListGroup` / `AkraListRow`** (with `leadingIcon` where useful) for Settings, More, and Home rows — not a full card per row.
+- **`AkraHeroHeader`**: compact title + one subtitle on secondary screens. Home uses an app-title row, brand stripes, and a receiver chip instead of a page hero.
+- **Status**: receiver chip or slim **`AkraBanner`** for errors and reconnects. Command failures use `CommandFailureCopy` titles; an unconfirmed toggle reads as "checking", never as an error.
+- Primary screens use plain customer language: connect, open valves, close valves, drive mode, quiet start, activity.
 - Keep UUIDs, hashes, GATT details, raw logs, and reverse-engineering language inside Diagnostics or documentation.
-- Garage themes are brand-inspired families with Light/Dark variants. Themes change accent, background, and preview strip colors — layout stays the same.
-- Brand marks load from local `brand_*.xml` drawables. Only ship marks you have rights to use.
-- Prefer theme color roles (`MaterialTheme.colorScheme.onSurface`, `onSurfaceVariant`, etc.) over fixed white/gray text.
-- **Avoid**: hard-square CTAs, full-pill primary buttons, neon dashboard chrome, uppercase eyebrow labels on every screen, heavy multi-layer shadows on every block.
-- **`ValveVisual`** is the Home exhaust-tip hero: carbon sleeve, titanium lip, dark bore, hinged disc on a horizontal axis (face-on when closed, edge-on when open), amber heat glow when open. It may animate only for unknown/busy state and is static when reduced motion is enabled. Uses [`ExhaustTipPalette`](app/src/main/java/com/akrapovic/soundkit/community/ui/components/ExhaustTipPalette.kt). Layout: `fillMaxWidth()` × ~168dp on Home. Preview all states via **More → Advanced → Developer → Valve visual states**.
+- Garage themes are brand-inspired families with light and dark variants. Themes change accent, glow, and button colors — layout stays the same. Brand marks are local `brand_*.xml` drawables; never ship a manufacturer or Akrapovič logo.
+- **Avoid**: gradients on screens or cards, drop shadows, off-white or tinted text, hard-square CTAs, full-pill primary buttons, neon dashboard chrome, large display type for anything but the valve state.
+- **Valve art** (`ui/components/ValveArt.kt`) is shared by Home (`ValveVisual`, 200dp), Android Auto tiles and the widget (`ValveBitmaps`). Layers: carbon twill sleeve, bevel, brushed titanium lip (heat-tinted for the Akrapovič-inspired theme), deep bore, butterfly disc on a steel shaft with boss and end bolts, and, when open, the perforated baffle and an ember glow in the theme's `glow`. It animates only for unknown or busy states and is static with reduced motion. Preview all states via **More → Advanced → Developer → Valve visual states**.
 - Launcher artwork uses the photoreal exhaust-tip mark (`mipmap-*/ic_launcher_foreground.png` + dark adaptive background). Monochrome remains a vector silhouette. iOS ships the matching 1024px `AppIcon`.
 

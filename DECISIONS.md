@@ -762,3 +762,148 @@ Docs describe the Wear tile as not shipped and say it does not control the valve
 ### Consequences
 
 - No surface claims Wear valve control until a working handoff ships.
+
+## 2026-10-18: Confine GATT callbacks to the main thread
+
+### Context
+
+GATT callbacks arrived on Binder threads while `writeCommand` ran on the main thread, so pending-command fields could race and produce a false "did not confirm".
+
+### Decision
+
+`connectGatt` passes a main-looper `Handler`, so every callback runs on the main thread; debug builds assert it. The manager also exposes when the valve state was last confirmed.
+
+### Consequences
+
+- Pending-command state is single-threaded without locks.
+- Home shows "Confirmed 12 s ago".
+
+## 2026-10-18: Flat brand-accurate themes and a compact type scale
+
+### Context
+
+The 0.3.2 workshop restyle used warm tints, gradients, shadows, and large type; owners found it hard to read. Brand themes also used approximate colors.
+
+### Decision
+
+All eight families are flat true black or cool white with one accent, glow, and button color taken from published brand colors (no official hex specs exist; BMW M blues, Audi aluminium silver, and VW R are the least certain). Audi's button is `#E0042F`, one step deeper than progressive red `#F50537`, so white labels reach 4.5:1. The type scale drops to 24sp for the valve state and 11–17sp elsewhere.
+
+### Consequences
+
+- `GarageThemeFamiliesTest` enforces contrast for every preset.
+- Theme ids are unchanged, so saved settings still load.
+
+## 2026-10-18: One valve renderer for phone, car, and widget
+
+### Context
+
+The Home valve, Android Auto tiles, and the widget each needed the exhaust-tip art, and Android Auto and RemoteViews cannot run Compose.
+
+### Decision
+
+`ValveArt` draws the tip on any `DrawScope`; `ValveVisual` uses it in Compose and `ValveBitmaps` renders cached bitmaps for Android Auto tiles and the widget.
+
+### Consequences
+
+- Car tiles show the real valve instead of a generic icon.
+- The art follows the theme's glow; the Akrapovič-inspired theme adds a heat-tinted lip.
+
+## 2026-10-18: Explain failed commands by cause
+
+### Context
+
+Every command failure showed "Connection issue", including an unconfirmed toggle that only needs a status re-read.
+
+### Decision
+
+`CommandFailureCopy` maps failures to a title and next step; an unconfirmed toggle reads "Valve didn't confirm — checking its position".
+
+### Consequences
+
+- Raw messages remain in diagnostics and Activity.
+
+## 2026-10-18: Plain notification errors and a quiet-start progress notification
+
+### Context
+
+The shade showed raw GATT status text and had no way to retry from an error.
+
+### Decision
+
+`ConnectionErrorCopy` turns errors into plain language and an Error state offers Retry. On Android 16 a quiet-start hold uses `Notification.ProgressStyle` with short critical text. The installed SDK has no API to request Live Update promotion, so none is requested.
+
+### Consequences
+
+- The countdown refreshes every 15 seconds while a hold runs.
+
+## 2026-10-18: Widget and Quick Settings show what a tap does
+
+### Context
+
+The widget's update flow was never collected, so it did not refresh while connected, and Quick Settings showed checking and not-ready as an ordinary inactive tile.
+
+### Decision
+
+The service now collects the widget flow; the widget shows the valve art, a status line, and one action, and greys out when the service stops. Quick Settings marks checking and not-ready as unavailable and spells out the action.
+
+### Consequences
+
+- Widget taps still start the foreground service and go through the coordinator.
+
+## 2026-10-18: Record the source of every valve command
+
+### Context
+
+Owners could not tell whether drive mode, quiet start, the watch, or a tap changed the valves.
+
+### Decision
+
+`ValveCommandCoordinator.open/close` take a `CommandSource` and log every request, including refused and no-op ones. Drive mode no longer logs its own results. **More → Activity** shows the last 100 entries.
+
+### Consequences
+
+- The log stays on the phone and is cleared from the Activity screen.
+
+## 2026-10-18: Suggest a theme from the car's Bluetooth name
+
+### Context
+
+Onboarding promised theme suggestions, but choosing the car's Bluetooth device in Settings did nothing visual.
+
+### Decision
+
+`CarBrandThemeMatcher` maps distinctive head-unit names (Audi MMI, BMW, MBUX, PCM, VW, Lamborghini) to a family and offers it once; "Not now" is remembered per device and not backed up.
+
+### Consequences
+
+- Ambiguous names such as "MB Bluetooth" are ignored.
+
+## 2026-10-18: Companion device pairing for background reconnects
+
+### Context
+
+Android 12+ limits starting foreground services from the background, which caused this release's crash fixes and made return-to-car reconnects less reliable.
+
+### Decision
+
+On Android 12+, Settings can associate the default receiver with `CompanionDeviceManager` and observe its presence (by association id on Android 16). `SoundKitCompanionService` connects only when `CompanionPresencePolicy` allows, and is enabled only on API 31+.
+
+### Consequences
+
+- Forgetting the receiver releases the association.
+- No location permission is involved.
+
+## 2026-10-18: Ship a real Wear OS tile
+
+### Context
+
+The 0.3.4 docs withdrew the Wear claim because the old tile launched a phone activity on the watch and did nothing.
+
+### Decision
+
+The watch app now uses the phone's application id so the Wearable Data Layer can link them. The phone publishes valve state and accepts Open/Close only while connected, through the coordinator as the Watch source. The watch build is 0.3.4 / versionCode 1000007 and signs with the same environment variables.
+
+### Consequences
+
+- This supersedes "Withdraw the Wear handoff claim".
+- The Play listing needs the Wear OS form factor enabled.

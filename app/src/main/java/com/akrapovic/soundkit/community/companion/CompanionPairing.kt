@@ -12,6 +12,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import androidx.annotation.RequiresApi
 import java.util.Locale
 
 /**
@@ -65,6 +66,7 @@ object CompanionPairing {
                 onChooser(intentSender)
             }
 
+            @RequiresApi(Build.VERSION_CODES.TIRAMISU)
             override fun onAssociationCreated(associationInfo: AssociationInfo) {
                 onCreated(associationInfo.id)
             }

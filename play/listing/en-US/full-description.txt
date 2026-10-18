@@ -10,6 +10,11 @@ What you can do
 • Two phones in the same car share one receiver: the phone with the car keeps it, and the other waits
 • A notification, a Quick Settings tile, and a home-screen widget work while the phone is connected
 • On Android Auto, Open and Close work only while parked
+• A Wear OS tile shows the valves and changes them through your phone
+• Activity lists recent valve changes and where each came from
+• Pick your car's Bluetooth and the app offers the matching brand theme
+• On Android 12 and newer, the app can wake when the receiver is nearby
+• Eight garage themes in black or white, including Audi RS, BMW M, Mercedes-AMG, Porsche, Volkswagen R, Lamborghini, and an Akrapovič-inspired theme
 
 The app stays on the phone. It does not use the internet, create an account, or upload logs. A diagnostics file leaves the device only when you choose to share it.
 

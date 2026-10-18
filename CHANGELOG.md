@@ -12,7 +12,20 @@ Android releases of Car Sound Kit Control. Store text lives in `play/listing/en-
 - A BLE reconnect no longer reopens valves you closed; drive mode applies once per drive.
 - Open valves, Close valves, and Valve status launcher shortcuts now launch.
 - Shortcuts wait for the receiver's first status instead of failing right after connecting.
-- The home-screen widget clears its live valve state when the service stops.
+- The home-screen widget clears its live valve state when the service stops, and now refreshes while connected (its update flow was never collected).
+- Bluetooth callbacks run on the main thread, removing a race that could report a false "did not confirm".
+- Notification errors use plain language and offer Retry.
+- Failed commands explain the cause; an unconfirmed toggle reads as "checking".
+
+### Added
+
+- New flat black and white design with brand-accurate garage themes and a smaller type scale.
+- Detailed exhaust-tip valve art, also used for Android Auto tiles and the widget.
+- Activity: every valve change with its source.
+- Theme suggestion from the car's Bluetooth name.
+- "Wake when the receiver is nearby" (Android 12+ companion pairing).
+- Quiet-start progress countdown on Android 16.
+- Wear OS tile that shows the valves and changes them through the phone (watch build 1000007).
 
 ### Changed
 

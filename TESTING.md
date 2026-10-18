@@ -290,6 +290,13 @@ If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel app
 16. **Command timeout:** if a command shows “did not confirm”, every surface shows Checking/waiting and refuses Open/Close until the receiver reports status again.
 17. **Launcher shortcuts:** `adb shell dumpsys shortcut` lists open_valves, close_valves, and valve_status for the installed package; launch each from the launcher icon.
 18. **Widget after stop:** force-stop the app with the widget on the home screen → the widget no longer shows a live valve state.
+19. **Redesign:** check Home, onboarding, scan, Drive mode, Settings, and Activity in Studio dark, Studio light, Audi RS dark, and the Akrapovič-inspired theme; text is readable outdoors and no screen shows a gradient or shadow.
+20. **Confirmation line:** after a status arrives, Home shows "Confirmed just now", then "Confirmed 12 s ago".
+21. **Activity:** change the valves from the phone, notification, Quick Settings, widget, and Android Auto; More → Activity lists each with its source.
+22. **Theme suggestion:** Settings → Car Bluetooth → pick the car; a matching brand theme is offered once; "Not now" is not offered again.
+23. **Companion pairing (Android 12+):** turn on "Wake when the receiver is nearby", accept the system dialog, force-stop the app, power-cycle the receiver → the app reconnects with no crash. Forget the receiver → the association is removed.
+24. **Quiet-start countdown (Android 16):** start a quiet hold → the notification shows a progress bar and "Opens m:ss".
+25. **Wear OS:** pair a Wear OS emulator (API 33+) with the phone emulator using Android Studio's pairing assistant and install both debug builds. The tile shows "Phone not connected" until the phone connects; tapping "Open phone app" opens the phone app. On real hardware, while parked and connected, Open and Close from the watch move the valves and appear in Activity as Watch.
 
 ### Command Smoke Pass
 

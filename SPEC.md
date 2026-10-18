@@ -41,8 +41,11 @@ flowchart TD
 ## Release and privacy boundaries
 
 - The phone module targets Android 16 (`compileSdk` and `targetSdk` 36) so a
-  new Play app can be uploaded. The Wear module stays at 35 and is not in the
-  Play bundle.
+  new Play app can be uploaded. The Wear module targets 35, shares the phone's
+  application id (`com.akrapovic.soundkit.community`, versionCode 1000007) so the
+  Wearable Data Layer links them, and ships on the internal track as a Wear OS
+  artifact. The watch sends Open/Close only; the phone accepts them only while
+  connected and runs them through `ValveCommandCoordinator`.
 - Release Android Car App sessions validate the official Android Auto and
   Automotive host package signing certificates from
   `soundkit_car_app_hosts_allowlist`. Six digests matched the AndroidX
@@ -93,7 +96,12 @@ flowchart TD
 - Settings screen controls auto-reconnect, detailed local logging, remembered receiver removal (with confirmation dialog), and background connection reliability.
 - Disconnect and Forget receiver actions show a confirmation `AlertDialog` to prevent accidental in-car taps.
 - A blocking first-run "Use at your own risk" dialog is shown until the user accepts; the acceptance timestamp is persisted in DataStore.
-- Garage themes are persisted in DataStore and apply app-wide. Default Studio is **Studio Workshop** (warm charcoal, soft titanium lift, amber actions) with subtle shell/card gradients and soft 14–20dp radii. Themes are grouped into brand-inspired families, each with explicit Light and Dark variants, local brand mark drawables, and theme-driven gradients.
+- Garage themes are persisted in DataStore and apply app-wide. Every theme is flat: true black (dark) or cool white (light), white or near-black text, and one brand accent, glow, and button color (see `STYLE_GUIDE.md`). Families: Studio (default), Akrapovič-inspired, Audi RS, BMW M, Mercedes-AMG, Porsche, Volkswagen R, Lamborghini. Android Auto, the widget, and the watch use the family's dark variant.
+- The valve art (`ValveArt`) is shared by Home, Android Auto tiles, and the widget, with the theme's glow and, for the Akrapovič-inspired theme, a heat-tinted lip.
+- Choosing the car's Bluetooth device offers the matching brand theme once (`CarBrandThemeMatcher`); "Not now" is remembered per device.
+- Every valve command records its source (phone, notification, Quick Settings, widget, Android Auto, shortcut, watch, drive mode, quiet start) and outcome; **More → Activity** lists the last 100.
+- On Android 12+, "Wake when the receiver is nearby" associates the default receiver through `CompanionDeviceManager`. `SoundKitCompanionService` connects only when `CompanionPresencePolicy` allows; forgetting the receiver releases the association.
+- On Android 16 a quiet-start hold shows a progress-style countdown notification (no Live Update promotion; the SDK lacks the request API).
 
 ## Background Behavior
 

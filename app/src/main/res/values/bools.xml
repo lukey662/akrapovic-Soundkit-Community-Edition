@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- CompanionDeviceService exists from Android 12; values-v31 turns the service on. -->
+    <bool name="companion_service_enabled">false</bool>
+</resources>

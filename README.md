@@ -103,7 +103,9 @@ Testing strategy and the physical receiver smoke checklist are documented in `TE
 - Launcher shortcuts for Open, Close, and Valve status
 - Local diagnostics log and export
 - Local-only Android Auto IoT template surface (Open and Close work only while parked)
-- Wear OS tile module in the repo only; it is not shipped and does not control the valves
+- Wear OS tile that shows the valve state and sends Open/Close through the phone
+- Activity history of every valve change and its source
+- Wake when the receiver is nearby (Android 12+ companion pairing)
 - Hilt dependency injection
 - DataStore settings
 - Debug Timber logging

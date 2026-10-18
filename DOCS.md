@@ -30,7 +30,9 @@ ios/SoundKitCommunity/
 ### Android packages, build variants, and diagnostics
 
 - The release application ID is `com.akrapovic.soundkit.community`; the debug build adds `.debug` and `-debug`. There are no product flavors.
-- Before handing off an APK, run `./gradlew :app:testDebugUnitTest :app:verifyPaparazziDebug :app:assembleDebug :wear:assembleDebug`.
+- Before handing off an APK, run `./gradlew :app:testDebugUnitTest :app:verifyPaparazziDebug :app:assembleDebug :wear:assembleDebug :app:lintDebug`.
+- The Wear OS tile reads valve state published by `WearStatePublisher` (DataItem `/soundkit/state`) and sends `/soundkit/open` or `/soundkit/close`. `WearCommandListenerService` accepts them only while the receiver is connected and runs them through `ValveCommandCoordinator` as the Watch source. Debug phone and watch builds both use `com.akrapovic.soundkit.community.debug` so they pair with each other.
+- Companion pairing (Android 12+): `CompanionPairing` associates the default receiver and starts presence observation; `SoundKitCompanionService` is enabled only on API 31+ through `@bool/companion_service_enabled`.
 - The Android foreground service owns connection lifetime. Every command surface—including the Compose UI, notification, Quick Settings, widget, drive mode, and Car App—uses `ValveCommandCoordinator`; only `BleConnectionManager` performs GATT discovery, subscription, and transport.
 - Android launcher shortcuts provide **Open valves**, **Close valves**, and **Valve status** through the internal `AssistantActionActivity` and `VoiceValveActionRouter`. The router accepts no BLE address or command extras, resolves only the saved default receiver, reconnects only to that receiver for at most 8 seconds, waits for the first receiver status, and delegates mutations exclusively to `ValveCommandCoordinator`. A command is successful only after the coordinator's notification-confirmed hardware result.
 - Static shortcuts set `targetPackage` explicitly. `app/src/debug/res/xml/shortcuts.xml` repeats them with the `.debug` package; keep both copies in sync.
@@ -154,7 +156,7 @@ Entry: **Settings** (full controls) or **Home** shortcut → Drive mode screen.
 
 ## UI System
 
-The app uses a workshop-instrument companion UI built from reusable Compose components in `ui/components`. Prefer calm hierarchy, soft 14–20dp radii (not hard squares or full pills), subtle shell/card gradients, concise headers, and large touch targets. Default Studio theme is warm charcoal with amber actions; brand garage themes keep their own accents. Garage themes are persisted in DataStore and applied app-wide through `SoundKitTheme`; each brand-inspired family has explicit Light and Dark variants plus a local `brand_*.xml` mark that can be replaced with assets the user has rights to use.
+The app uses a flat, true-black companion UI built from reusable Compose components in `ui/components`: solid surfaces with hairlines, no gradients or shadows, a compact type scale, and the detailed exhaust-tip valve (`ValveArt`) as the one rich element. Brand garage themes set the accent, valve glow, and button color; see `STYLE_GUIDE.md`. Garage themes are persisted in DataStore and applied app-wide through `SoundKitTheme`; each brand-inspired family has explicit Light and Dark variants plus a local `brand_*.xml` mark that can be replaced with assets the user has rights to use.
 
 **More tab:** **Settings** and **Appearance** are the primary destinations. **Advanced** opens a hub for Diagnostics, Android Auto setup, Roadmap, and Developer (detailed logs).
 

@@ -21,7 +21,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Android packages
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-36" "platforms;android-35" "build-tools;36.0.0"
 
       - name: Verify Gradle wrapper
         run: ./gradlew --version

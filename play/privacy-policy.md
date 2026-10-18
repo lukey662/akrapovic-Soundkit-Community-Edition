@@ -1,7 +1,7 @@
 # Privacy policy
 
 **Car Sound Kit Control**  
-Last updated: 18 October 2026
+Last updated: 18 October 2026 (0.3.4)
 
 Car Sound Kit Control is an independent app published by Apps for Good Product Studio. It is not affiliated with Akrapovič.
 
@@ -26,6 +26,14 @@ The app uses Bluetooth to find the receiver and send valve commands. On Android 
 ## Android Auto
 
 On a car display, the app shows only valve status and Open, Close, and Retry controls. It reads no vehicle data.
+
+## Wear OS
+
+The watch app exchanges only the valve state and Open or Close requests with the phone app, through Google Play services' Wearable Data Layer. The app sends no receiver address to the watch and uploads nothing.
+
+## Companion pairing
+
+On Android 12 and newer you can turn on "Wake when the receiver is nearby". Android's companion device feature then tells the app when the paired receiver is in range. The app does not request or collect location for this.
 
 ## Children
 
