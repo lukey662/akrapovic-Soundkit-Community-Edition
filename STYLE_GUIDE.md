@@ -77,7 +77,8 @@
   - Light variants use a darker accent that reaches 4.5:1 on white. `GarageThemeFamiliesTest` enforces contrast for every preset.
 - **Contrast rules**: text and muted text 4.5:1 on their surface, button labels 4.5:1 on the button, accents 3:1 on dark backgrounds and 4.5:1 on light.
 - Prefer **`AkraListGroup` / `AkraListRow`** (with `leadingIcon` where useful) for Settings, More, and Home rows — not a full card per row.
-- **`AkraHeroHeader`**: compact title + one subtitle on secondary screens. Home uses an app-title row, brand stripes, and a receiver chip instead of a page hero.
+- **`AkraHeroHeader`**: compact title + one subtitle on secondary screens. Home uses `HomeHeader` (app title, brand stripes, receiver chip) instead of a page hero, and draws no top bar above it.
+- **Home keeps one shape in every state.** Connected and disconnected Home share the same column: `HomeHeader`, the 200dp valve (dimmed and closed when not connected — `ValveVisual(dimmed = true)`), the `displaySmall` state ("Open", "Not connected", "Left the car", "Couldn't connect"), one `bodySmall` helper, one filled action ("Close valves" / "Connect" / "Scan nearby"), then the Drive mode / Quiet start / Receiver rows (`HomeRows.kt`). Nearby devices list below the rows only while scanning or found.
 - **Status**: receiver chip or slim **`AkraBanner`** for errors and reconnects. Command failures use `CommandFailureCopy` titles; an unconfirmed toggle reads as "checking", never as an error.
 - Primary screens use plain customer language: connect, open valves, close valves, drive mode, quiet start, activity.
 - Keep UUIDs, hashes, GATT details, raw logs, and reverse-engineering language inside Diagnostics or documentation.

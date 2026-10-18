@@ -15,16 +15,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.R
 import com.akrapovic.soundkit.community.data.BleRepositoryImpl
 import com.akrapovic.soundkit.community.domain.AwayCopy
 import com.akrapovic.soundkit.community.domain.AwayReason
@@ -32,20 +35,27 @@ import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.ConnectionYieldState
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
+import com.akrapovic.soundkit.community.domain.ValveState
+import com.akrapovic.soundkit.community.service.ConnectionErrorCopy
 import com.akrapovic.soundkit.community.ui.SoundKitUiState
 import com.akrapovic.soundkit.community.ui.components.AkraActionButton
-import com.akrapovic.soundkit.community.ui.components.AkraBanner
-import com.akrapovic.soundkit.community.ui.components.AkraElevated
-import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
 import com.akrapovic.soundkit.community.ui.components.AkraListDivider
 import com.akrapovic.soundkit.community.ui.components.AkraListGroup
 import com.akrapovic.soundkit.community.ui.components.AkraListRow
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
 import com.akrapovic.soundkit.community.ui.components.AkraSectionTitle
 import com.akrapovic.soundkit.community.ui.components.AkraSurface
-import com.akrapovic.soundkit.community.ui.components.DriveModeShortcutRow
+import com.akrapovic.soundkit.community.ui.components.DriveModeRow
+import com.akrapovic.soundkit.community.ui.components.HomeHeader
+import com.akrapovic.soundkit.community.ui.components.QuietStartRow
+import com.akrapovic.soundkit.community.ui.components.ValveVisual
+import com.akrapovic.soundkit.community.ui.control.shortText
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
 
+/**
+ * Home while no receiver is connected. Same shell as the connected screen — header, valve, state,
+ * one primary action, the three rows — so the app does not change shape when the link drops.
+ */
 @Composable
 fun ScanScreen(
     modifier: Modifier = Modifier,
@@ -63,6 +73,7 @@ fun ScanScreen(
     onPeriodicScanAnswer: (Boolean) -> Unit = {},
 ) {
     val savedByAddress = state.settings.savedReceivers.associateBy { it.address }
+    val defaultReceiver = state.settings.savedReceivers.firstOrNull { it.isDefault }
     val showTakeControlConfirm = remember { mutableStateOf(false) }
     var scanCompletedWithoutReceiver by remember { mutableStateOf(false) }
     var wasScanning by remember { mutableStateOf(state.isScanning) }
@@ -94,43 +105,69 @@ fun ScanScreen(
         )
     }
 
-    AkraScreen(modifier = modifier) {
-        AkraHeroHeader(
-            title = "Connect",
-            subtitle = "Bluetooth only. Nothing leaves your phone.",
-            titleModifier = Modifier.semantics { heading() },
-            compact = true,
+    val away = state.connectionState as? ConnectionState.Away
+    val connectionError = state.connectionState as? ConnectionState.Error
+    val yielded = state.connectionYieldState is ConnectionYieldState.Yielded
+
+    AkraScreen(modifier = modifier, padTopForStatusBar = true) {
+        HomeHeader(
+            receiverName = defaultReceiver?.displayName() ?: "No receiver",
+            statusLabel = if (defaultReceiver == null) "Scan to add" else state.connectionState.shortText(),
+            dot = when {
+                connectionError != null -> AkraColors.Danger
+                away != null || state.isScanning -> AkraColors.Amber
+                else -> AkraColors.Mist
+            },
         )
 
-        if (!permissionsGranted) {
-            PermissionRationale(onRequestPermissions = onRequestPermissions, permissions = permissions)
-            return@AkraScreen
-        }
+        ValveVisual(
+            state = ValveState.Closed,
+            dimmed = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+        )
 
-        if (state.connectionYieldState is ConnectionYieldState.Yielded) {
-            AkraBanner(
-                title = "Receiver in use",
-                body = BleRepositoryImpl.YIELD_MESSAGE,
-                accent = AkraColors.Amber,
-                actionLabel = "Take control",
-                onAction = { showTakeControlConfirm.value = true },
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = when {
+                    yielded -> "Receiver in use"
+                    state.isScanning -> "Scanning…"
+                    away?.reason == AwayReason.LeftCar -> "Left the car"
+                    away?.reason == AwayReason.OutOfRange -> "Out of range"
+                    connectionError != null -> "Couldn't connect"
+                    else -> "Not connected"
+                },
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() },
             )
-        }
-
-        val away = state.connectionState as? ConnectionState.Away
-        if (away != null) {
-            AkraBanner(
-                title = if (away.reason == AwayReason.LeftCar) "Left the car" else "Receiver out of range",
-                body = AwayCopy.statusText(away.reason, away.sinceMillis),
-                accent = AkraColors.Amber,
-                actionLabel = "Connect",
-                onAction = onRetryConnection,
+            Text(
+                text = when {
+                    yielded -> BleRepositoryImpl.YIELD_MESSAGE
+                    !permissionsGranted -> "Bluetooth access is needed to find the receiver."
+                    state.isScanning -> "Keep the phone near the car."
+                    away != null -> AwayCopy.statusText(away.reason, away.sinceMillis)
+                    connectionError != null -> ConnectionErrorCopy.friendly(connectionError.message)
+                    scanCompletedWithoutReceiver -> "No receiver found. Turn the car on, move closer, then try again."
+                    defaultReceiver == null -> "Turn the car on, then scan for the receiver."
+                    else -> "Turn the car on, then connect."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
-            if (!state.settings.periodicScanPromptAnswered) {
+            if (away != null && !state.settings.periodicScanPromptAnswered) {
                 Text(
                     text = "Scan for the receiver occasionally while you're away?",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 6.dp),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { onPeriodicScanAnswer(true) }) { Text("Scan occasionally") }
@@ -139,33 +176,74 @@ fun ScanScreen(
             }
         }
 
-        val connectionError = state.connectionState as? ConnectionState.Error
-        if (connectionError != null) {
-            AkraBanner(
-                title = "Could not connect",
-                body = connectionError.message,
-                accent = AkraColors.Danger,
-                actionLabel = "Try again",
-                onAction = onRetryConnection,
+        val scanLabel = when {
+            state.isScanning -> "Stop scan"
+            scanCompletedWithoutReceiver -> "Try scan again"
+            else -> "Scan nearby"
+        }
+        val scanDescription = when {
+            state.isScanning -> "Stop scanning for Sound Kit receivers"
+            scanCompletedWithoutReceiver -> "Retry scan: no Sound Kit receiver found"
+            else -> "Scan for Sound Kit receiver"
+        }
+        when {
+            !permissionsGranted -> AkraActionButton(
+                label = "Allow Bluetooth",
+                contentDescription = "Grant Bluetooth permissions",
+                onClick = onRequestPermissions,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            )
+            yielded -> AkraActionButton(
+                label = "Take control",
+                onClick = { showTakeControlConfirm.value = true },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            )
+            defaultReceiver != null && !state.isScanning -> {
+                AkraActionButton(
+                    label = "Connect",
+                    contentDescription = "Connect to ${defaultReceiver.displayName()}",
+                    onClick = onRetryConnection,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                )
+                AkraActionButton(
+                    label = scanLabel,
+                    contentDescription = scanDescription,
+                    filled = false,
+                    onClick = onStartScan,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            else -> AkraActionButton(
+                label = scanLabel,
+                contentDescription = scanDescription,
+                onClick = if (state.isScanning) onStopScan else onStartScan,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            )
+        }
+        if (!permissionsGranted && permissions.isNotEmpty()) {
+            Text(
+                text = permissions.joinToString(" · ") { it.substringAfterLast('.') },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
             )
         }
 
-        AkraActionButton(
-            label = when {
-                state.isScanning -> "Stop scan"
-                scanCompletedWithoutReceiver -> "Try scan again"
-                else -> "Scan nearby"
-            },
-            contentDescription = when {
-                state.isScanning -> "Stop scanning for Sound Kit receivers"
-                scanCompletedWithoutReceiver -> "Retry scan: no Sound Kit receiver found"
-                else -> "Scan for Sound Kit receiver"
-            },
-            filled = true,
-            onClick = if (state.isScanning) onStopScan else onStartScan,
-        )
+        AkraListGroup {
+            DriveModeRow(settings = state.settings, onClick = onOpenDriveMode)
+            AkraListDivider()
+            QuietStartRow(settings = state.settings, onClick = onOpenDriveMode)
+            AkraListDivider()
+            AkraListRow(
+                title = "Receiver",
+                trailing = defaultReceiver?.displayName() ?: "None",
+                leadingIcon = ImageVector.vectorResource(R.drawable.ic_row_receiver),
+                contentDescription = defaultReceiver?.let { "Default receiver ${it.displayName()}" } ?: "No default receiver",
+            )
+        }
 
-        if (state.settings.savedReceivers.isNotEmpty()) {
+        if (state.settings.savedReceivers.size > 1) {
             AkraSectionTitle("Saved")
             Row(
                 modifier = Modifier
@@ -182,32 +260,7 @@ fun ScanScreen(
             }
         }
 
-        AkraListGroup {
-            DriveModeShortcutRow(settings = state.settings, onClick = onOpenDriveMode)
-        }
-
-        if (state.devices.isEmpty()) {
-            AkraElevated {
-                Text(
-                    text = when {
-                        state.isScanning -> "Scanning nearby…"
-                        scanCompletedWithoutReceiver -> "No receiver found"
-                        else -> "No receivers yet"
-                    },
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = when {
-                        state.isScanning -> "Keep the phone near the car."
-                        scanCompletedWithoutReceiver -> "Turn the car on, move closer, then try again."
-                        else -> "Turn the car on, then tap Scan nearby."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
+        if (state.devices.isNotEmpty()) {
             AkraSectionTitle("Nearby")
             AkraListGroup {
                 state.devices.forEachIndexed { index, device ->
@@ -252,38 +305,6 @@ private fun SavedReceiverChip(
 }
 
 @Composable
-private fun PermissionRationale(
-    permissions: List<String>,
-    onRequestPermissions: () -> Unit,
-) {
-    AkraElevated {
-        Text(
-            text = "Bluetooth access needed",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.semantics { heading() },
-        )
-        Text(
-            text = "We only use Bluetooth to find your receiver. Nothing is uploaded.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (permissions.isNotEmpty()) {
-            Text(
-                text = permissions.joinToString(" · ") { it.substringAfterLast('.') },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        AkraActionButton(
-            label = "Grant permissions",
-            contentDescription = "Grant Bluetooth permissions",
-            onClick = onRequestPermissions,
-        )
-    }
-}
-
-@Composable
 private fun DeviceRow(
     device: SoundKitDevice,
     saved: SavedReceiver?,
@@ -307,7 +328,7 @@ private fun DeviceRow(
             onClick = onSetDefault,
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
         ) {
-            Text("Set as default")
+            Text("Set as default", color = MaterialTheme.colorScheme.secondary)
         }
     }
 }

@@ -38,8 +38,22 @@ fun ValveVisual(
     modifier: Modifier = Modifier,
     commandInFlight: Boolean = false,
     successRippleTrigger: Int = 0,
+    dimmed: Boolean = false,
 ) {
     val theme = LocalAkraTheme.current
+    if (dimmed) {
+        // Disconnected Home: the tip sits closed and faded, with no animation to draw the eye.
+        val palette = remember(theme) { ValveArtPalette.from(theme) }
+        Box(
+            modifier = modifier.semantics { invisibleToUser() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                with(ValveArt) { drawValve(openAmount = 0f, palette = palette, contentAlpha = 0.45f) }
+            }
+        }
+        return
+    }
     val palette = remember(theme) { ValveArtPalette.from(theme) }
     val context = LocalContext.current
     val reduceMotion = remember(context) {

@@ -124,11 +124,14 @@ fun SoundKitApp(
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.background,
                 topBar = {
-                    AkraTopBar(
-                        title = screen.topBarTitle(),
-                        canGoBack = subScreen != null,
-                        onBack = onBack,
-                    )
+                    // Home draws its own header; a second bar above it only wasted space.
+                    if (screen != AppScreen.Home) {
+                        AkraTopBar(
+                            title = screen.topBarTitle(),
+                            canGoBack = subScreen != null,
+                            onBack = onBack,
+                        )
+                    }
                 },
                 bottomBar = {
                     AkraBottomNav(

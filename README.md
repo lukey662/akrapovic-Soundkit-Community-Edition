@@ -33,9 +33,9 @@ Independent, unofficial open-source Android app that controls a **Car Sound Kit*
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/03-scan-receivers.png" alt="Scan for receivers" width="280" />
+  <img src="docs/screenshots/10-home-disconnected.png" alt="Home while not connected" width="280" />
   &nbsp;&nbsp;
-  <img src="docs/screenshots/02-vehicle-selection.png" alt="Vehicle selection — Audi RS3" width="280" />
+  <img src="docs/screenshots/03-scan-receivers.png" alt="Scan for receivers" width="280" />
 </p>
 
 **Support:** More → Advanced → Diagnostics → email **support@appsforgood.net**

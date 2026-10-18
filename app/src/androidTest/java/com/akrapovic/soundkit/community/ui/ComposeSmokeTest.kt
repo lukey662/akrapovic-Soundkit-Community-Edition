@@ -95,8 +95,8 @@ class ComposeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("Bluetooth permission required").assertIsDisplayed()
-        composeRule.onNodeWithText("Grant permissions").assertIsDisplayed()
+        composeRule.onNodeWithText("Bluetooth access is needed to find the receiver.").assertIsDisplayed()
+        composeRule.onNodeWithText("Allow Bluetooth").assertIsDisplayed()
     }
 
     @Test
@@ -115,7 +115,7 @@ class ComposeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("No receivers yet").assertIsDisplayed()
+        composeRule.onNodeWithText("Not connected").assertIsDisplayed()
         composeRule.onNodeWithText("Scan nearby").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Scan for Sound Kit receiver").assertIsDisplayed()
     }
@@ -139,8 +139,8 @@ class ComposeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("Could not connect").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Retry connection to remembered receiver").assertIsDisplayed()
+        composeRule.onNodeWithText("Couldn't connect").assertIsDisplayed()
+        composeRule.onNodeWithText("Connection problem").assertIsDisplayed()
     }
 
     @Test

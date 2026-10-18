@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,11 +62,13 @@ val AkraSegmentShape = RoundedCornerShape(10.dp)
 fun AkraScreen(
     modifier: Modifier = Modifier,
     scroll: Boolean = true,
+    padTopForStatusBar: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shell = Modifier
         .fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
+        .then(if (padTopForStatusBar) Modifier.statusBarsPadding() else Modifier)
         .padding(horizontal = 16.dp)
 
     Column(

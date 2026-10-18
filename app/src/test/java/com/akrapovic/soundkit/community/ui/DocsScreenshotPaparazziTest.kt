@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
+import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
 import com.akrapovic.soundkit.community.domain.QuietStartSettings
@@ -82,6 +83,46 @@ class DocsScreenshotPaparazziTest {
                                 rssi = -68,
                             ),
                         ),
+                        settings = demoAudiSettings(),
+                    ),
+                    permissions = emptyList(),
+                    permissionsGranted = true,
+                    onRequestPermissions = {},
+                    onStartScan = {},
+                    onStopScan = {},
+                    onConnect = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun homeDisconnected() {
+        paparazzi.snapshot(name = "10-home-disconnected") {
+            PhoneFrame {
+                ScanScreen(
+                    state = SoundKitUiState(
+                        connectionState = ConnectionState.Error("GATT disconnected with status 147", recoverable = true),
+                        settings = demoAudiSettings(quietStart = demoQuietNeighboursSettings),
+                    ),
+                    permissions = emptyList(),
+                    permissionsGranted = true,
+                    onRequestPermissions = {},
+                    onStartScan = {},
+                    onStopScan = {},
+                    onConnect = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun homeAway() {
+        paparazzi.snapshot(name = "11-home-away") {
+            PhoneFrame {
+                ScanScreen(
+                    state = SoundKitUiState(
+                        connectionState = ConnectionState.Away(sinceMillis = 1_760_000_000_000L, reason = AwayReason.LeftCar),
                         settings = demoAudiSettings(),
                     ),
                     permissions = emptyList(),
