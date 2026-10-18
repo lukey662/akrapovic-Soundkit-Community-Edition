@@ -34,5 +34,6 @@ enum class AppScreen {
     Advanced,
     Developer,
     ValveVisualPreview,
+    Activity,
 }
 

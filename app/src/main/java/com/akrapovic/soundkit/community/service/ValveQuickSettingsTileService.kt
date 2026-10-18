@@ -9,6 +9,7 @@ import android.service.quicksettings.TileService
 import com.akrapovic.soundkit.community.MainActivity
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
+import com.akrapovic.soundkit.community.domain.CommandSource
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -91,7 +92,7 @@ class ValveQuickSettingsTileService : TileService() {
             null -> return
         }
         // Cold-process QS taps must start as a foreground service on Android 12+.
-        BleConnectionService.startAction(this, action)
+        BleConnectionService.startAction(this, action, CommandSource.QuickSettings)
     }
 
     private fun openApp() {

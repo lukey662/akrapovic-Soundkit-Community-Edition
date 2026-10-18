@@ -325,7 +325,7 @@ class ComposeSmokeTest {
         )
         val diagnosticsRepository = DiagnosticsRepository()
         val bleRepository = FakeBleRepositoryForSmoke()
-        val valveCommandCoordinator = ValveCommandCoordinator(bleRepository)
+        val valveCommandCoordinator = ValveCommandCoordinator(bleRepository, SmokeRuleExecutionLogStore(), com.akrapovic.soundkit.community.domain.SystemWallClock())
         val carSessionTracker = CarSessionTracker()
         composeRule.setContent {
             SoundKitApp(
@@ -348,6 +348,7 @@ class ComposeSmokeTest {
                     carSessionTracker = carSessionTracker,
                     carPresence = IdleCarPresence,
                     valveCommandCoordinator = valveCommandCoordinator,
+                    executionLog = SmokeRuleExecutionLogStore(),
                 ),
                 blePermissions = emptyList(),
                 blePermissionsGranted = true,
@@ -370,7 +371,7 @@ class ComposeSmokeTest {
         )
         val diagnosticsRepository = DiagnosticsRepository()
         val bleRepository = FakeBleRepositoryForSmoke()
-        val valveCommandCoordinator = ValveCommandCoordinator(bleRepository)
+        val valveCommandCoordinator = ValveCommandCoordinator(bleRepository, SmokeRuleExecutionLogStore(), com.akrapovic.soundkit.community.domain.SystemWallClock())
         val carSessionTracker = CarSessionTracker()
         composeRule.setContent {
             SoundKitApp(
@@ -393,6 +394,7 @@ class ComposeSmokeTest {
                     carSessionTracker = carSessionTracker,
                     carPresence = IdleCarPresence,
                     valveCommandCoordinator = valveCommandCoordinator,
+                    executionLog = SmokeRuleExecutionLogStore(),
                 ),
                 blePermissions = emptyList(),
                 blePermissionsGranted = true,

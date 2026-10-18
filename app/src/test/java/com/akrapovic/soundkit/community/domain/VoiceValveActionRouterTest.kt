@@ -13,6 +13,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import com.akrapovic.soundkit.community.test.FixedClock
+import com.akrapovic.soundkit.community.test.NoopRuleExecutionLogStore
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class VoiceValveActionRouterTest {
@@ -23,7 +25,7 @@ class VoiceValveActionRouterTest {
     fun openRejectsBeforeConnectingWhenOnboardingOrDefaultReceiverIsMissing() = runTest {
         val ble = FakeBleRepository()
         val settings = FakeSettingsStore()
-        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble))
+        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble, NoopRuleExecutionLogStore(), FixedClock()))
 
         val onboardingResult = router.execute(VoiceValveAction.Open)
         assertEquals(
@@ -53,7 +55,7 @@ class VoiceValveActionRouterTest {
                 onboardingCompletedAt = 1L,
             ),
         )
-        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble))
+        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble, NoopRuleExecutionLogStore(), FixedClock()))
 
         val result = router.execute(VoiceValveAction.Open)
 
@@ -73,7 +75,7 @@ class VoiceValveActionRouterTest {
         )
         ble.valveState.value = ValveState.Closed
         ble.openResult = CompletableDeferred(CommandResult.Success(ValveState.Open))
-        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble))
+        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble, NoopRuleExecutionLogStore(), FixedClock()))
 
         val result = async { router.execute(VoiceValveAction.Open) }
         runCurrent()
@@ -96,7 +98,7 @@ class VoiceValveActionRouterTest {
             ),
         )
         ble.openResult = CompletableDeferred(CommandResult.Success(ValveState.Open))
-        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble))
+        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble, NoopRuleExecutionLogStore(), FixedClock()))
 
         val result = async { router.execute(VoiceValveAction.Open) }
         runCurrent()
@@ -121,7 +123,7 @@ class VoiceValveActionRouterTest {
                 onboardingCompletedAt = 1L,
             ),
         )
-        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble))
+        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble, NoopRuleExecutionLogStore(), FixedClock()))
 
         val result = router.execute(VoiceValveAction.Status)
 

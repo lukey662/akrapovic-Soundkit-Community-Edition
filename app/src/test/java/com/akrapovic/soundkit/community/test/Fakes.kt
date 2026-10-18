@@ -40,6 +40,24 @@ class NoopRuleExecutionLogStore : com.akrapovic.soundkit.community.data.RuleExec
     }
 }
 
+class RecordingRuleExecutionLogStore : com.akrapovic.soundkit.community.data.RuleExecutionLogStore {
+    private val stored = MutableStateFlow<List<RuleExecutionEntry>>(emptyList())
+    override val entries: Flow<List<RuleExecutionEntry>> = stored
+    override val lastExecution = MutableStateFlow<RuleExecutionEntry?>(null)
+
+    fun snapshot(): List<RuleExecutionEntry> = stored.value
+
+    override suspend fun append(entry: RuleExecutionEntry) {
+        stored.value = stored.value + entry
+        lastExecution.value = entry
+    }
+
+    override suspend fun clear() {
+        stored.value = emptyList()
+        lastExecution.value = null
+    }
+}
+
 class FakeBleScannerGateway : BleScannerGateway {
     val emissions = MutableSharedFlow<List<SoundKitDevice>>()
     var scanCollectionCount = 0

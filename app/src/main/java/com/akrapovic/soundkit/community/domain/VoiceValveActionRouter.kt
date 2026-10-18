@@ -16,7 +16,7 @@ class VoiceValveActionRouter @Inject constructor(
     private val settingsStore: SettingsStore,
     private val coordinator: ValveCommandCoordinator,
 ) {
-    suspend fun execute(action: VoiceValveAction): VoiceValveActionResult {
+    suspend fun execute(action: VoiceValveAction, source: CommandSource = CommandSource.Shortcut): VoiceValveActionResult {
         val settings = settingsStore.settings.first()
         if (!settings.onboardingCompleted) {
             return VoiceValveActionResult.Failure("Finish Sound Kit setup on your phone before using this shortcut.")
@@ -27,8 +27,8 @@ class VoiceValveActionRouter @Inject constructor(
         if (connectionFailure != null) return VoiceValveActionResult.Failure(connectionFailure)
 
         return when (action) {
-            VoiceValveAction.Open -> coordinator.open().toVoiceResult("Valves are open.")
-            VoiceValveAction.Close -> coordinator.close().toVoiceResult("Valves are closed.")
+            VoiceValveAction.Open -> coordinator.open(source).toVoiceResult("Valves are open.")
+            VoiceValveAction.Close -> coordinator.close(source).toVoiceResult("Valves are closed.")
             VoiceValveAction.Status -> when (val state = coordinator.currentStatus()) {
                 ValveState.Open -> VoiceValveActionResult.Success("Valves are open.")
                 ValveState.Closed -> VoiceValveActionResult.Success("Valves are closed.")

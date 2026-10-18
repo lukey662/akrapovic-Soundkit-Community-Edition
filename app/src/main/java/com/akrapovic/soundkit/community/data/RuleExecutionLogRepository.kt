@@ -101,6 +101,6 @@ class RuleExecutionLogRepository @Inject constructor(
     }
 
     companion object {
-        const val MAX_ENTRIES = 30
+        const val MAX_ENTRIES = 100
     }
 }

@@ -353,7 +353,7 @@ class DriveModeEngineTest {
             settingsStore = settings,
             executionLog = log,
             diagnosticsRepository = DiagnosticsRepository(),
-            valveCommandCoordinator = ValveCommandCoordinator(ble),
+            valveCommandCoordinator = ValveCommandCoordinator(ble, log, clock),
             clock = clock,
             carPresence = carPresence,
         )

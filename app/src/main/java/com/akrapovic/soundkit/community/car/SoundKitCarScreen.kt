@@ -21,6 +21,7 @@ import com.akrapovic.soundkit.community.ble.SoundKitProtocol
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.CommandPhase
+import com.akrapovic.soundkit.community.domain.CommandSource
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
@@ -203,12 +204,12 @@ class SoundKitCarScreen(
 
     private suspend fun openValve() {
         driveModeEngine.onUserValveAdjustment()
-        valveCommandCoordinator.open()
+        valveCommandCoordinator.open(CommandSource.AndroidAuto)
     }
 
     private suspend fun closeValve() {
         driveModeEngine.onUserValveAdjustment()
-        valveCommandCoordinator.close()
+        valveCommandCoordinator.close(CommandSource.AndroidAuto)
     }
 
     private fun ensureBootstrap(settings: SoundKitSettings) {

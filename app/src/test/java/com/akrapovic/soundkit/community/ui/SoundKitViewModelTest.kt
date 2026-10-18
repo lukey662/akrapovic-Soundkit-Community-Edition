@@ -29,6 +29,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import com.akrapovic.soundkit.community.test.FixedClock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SoundKitViewModelTest {
@@ -39,7 +40,7 @@ class SoundKitViewModelTest {
     private val settingsStore = FakeSettingsStore()
     private val diagnosticsRepository = DiagnosticsRepository()
     private val carSessionTracker = CarSessionTracker()
-    private val valveCommandCoordinator = ValveCommandCoordinator(bleRepository)
+    private val valveCommandCoordinator = ValveCommandCoordinator(bleRepository, NoopRuleExecutionLogStore(), FixedClock())
 
     private fun viewModel(): SoundKitViewModel {
         val outputDirectory = File(System.getProperty("java.io.tmpdir"), "soundkit-${System.nanoTime()}")
@@ -83,6 +84,7 @@ class SoundKitViewModelTest {
             carSessionTracker = carSessionTracker,
             carPresence = FakeCarPresenceSource(),
             valveCommandCoordinator = valveCommandCoordinator,
+            executionLog = NoopRuleExecutionLogStore(),
         )
     }
 

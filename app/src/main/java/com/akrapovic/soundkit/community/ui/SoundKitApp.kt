@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akrapovic.soundkit.community.ui.diagnostics.DiagnosticsScreen
 import com.akrapovic.soundkit.community.ui.garage.GarageThemeScreen
 import com.akrapovic.soundkit.community.ui.home.HomeScreen
+import com.akrapovic.soundkit.community.ui.more.ActivityScreen
 import com.akrapovic.soundkit.community.ui.more.AdvancedScreen
 import com.akrapovic.soundkit.community.ui.more.AndroidAutoSetupScreen
 import com.akrapovic.soundkit.community.ui.more.DeveloperScreen
@@ -224,6 +225,14 @@ fun SoundKitApp(
                     AppScreen.ValveVisualPreview -> ValveStatesPreviewScreen(
                         modifier = modifier,
                     )
+                    AppScreen.Activity -> {
+                        val activity by viewModel.activity.collectAsStateWithLifecycle()
+                        ActivityScreen(
+                            entries = activity,
+                            onClear = viewModel::clearActivity,
+                            modifier = modifier,
+                        )
+                    }
                 }
             }
         }
@@ -349,6 +358,7 @@ private fun AppScreen.topBarTitle(): String = when (this) {
     AppScreen.Advanced -> "Advanced"
     AppScreen.Developer -> "Developer"
     AppScreen.ValveVisualPreview -> "Valve visual"
+    AppScreen.Activity -> "Activity"
 }
 
 private fun AppScreen.label(): String {

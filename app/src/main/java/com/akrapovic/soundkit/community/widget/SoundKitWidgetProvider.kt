@@ -13,6 +13,7 @@ import android.widget.RemoteViews
 import androidx.compose.ui.graphics.toArgb
 import com.akrapovic.soundkit.community.MainActivity
 import com.akrapovic.soundkit.community.R
+import com.akrapovic.soundkit.community.domain.CommandSource
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.service.BleConnectionService
@@ -137,7 +138,9 @@ class SoundKitWidgetProvider : AppWidgetProvider() {
 
         private fun pendingService(context: Context, action: String, requestCode: Int): PendingIntent {
             // Always start as a foreground service so cold-process widget taps are legal on Android 12+.
-            val intent = Intent(context, BleConnectionService::class.java).setAction(action)
+            val intent = Intent(context, BleConnectionService::class.java)
+                .setAction(action)
+                .putExtra(BleConnectionService.EXTRA_SOURCE, CommandSource.Widget.name)
             return PendingIntent.getForegroundService(
                 context,
                 requestCode,

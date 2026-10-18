@@ -9,11 +9,13 @@ import com.akrapovic.soundkit.community.data.SettingsBackupCodec
 import com.akrapovic.soundkit.community.data.applyTo
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
+import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.diagnostics.CrashReporter
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsSupport
 import com.akrapovic.soundkit.community.diagnostics.DiagnosticsReportBuilder
 import com.akrapovic.soundkit.community.domain.CommandResult
+import com.akrapovic.soundkit.community.domain.CommandSource
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.PreferredValveMode
@@ -48,6 +50,7 @@ class SoundKitViewModel @Inject constructor(
     private val carSessionTracker: CarSessionTracker,
     private val carPresence: CarPresenceSource,
     private val valveCommandCoordinator: ValveCommandCoordinator,
+    private val executionLog: RuleExecutionLogStore,
 ) : ViewModel() {
     private val commandInFlight = MutableStateFlow(false)
     private val lastError = MutableStateFlow<String?>(null)
@@ -135,6 +138,17 @@ class SoundKitViewModel @Inject constructor(
         initialValue = SoundKitUiState(protocolVerified = SoundKitProtocol.VERIFIED),
     )
 
+    /** Recent valve changes for the Activity screen, collected only while it is visible. */
+    val activity = executionLog.entries.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+        initialValue = emptyList(),
+    )
+
+    fun clearActivity() {
+        viewModelScope.launch { executionLog.clear() }
+    }
+
     fun tryConnectOnLaunch() {
         if (!launchConnectAttempted.compareAndSet(false, true)) return
         viewModelScope.launch {
@@ -186,12 +200,12 @@ class SoundKitViewModel @Inject constructor(
 
     fun openValve() {
         driveModeEngine.onUserValveAdjustment()
-        sendCommand { valveCommandCoordinator.open() }
+        sendCommand { valveCommandCoordinator.open(CommandSource.Phone) }
     }
 
     fun closeValve() {
         driveModeEngine.onUserValveAdjustment()
-        sendCommand { valveCommandCoordinator.close() }
+        sendCommand { valveCommandCoordinator.close(CommandSource.Phone) }
     }
 
     fun toggleValve() {

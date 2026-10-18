@@ -32,6 +32,13 @@ fun MoreScreen(
 
         AkraListGroup {
             AkraListRow(
+                title = "Activity",
+                subtitle = "Recent valve changes",
+                showChevron = true,
+                onClick = { onNavigate(AppScreen.Activity) },
+            )
+            AkraListDivider()
+            AkraListRow(
                 title = "Settings",
                 subtitle = "Receivers, drive mode, and connection",
                 showChevron = true,

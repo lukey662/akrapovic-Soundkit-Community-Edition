@@ -18,6 +18,7 @@ import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
 import com.akrapovic.soundkit.community.data.SettingsStore
+import com.akrapovic.soundkit.community.domain.CommandSource
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.DriveModeEngine
 import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
@@ -227,16 +228,18 @@ class BleConnectionService : LifecycleService() {
             }
             ACTION_OPEN -> {
                 carWake.value = false
+                val source = intent.commandSource()
                 lifecycleScope.launch {
                     driveModeEngine.onUserValveAdjustment()
-                    valveCommandCoordinator.open()
+                    valveCommandCoordinator.open(source)
                 }
             }
             ACTION_CLOSE -> {
                 carWake.value = false
+                val source = intent.commandSource()
                 lifecycleScope.launch {
                     driveModeEngine.onUserValveAdjustment()
-                    valveCommandCoordinator.close()
+                    valveCommandCoordinator.close(source)
                 }
             }
             ACTION_DISCONNECT -> {
@@ -369,6 +372,7 @@ class BleConnectionService : LifecycleService() {
         const val ACTION_DISMISS_AWAY = "com.akrapovic.soundkit.community.action.DISMISS_AWAY"
         const val ACTION_STOP = "com.akrapovic.soundkit.community.action.STOP"
         private const val EXTRA_CAR_WAKE = "car_wake"
+        const val EXTRA_SOURCE = "command_source"
         private const val HOLD_TICK_MS = 15_000L
 
         @Deprecated("Use ACTION_PAUSE_DRIVE_MODE", ReplaceWith("ACTION_PAUSE_DRIVE_MODE"))
@@ -390,9 +394,16 @@ class BleConnectionService : LifecycleService() {
             return startForegroundServiceSafely(context, intent)
         }
 
-        fun startAction(context: Context, action: String): Boolean {
+        fun startAction(context: Context, action: String, source: CommandSource? = null): Boolean {
             val intent = Intent(context, BleConnectionService::class.java).setAction(action)
+            source?.let { intent.putExtra(EXTRA_SOURCE, it.name) }
             return startForegroundServiceSafely(context, intent)
+        }
+
+        /** Notification actions carry no extra, so they are the default source. */
+        private fun Intent.commandSource(): CommandSource {
+            val name = getStringExtra(EXTRA_SOURCE) ?: return CommandSource.Notification
+            return runCatching { CommandSource.valueOf(name) }.getOrDefault(CommandSource.Notification)
         }
 
         /** The connectedDevice type needs Bluetooth connect permission on Android 12+. */

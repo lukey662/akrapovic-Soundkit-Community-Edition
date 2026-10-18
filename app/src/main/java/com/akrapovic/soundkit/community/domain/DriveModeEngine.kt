@@ -236,18 +236,24 @@ class DriveModeEngine @Inject constructor(
                     logApply(mode, reason, skipped = true)
                     return
                 }
-                valveCommandCoordinator.open()
+                valveCommandCoordinator.open(reason.commandSource())
             }
             PreferredValveMode.Closed -> {
                 if (valveState == ValveState.Closed) {
                     logApply(mode, reason, skipped = true)
                     return
                 }
-                valveCommandCoordinator.close()
+                valveCommandCoordinator.close(reason.commandSource())
             }
         }
-        logApply(mode, reason, result = result)
+        // The coordinator records Success and Failure with this source; only skips are logged here.
+        if (result is CommandResult.Failure) {
+            diagnosticsRepository.warning("Drive mode $reason failed: ${result.message}")
+        }
     }
+
+    private fun String.commandSource(): CommandSource =
+        if (startsWith("quiet")) CommandSource.QuietStart else CommandSource.DriveMode
 
     private suspend fun applyClose(reason: String) {
         if (userAdjustedSessionId == activeSessionId) return
@@ -258,7 +264,10 @@ class DriveModeEngine @Inject constructor(
             logApply(PreferredValveMode.Closed, reason, skipped = true)
             return
         }
-        logApply(PreferredValveMode.Closed, reason, result = valveCommandCoordinator.close())
+        val result = valveCommandCoordinator.close(reason.commandSource())
+        if (result is CommandResult.Failure) {
+            diagnosticsRepository.warning("Drive mode $reason failed: ${result.message}")
+        }
     }
 
     private suspend fun logApply(

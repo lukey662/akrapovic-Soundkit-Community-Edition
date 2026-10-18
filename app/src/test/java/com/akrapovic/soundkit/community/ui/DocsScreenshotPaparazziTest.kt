@@ -20,6 +20,9 @@ import com.akrapovic.soundkit.community.ui.scan.ScanScreen
 import com.akrapovic.soundkit.community.ui.settings.DriveModeScreen
 import com.akrapovic.soundkit.community.ui.theme.GarageTheme
 import com.akrapovic.soundkit.community.ui.theme.SoundKitTheme
+import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
+import com.akrapovic.soundkit.community.domain.RuleExecutionOutcome
+import com.akrapovic.soundkit.community.ui.more.ActivityScreen
 import org.junit.Rule
 import org.junit.Test
 
@@ -170,6 +173,23 @@ class DocsScreenshotPaparazziTest {
                     onQuietStartChanged = {},
                     onDriveModePausedChanged = {},
                 )
+            }
+        }
+    }
+
+    @Test
+    fun activityHistory() {
+        val now = 1_760_000_000_000L
+        val entries = listOf(
+            RuleExecutionEntry(now - 60_000L, "Phone", "Close", "Phone", RuleExecutionOutcome.Success),
+            RuleExecutionEntry(now - 3_600_000L, "Android Auto", "Open", "Android Auto", RuleExecutionOutcome.Success),
+            RuleExecutionEntry(now - 3_700_000L, "Quiet start", "Close", "Quiet start", RuleExecutionOutcome.Success),
+            RuleExecutionEntry(now - 7_200_000L, "Widget", "Open", "Widget", RuleExecutionOutcome.Failed, "Receiver is not connected."),
+            RuleExecutionEntry(now - 90_000_000L, "Drive mode", "Open", "Drive mode", RuleExecutionOutcome.Skipped),
+        )
+        paparazzi.snapshot(name = "09-activity") {
+            PhoneFrame {
+                ActivityScreen(entries = entries, onClear = {}, nowMillis = now)
             }
         }
     }

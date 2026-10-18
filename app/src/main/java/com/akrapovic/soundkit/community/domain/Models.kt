@@ -90,6 +90,19 @@ data class GeofenceZone(
     val radiusMeters: Float,
 )
 
+/** Where a valve command came from, shown in Activity. Labels are user-facing. */
+enum class CommandSource(val label: String) {
+    Phone("Phone"),
+    Notification("Notification"),
+    QuickSettings("Quick Settings"),
+    Widget("Widget"),
+    AndroidAuto("Android Auto"),
+    Shortcut("Shortcut"),
+    Wear("Watch"),
+    DriveMode("Drive mode"),
+    QuietStart("Quiet start"),
+}
+
 enum class RuleExecutionOutcome {
     Success,
     Skipped,
