@@ -16,7 +16,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.core.content.ContextCompat
+import com.akrapovic.soundkit.community.BuildConfig
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.BleTimeouts
@@ -41,6 +44,8 @@ interface BleConnectionGateway {
     val valveState: StateFlow<ValveState>
     val receiverStatusMessage: StateFlow<String?>
     val notificationsEnabled: StateFlow<Boolean>
+    /** Wall time of the last status that reported Open or Closed; null while the state is Unknown. */
+    val valveStateConfirmedAtMillis: StateFlow<Long?>
 
     fun markReconnecting(device: SoundKitDevice, attempt: Int, nextDelayMs: Long)
     fun markAway(sinceMillis: Long, reason: AwayReason)
@@ -49,6 +54,10 @@ interface BleConnectionGateway {
     suspend fun writeCommand(command: ValveCommand): CommandResult
 }
 
+/**
+ * GATT state is confined to the main thread: callbacks are delivered on [mainHandler], and every
+ * caller runs on Dispatchers.Main.immediate.
+ */
 class BleConnectionManager @Inject constructor(
     @ApplicationContext
     private val context: Context,
@@ -57,6 +66,7 @@ class BleConnectionManager @Inject constructor(
 ) : BleConnectionGateway {
     private val bluetoothAdapter = bluetoothManager.adapter
     private val operationMutex = Mutex()
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val connectionGeneration = AtomicLong(0)
 
     private var gatt: BluetoothGatt? = null
@@ -79,6 +89,9 @@ class BleConnectionManager @Inject constructor(
 
     private val _notificationsEnabled = MutableStateFlow(false)
     override val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled
+
+    private val _valveStateConfirmedAtMillis = MutableStateFlow<Long?>(null)
+    override val valveStateConfirmedAtMillis: StateFlow<Long?> = _valveStateConfirmedAtMillis
 
     override fun markReconnecting(device: SoundKitDevice, attempt: Int, nextDelayMs: Long) {
         _connectionState.value = ConnectionState.Reconnecting(device, attempt, nextDelayMs)
@@ -106,11 +119,15 @@ class BleConnectionManager @Inject constructor(
         _connectionState.value = ConnectionState.Connecting(device)
         diagnosticsRepository.info("Connecting to BLE device ${device.name} ${device.address} gen=$generation")
 
-        gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            remoteDevice.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-        } else {
-            remoteDevice.connectGatt(context, false, gattCallback)
-        }
+        // Callbacks on the main looper keep pending-command state single-threaded.
+        gatt = remoteDevice.connectGatt(
+            context,
+            false,
+            gattCallback,
+            BluetoothDevice.TRANSPORT_LE,
+            BluetoothDevice.PHY_LE_1M_MASK,
+            mainHandler,
+        )
         // Connection attempt started — readiness is reported via connectionState after CCCD.
         Result.success(Unit)
     }
@@ -121,6 +138,7 @@ class BleConnectionManager @Inject constructor(
 
     @SuppressLint("MissingPermission")
     override suspend fun writeCommand(command: ValveCommand): CommandResult = operationMutex.withLock {
+        assertMainThread()
         val protocolReady = SoundKitProtocol.requireVerified()
         if (protocolReady.isFailure) {
             val message = protocolReady.exceptionOrNull()?.message.orEmpty()
@@ -182,7 +200,7 @@ class BleConnectionManager @Inject constructor(
      */
     @SuppressLint("MissingPermission")
     private fun resyncValveState(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
-        _valveState.value = ValveState.Unknown
+        setValveUnknown()
         if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_READ == 0) {
             diagnosticsRepository.warning("Valve state unknown after an unconfirmed command; waiting for a status notification")
             return
@@ -202,7 +220,7 @@ class BleConnectionManager @Inject constructor(
         gatt = null
         connectedDevice = null
         activeGeneration = connectionGeneration.incrementAndGet()
-        _valveState.value = ValveState.Unknown
+        setValveUnknown()
         _receiverStatusMessage.value = null
         _connectionState.value = ConnectionState.Disconnected
         closing?.disconnect()
@@ -229,7 +247,7 @@ class BleConnectionManager @Inject constructor(
                     commandCharacteristic = null
                     notificationsReady = false
                     _notificationsEnabled.value = false
-                    _valveState.value = ValveState.Unknown
+                    setValveUnknown()
                     unregisterBondReceiver()
                     completePendingOnce(CommandResult.Failure("Disconnected", recoverable = true))
                     _connectionState.value = if (status == BluetoothGatt.GATT_SUCCESS) {
@@ -406,12 +424,14 @@ class BleConnectionManager @Inject constructor(
     }
 
     private fun handleStatusNotification(value: ByteArray) {
+        assertMainThread()
         val hasPendingCommand = pendingCommand != null || pendingWrite != null
         SoundKitProtocol.statusByteToValveState(value)
             .onSuccess { state ->
                 _receiverStatusMessage.value = null
                 if (state != ValveState.Unknown) {
                     _valveState.value = state
+                    _valveStateConfirmedAtMillis.value = System.currentTimeMillis()
                     diagnosticsRepository.info("Receiver valve state is ${state.name.lowercase()}")
                     completePendingCommandIfMatched(state)
                 } else {
@@ -423,7 +443,7 @@ class BleConnectionManager @Inject constructor(
                 val isNotReady = error is ReceiverStatusException && error.isNotReady
                 if (isNotReady && !hasPendingCommand) {
                     diagnosticsRepository.warning(message)
-                    _valveState.value = ValveState.Unknown
+                    setValveUnknown()
                     _receiverStatusMessage.value = message
                     return
                 }
@@ -446,6 +466,7 @@ class BleConnectionManager @Inject constructor(
     }
 
     private fun completePendingOnce(result: CommandResult) {
+        assertMainThread()
         val deferred = pendingWrite ?: return
         clearPendingCommand()
         deferred.complete(result)
@@ -537,6 +558,17 @@ class BleConnectionManager @Inject constructor(
         }
         gatt.disconnect()
         gatt.close()
+    }
+
+    private fun setValveUnknown() {
+        _valveState.value = ValveState.Unknown
+        _valveStateConfirmedAtMillis.value = null
+    }
+
+    private fun assertMainThread() {
+        if (BuildConfig.DEBUG && Looper.myLooper() != Looper.getMainLooper()) {
+            throw IllegalStateException("BleConnectionManager must run on the main thread")
+        }
     }
 
     private fun isActiveGatt(gatt: BluetoothGatt): Boolean {

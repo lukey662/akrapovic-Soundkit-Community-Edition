@@ -493,6 +493,7 @@ private class FakeBleRepositoryForSmoke : BleRepository {
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val valveState = MutableStateFlow(ValveState.Unknown)
     override val receiverStatusMessage = MutableStateFlow<String?>(null)
+    override val valveStateConfirmedAtMillis = MutableStateFlow<Long?>(null)
     override val connectionYieldState = MutableStateFlow(
         com.akrapovic.soundkit.community.domain.ConnectionYieldState.None,
     )

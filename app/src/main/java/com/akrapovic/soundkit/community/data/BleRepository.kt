@@ -42,6 +42,7 @@ interface BleRepository {
     val connectionState: StateFlow<ConnectionState>
     val valveState: StateFlow<ValveState>
     val receiverStatusMessage: StateFlow<String?>
+    val valveStateConfirmedAtMillis: StateFlow<Long?>
     val connectionYieldState: StateFlow<ConnectionYieldState>
     val isScanning: StateFlow<Boolean>
     val startupSettled: StateFlow<Boolean>
@@ -99,6 +100,7 @@ class BleRepositoryImpl @Inject constructor(
     override val connectionState: StateFlow<ConnectionState> = connectionManager.connectionState
     override val valveState: StateFlow<ValveState> = connectionManager.valveState
     override val receiverStatusMessage: StateFlow<String?> = connectionManager.receiverStatusMessage
+    override val valveStateConfirmedAtMillis: StateFlow<Long?> = connectionManager.valveStateConfirmedAtMillis
 
     init {
         scope.launch {

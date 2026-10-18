@@ -67,6 +67,7 @@ class FakeBleConnectionGateway : BleConnectionGateway {
     override val valveState = MutableStateFlow(ValveState.Unknown)
     override val receiverStatusMessage = MutableStateFlow<String?>(null)
     override val notificationsEnabled = MutableStateFlow(false)
+    override val valveStateConfirmedAtMillis = MutableStateFlow<Long?>(null)
 
     val connectedDevices = mutableListOf<SoundKitDevice>()
     val writtenCommands = mutableListOf<ValveCommand>()
@@ -288,6 +289,7 @@ class FakeBleRepository : BleRepository {
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val valveState = MutableStateFlow(ValveState.Unknown)
     override val receiverStatusMessage = MutableStateFlow<String?>(null)
+    override val valveStateConfirmedAtMillis = MutableStateFlow<Long?>(null)
     override val connectionYieldState = MutableStateFlow<ConnectionYieldState>(ConnectionYieldState.None)
     override val isScanning = MutableStateFlow(false)
     override val startupSettled = MutableStateFlow(true)
