@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds carry the .debug application id suffix; targetPackage must match it. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_valve_tile"
+        android:shortcutId="open_valves"
+        android:shortcutLongLabel="@string/shortcut_open_valves_long"
+        android:shortcutShortLabel="@string/shortcut_open_valves">
+        <intent
+            android:action="com.akrapovic.soundkit.community.action.VOICE_OPEN"
+            android:targetClass="com.akrapovic.soundkit.community.AssistantActionActivity"
+            android:targetPackage="com.akrapovic.soundkit.community.debug" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_valve_tile"
+        android:shortcutId="close_valves"
+        android:shortcutLongLabel="@string/shortcut_close_valves_long"
+        android:shortcutShortLabel="@string/shortcut_close_valves">
+        <intent
+            android:action="com.akrapovic.soundkit.community.action.VOICE_CLOSE"
+            android:targetClass="com.akrapovic.soundkit.community.AssistantActionActivity"
+            android:targetPackage="com.akrapovic.soundkit.community.debug" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_valve_tile"
+        android:shortcutId="valve_status"
+        android:shortcutLongLabel="@string/shortcut_valve_status_long"
+        android:shortcutShortLabel="@string/shortcut_valve_status">
+        <intent
+            android:action="com.akrapovic.soundkit.community.action.VOICE_STATUS"
+            android:targetClass="com.akrapovic.soundkit.community.AssistantActionActivity"
+            android:targetPackage="com.akrapovic.soundkit.community.debug" />
+    </shortcut>
+</shortcuts>

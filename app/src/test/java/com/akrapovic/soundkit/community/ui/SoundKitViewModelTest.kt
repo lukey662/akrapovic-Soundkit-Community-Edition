@@ -78,6 +78,7 @@ class SoundKitViewModelTest {
                 diagnosticsRepository = diagnosticsRepository,
                 valveCommandCoordinator = valveCommandCoordinator,
                 clock = com.akrapovic.soundkit.community.domain.SystemWallClock(),
+                carPresence = FakeCarPresenceSource(),
             ),
             carSessionTracker = carSessionTracker,
             carPresence = FakeCarPresenceSource(),

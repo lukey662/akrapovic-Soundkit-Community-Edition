@@ -1,6 +1,6 @@
 # Sound Kit Community
 
-Open-source Android app for the Akrapovič **Car Sound Kit** BLE receiver — a maintained replacement for the abandoned official app (`si.sunesis.akrapovic.soundkit`).
+Independent, unofficial open-source Android app that controls a **Car Sound Kit** BLE exhaust-valve receiver. It is published on Play as **Car Sound Kit Control** and is not an Akrapovič product.
 
 **Not affiliated with Akrapovič.** Local Bluetooth only — no internet, accounts, or telemetry.
 
@@ -8,7 +8,7 @@ Open-source Android app for the Akrapovič **Car Sound Kit** BLE receiver — a 
 
 ## For Sound Kit owners
 
-**[Install guide → INSTALL.md](INSTALL.md)** · **[Download v0.3.0 →](https://github.com/lukey662/akrapovic-Soundkit-Community-Edition/releases/tag/v0.3.0)**
+**[Install guide → INSTALL.md](INSTALL.md)** · Current build: **0.3.4 (versionCode 7)** on the Play internal testing track (see `DOCS.md` § Android Auto Testing for the tester link)
 
 | Feature | What it does |
 |---------|----------------|
@@ -44,9 +44,9 @@ Open-source Android app for the Akrapovič **Car Sound Kit** BLE receiver — a 
 
 ## Why this project
 
-The **official** Car SoundKit Android app for the Sound Kit receiver is **no longer a practical option on current Android**. The original package (`si.sunesis.akrapovic.soundkit`) is **abandoned / unmaintained**: it targets an older permission and execution model, so on **Android 12 and newer** you typically hit **Bluetooth scan/connect permission requirements**, **foreground execution expectations**, and **Play policy constraints** that the original app was never updated to satisfy. In practice, many owners cannot rely on the official app for day-to-day use on a modern phone.
+The **official** Car SoundKit Android app for the Sound Kit receiver is **no longer a practical option on current Android**. The original package (`si.sunesis.akrapovic.soundkit`) has not been updated for current Android: it targets an older permission and execution model, so on **Android 12 and newer** you typically hit **Bluetooth scan/connect permission requirements**, **foreground execution expectations**, and **Play policy constraints** that the original app was never updated to satisfy. In practice, many owners cannot rely on the official app for day-to-day use on a modern phone.
 
-**Sound Kit Community** is an **independent, open-source project**. It is **not** affiliated with, endorsed by, or supported by Akrapovič d.d. or the original publisher. It exists so enthusiasts can run a **maintained** BLE client with explicit safety guardrails and public documentation.
+**Sound Kit Community** is an **independent, open-source project**. It is **not** affiliated with, endorsed by, or supported by Akrapovič d.d. or the original publisher. It exists so owners can run a BLE client with explicit safety guardrails and public documentation.
 
 Visual and interaction polish is **ongoing**; see `ROADMAP.md` for planned UX work alongside product features.
 
@@ -99,9 +99,11 @@ Testing strategy and the physical receiver smoke checklist are documented in `TE
 - Legacy Android 8-11 location permission handling for BLE scanning
 - Foreground `connectedDevice` service
 - Persistent notification actions
-- Quick Settings tile
+- Quick Settings tile and home-screen widget
+- Launcher shortcuts for Open, Close, and Valve status
 - Local diagnostics log and export
-- Local-only Android Auto IoT template surface
+- Local-only Android Auto IoT template surface (Open and Close work only while parked)
+- Wear OS tile module in the repo only; it is not shipped and does not control the valves
 - Hilt dependency injection
 - DataStore settings
 - Debug Timber logging

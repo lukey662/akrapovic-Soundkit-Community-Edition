@@ -32,9 +32,9 @@ class CarScreenPresenterTest {
     @Test
     fun presentsSeparateOpenAndCloseAvailabilityForKnownValveState() {
         val closed = present(ValveState.Closed)
-        assertTrue(closed.showControls)
         assertTrue(closed.openEnabled)
         assertFalse(closed.closeEnabled)
+        assertFalse(closed.retryEnabled)
         assertEquals("Closed", closed.status)
 
         val countdown = CarScreenPresenter.present(
@@ -44,52 +44,85 @@ class CarScreenPresenterTest {
             nowMillis = 0L,
         ) as CarScreenModel.Controls
         assertEquals("Opening in 2:05", countdown.status)
+        assertTrue(countdown.openEnabled)
 
         val open = present(ValveState.Open)
-        assertTrue(open.showControls)
         assertFalse(open.openEnabled)
         assertTrue(open.closeEnabled)
         assertEquals("Open", open.status)
     }
 
     @Test
-    fun hidesControlsWhileUnknownOrReceiverNotReadyAndShowsLoadingDuringCommands() {
+    fun disablesBothActionsWhileUnknownNotReadyOrChanging() {
         val unknown = present(ValveState.Unknown)
-        assertFalse(unknown.showControls)
+        assertFalse(unknown.openEnabled)
+        assertFalse(unknown.closeEnabled)
         assertEquals("Checking status", unknown.status)
 
         val notReady = CarScreenPresenter.present(
             true, true, true, ConnectionState.Connected(device), ValveState.Open,
-            "Receiver not ready", CommandPhase.Idle,
+            "Receiver isn't ready", CommandPhase.Idle,
         ) as CarScreenModel.Controls
-        assertFalse(notReady.showControls)
+        assertFalse(notReady.openEnabled)
+        assertFalse(notReady.closeEnabled)
         assertEquals("Receiver not ready", notReady.status)
 
         val writing = CarScreenPresenter.present(
             true, true, true, ConnectionState.Connected(device), ValveState.Closed,
             null, CommandPhase.Writing(ValveState.Open),
         ) as CarScreenModel.Controls
-        assertFalse(writing.loading)
-        assertTrue(writing.showControls)
         assertEquals(CarTemplateKind.Controls, carTemplateKind(writing))
         assertFalse(writing.openEnabled)
         assertFalse(writing.closeEnabled)
+        assertEquals("Opening…", writing.status)
+
+        val confirming = CarScreenPresenter.present(
+            true, true, true, ConnectionState.Connected(device), ValveState.Open,
+            null, CommandPhase.AwaitingConfirmation(ValveState.Closed),
+        ) as CarScreenModel.Controls
+        assertFalse(confirming.closeEnabled)
+        assertEquals("Closing…", confirming.status)
     }
 
     @Test
-    fun reportsConnectingAndHidesControlsUntilReceiverIsReady() {
+    fun everyStateAfterSetupIsTheSameGridSoUpdatesStayRefreshes() {
+        val states = listOf(
+            ConnectionState.Scanning to ValveState.Unknown,
+            ConnectionState.Connecting(device) to ValveState.Closed,
+            ConnectionState.Reconnecting(device, attempt = 2, nextDelayMs = 4_000L) to ValveState.Unknown,
+            ConnectionState.Connected(device) to ValveState.Unknown,
+            ConnectionState.Connected(device) to ValveState.Closed,
+            ConnectionState.Connected(device) to ValveState.Open,
+            ConnectionState.Disconnected to ValveState.Unknown,
+            ConnectionState.Error("Timed out", recoverable = true) to ValveState.Unknown,
+            ConnectionState.Away(1_700_000_000_000L, AwayReason.OutOfRange) to ValveState.Unknown,
+        )
+        states.forEach { (connection, valve) ->
+            val model = CarScreenPresenter.present(
+                true, true, true, connection, valve, null, CommandPhase.Idle,
+                quietHoldEndsAtMillis = 60_000L,
+                nowMillis = 0L,
+            )
+            assertEquals("$connection", CarTemplateKind.Controls, carTemplateKind(model))
+        }
+        assertEquals("Car Sound Kit Control", CarScreenPresenter.TITLE)
+    }
+
+    @Test
+    fun reportsConnectingWithoutControls() {
         val model = CarScreenPresenter.present(
             true, true, true, ConnectionState.Connecting(device), ValveState.Closed,
             null, CommandPhase.Idle,
         ) as CarScreenModel.Controls
 
-        assertEquals("Connecting", model.status)
-        assertTrue(model.loading)
-        assertFalse(model.showControls)
+        assertEquals("Connecting…", model.status)
+        assertFalse(model.openEnabled)
+        assertFalse(model.closeEnabled)
+        assertFalse(model.retryEnabled)
     }
 
     @Test
-    fun reportsDisconnectedAndErrorStatesWithoutExposingControls() {
+    fun offersRetryWhenDisconnectedFailedOrAway() {
         val disconnected = CarScreenPresenter.present(
             true, true, true, ConnectionState.Disconnected, ValveState.Open,
             null, CommandPhase.Idle,
@@ -98,23 +131,21 @@ class CarScreenPresenterTest {
             true, true, true, ConnectionState.Error("Timed out", recoverable = true), ValveState.Closed,
             null, CommandPhase.Idle,
         ) as CarScreenModel.Controls
-
-        assertEquals("Receiver disconnected", disconnected.status)
-        assertFalse(disconnected.loading)
-        assertFalse(disconnected.showControls)
-        assertEquals(CarTemplateKind.Message, carTemplateKind(disconnected))
-        assertEquals("Connection failed", error.status)
-        assertFalse(error.showControls)
-        assertEquals(CarTemplateKind.Message, carTemplateKind(error))
-
         val away = CarScreenPresenter.present(
             true, true, true, ConnectionState.Away(1_700_000_000_000L, AwayReason.LeftCar), ValveState.Unknown,
             null, CommandPhase.Idle,
         ) as CarScreenModel.Controls
+
+        assertEquals("Receiver disconnected", disconnected.status)
+        assertEquals("Receiver disconnected · tap to retry", disconnected.statusText)
+        assertFalse(disconnected.openEnabled)
+        assertFalse(disconnected.closeEnabled)
+        assertTrue(disconnected.retryEnabled)
+        assertEquals("Connection failed", error.status)
+        assertTrue(error.retryEnabled)
+        assertFalse(error.openEnabled)
         assertEquals("Left the car", away.status)
-        assertFalse(away.loading)
-        assertFalse(away.showControls)
-        assertEquals(CarTemplateKind.Message, carTemplateKind(away))
+        assertTrue(away.retryEnabled)
     }
 
     private fun present(valveState: ValveState): CarScreenModel.Controls {

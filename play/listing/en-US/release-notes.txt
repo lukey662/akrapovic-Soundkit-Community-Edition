@@ -1,1 +1,1 @@
-0.3.3: Fixes the unexpected error when opening the app from Android Auto on the car display.
+0.3.4: Fixes crashes from the Quick Settings tile and when the app starts before Bluetooth is allowed. After a missed confirmation, the app re-checks the valve position before allowing another tap. A reconnect no longer reopens valves you closed. On Android Auto, Open and Close work only while parked. Launcher shortcuts now work.

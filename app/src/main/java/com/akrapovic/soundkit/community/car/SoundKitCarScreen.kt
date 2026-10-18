@@ -9,6 +9,8 @@ import androidx.car.app.model.GridItem
 import androidx.car.app.model.GridTemplate
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.MessageTemplate
+import androidx.car.app.model.OnClickListener
+import androidx.car.app.model.ParkedOnlyOnClickListener
 import androidx.car.app.model.Template
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.IconCompat
@@ -26,6 +28,7 @@ import com.akrapovic.soundkit.community.domain.RememberedDeviceConnector
 import com.akrapovic.soundkit.community.domain.SoundKitSettings
 import com.akrapovic.soundkit.community.domain.ValveCommandCoordinator
 import com.akrapovic.soundkit.community.domain.ValveState
+import com.akrapovic.soundkit.community.service.BleConnectionService
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -97,75 +100,91 @@ class SoundKitCarScreen(
     override fun onGetTemplate(): Template {
         if (settingsReady) ensureBootstrap(settingsSnapshot)
         if (!SoundKitProtocol.VERIFIED) {
-            return MessageTemplate.Builder("Controls are unavailable in this build.")
-                .setTitle("Sound Kit")
-                .setHeaderAction(Action.APP_ICON)
-                .build()
+            return messageTemplate("Controls are unavailable in this build.")
         }
 
-        val connectionState = repository.connectionState.value
-        val valveState = repository.valveState.value
-        val receiverStatusMessage = repository.receiverStatusMessage.value
-        return when (
-            val model = CarScreenPresenter.present(
-                onboardingCompleted = settingsSnapshot.onboardingCompleted,
-                permissionsGranted = hasBlePermissions(),
-                hasDefaultReceiver = RememberedDeviceConnector.defaultDevice(settingsSnapshot) != null,
-                connectionState = connectionState,
-                valveState = valveState,
-                receiverStatusMessage = receiverStatusMessage,
-                commandPhase = valveCommandCoordinator.commandPhase.value,
-                quietHoldEndsAtMillis = driveModeEngine.quietHoldEndsAt.value,
-                nowMillis = System.currentTimeMillis(),
-            )
-        ) {
-            is CarScreenModel.SetupRequired -> MessageTemplate.Builder(model.message)
-                .setTitle("Sound Kit")
-                .setHeaderAction(Action.APP_ICON)
-                .build()
-            is CarScreenModel.Controls -> when (carTemplateKind(model)) {
-                CarTemplateKind.Loading -> GridTemplate.Builder()
-                    .setTitle("Sound Kit")
-                    .setHeaderAction(Action.APP_ICON)
-                    .setLoading(true)
-                    .build()
-                CarTemplateKind.Controls -> buildGridTemplate(model)
-                CarTemplateKind.Message -> MessageTemplate.Builder(model.status)
-                    .setTitle("Sound Kit")
-                    .setHeaderAction(Action.APP_ICON)
-                    .build()
-            }
+        val model = CarScreenPresenter.present(
+            onboardingCompleted = settingsSnapshot.onboardingCompleted,
+            permissionsGranted = hasBlePermissions(),
+            hasDefaultReceiver = RememberedDeviceConnector.defaultDevice(settingsSnapshot) != null,
+            connectionState = repository.connectionState.value,
+            valveState = repository.valveState.value,
+            receiverStatusMessage = repository.receiverStatusMessage.value,
+            commandPhase = valveCommandCoordinator.commandPhase.value,
+            quietHoldEndsAtMillis = driveModeEngine.quietHoldEndsAt.value,
+            nowMillis = System.currentTimeMillis(),
+        )
+        return when (model) {
+            is CarScreenModel.SetupRequired -> messageTemplate(model.message)
+            is CarScreenModel.Controls -> buildGridTemplate(model)
         }
     }
 
+    private fun messageTemplate(message: String): Template {
+        return MessageTemplate.Builder(message)
+            .setTitle(CarScreenPresenter.TITLE)
+            .setHeaderAction(Action.APP_ICON)
+            .build()
+    }
+
+    /**
+     * Title and item titles are constant, so each invalidate is a refresh rather than a new step.
+     * Status lives in item text.
+     */
     private fun buildGridTemplate(model: CarScreenModel.Controls): Template {
         return GridTemplate.Builder()
-            .setTitle(model.status)
+            .setTitle(CarScreenPresenter.TITLE)
             .setHeaderAction(Action.APP_ICON)
             .setSingleList(
                 ItemList.Builder()
                     .addItem(
-                        valveActionItem("Open", model.openEnabled) {
-                            scope.launch { openValve() }
-                        },
+                        gridItem(
+                            title = CarScreenPresenter.STATUS_ITEM_TITLE,
+                            text = model.statusText,
+                            iconRes = R.drawable.ic_notification,
+                            onClick = if (model.retryEnabled) OnClickListener { retryConnection() } else null,
+                        ),
                     )
                     .addItem(
-                        valveActionItem("Close", model.closeEnabled) {
-                            scope.launch { closeValve() }
-                        },
+                        gridItem(
+                            title = CarScreenPresenter.OPEN_ITEM_TITLE,
+                            text = null,
+                            iconRes = R.drawable.ic_valve_tile,
+                            onClick = if (model.openEnabled) valveClick { openValve() } else null,
+                        ),
+                    )
+                    .addItem(
+                        gridItem(
+                            title = CarScreenPresenter.CLOSE_ITEM_TITLE,
+                            text = null,
+                            iconRes = R.drawable.ic_valve_tile,
+                            onClick = if (model.closeEnabled) valveClick { closeValve() } else null,
+                        ),
                     )
                     .build(),
             )
             .build()
     }
 
-    private fun valveActionItem(title: String, enabled: Boolean, onClick: () -> Unit): GridItem {
+    private fun gridItem(title: String, text: String?, iconRes: Int, onClick: OnClickListener?): GridItem {
         val builder = GridItem.Builder()
             .setTitle(title)
-            .setImage(CarIcon.Builder(IconCompat.createWithResource(carContext, R.drawable.ic_valve_tile)).build())
+            .setImage(CarIcon.Builder(IconCompat.createWithResource(carContext, iconRes)).build())
+        if (text != null) builder.setText(text)
         // GridItem has no enabled API. Omitting the click listener makes the host render it inert.
-        if (enabled) builder.setOnClickListener(onClick)
+        if (onClick != null) builder.setOnClickListener(onClick)
         return builder.build()
+    }
+
+    /** Valve changes are parked-only; the host refuses the tap while the car is moving. */
+    private fun valveClick(command: suspend () -> Unit): OnClickListener {
+        return ParkedOnlyOnClickListener.create { scope.launch { command() } }
+    }
+
+    private fun retryConnection() {
+        val device = RememberedDeviceConnector.defaultDevice(settingsSnapshot) ?: return
+        if (!BleConnectionService.start(carContext.applicationContext)) return
+        scope.launch { repository.connect(device, userInitiated = true) }
     }
 
     private suspend fun openValve() {

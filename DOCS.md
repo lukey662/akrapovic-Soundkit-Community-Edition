@@ -32,12 +32,13 @@ ios/SoundKitCommunity/
 - The release application ID is `com.akrapovic.soundkit.community`; the debug build adds `.debug` and `-debug`. There are no product flavors.
 - Before handing off an APK, run `./gradlew :app:testDebugUnitTest :app:verifyPaparazziDebug :app:assembleDebug :wear:assembleDebug`.
 - The Android foreground service owns connection lifetime. Every command surface—including the Compose UI, notification, Quick Settings, widget, drive mode, and Car App—uses `ValveCommandCoordinator`; only `BleConnectionManager` performs GATT discovery, subscription, and transport.
-- Android launcher shortcuts provide **Open valves**, **Close valves**, and **Valve status** through the internal `AssistantActionActivity` and `VoiceValveActionRouter`. The router accepts no BLE address or command extras, resolves only the saved default receiver, reconnects only to that receiver for at most 8 seconds, and delegates mutations exclusively to `ValveCommandCoordinator`. A command is successful only after the coordinator's notification-confirmed hardware result.
+- Android launcher shortcuts provide **Open valves**, **Close valves**, and **Valve status** through the internal `AssistantActionActivity` and `VoiceValveActionRouter`. The router accepts no BLE address or command extras, resolves only the saved default receiver, reconnects only to that receiver for at most 8 seconds, waits for the first receiver status, and delegates mutations exclusively to `ValveCommandCoordinator`. A command is successful only after the coordinator's notification-confirmed hardware result.
+- Static shortcuts set `targetPackage` explicitly. `app/src/debug/res/xml/shortcuts.xml` repeats them with the `.debug` package; keep both copies in sync.
 - Google Assistant custom App Actions are not declared: this IoT valve case has no reliable supported built-in intent/fulfillment contract. The shipped, honest integration is guarded launcher-shortcut fulfillment; a future Assistant integration must call the same internal router after its platform verification requirements are established. It must not expose a service action or arbitrary receiver identifier.
 - **More → Advanced → Diagnostics** records package/build identifiers, Car App readiness, local BLE events, and the GATT profile. Export remains user-initiated and file-only; do not add telemetry or upload paths.
 - Release artifacts require environment-backed signing. Set `ANDROID_RELEASE_STORE_FILE`, `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`, and `ANDROID_RELEASE_KEY_PASSWORD` in the build environment; `assembleRelease`, `bundleRelease`, and `packageRelease` fail clearly when any input is missing or the keystore is unreadable. Never commit keystores or credentials. The reproducible owner-release sequence is `./gradlew :app:testDebugUnitTest :app:verifyPaparazziDebug :app:assembleRelease`, then SHA-256 `app/build/outputs/apk/release/app-release.apk`, physically smoke that exact artifact, and have a repository owner upload it and its checksum to a GitHub Release from the reviewed version tag. See `INSTALL.md` for the full procedure and publication restrictions.
 - Release Car App connections accept only the project-owned signed Android Auto/Automotive host allowlist; `ALLOW_ALL_HOSTS_VALIDATOR` is limited to debuggable builds. Keep the certificate digests current with AndroidX host-rotation guidance.
-- `files/crashes/` and any future `files/diagnostics/` are excluded from Android backup and device transfer. Current share exports are in `cache/diagnostics/`, which Android excludes from backup by design.
+- `files/crashes/`, any future `files/diagnostics/`, DataStore settings, and the `soundkit_car_mirror` preferences are excluded from Android backup and device transfer. Current share exports are in `cache/diagnostics/`, which Android excludes from backup by design.
 
 ## iOS development
 
@@ -95,8 +96,8 @@ They run without opening the app where iOS permits it, but never start an unsafe
 
 ### Release versions
 
-Android and iOS marketing versions are aligned at **0.3.0**. Android uses
-`versionCode` 3; iOS uses `CURRENT_PROJECT_VERSION` 3. Update both platform
+Android is at **0.3.4** (`versionCode` 7) on Play internal testing. iOS remains
+**0.3.0** (`CURRENT_PROJECT_VERSION` 3) until its next cut. Update both platform
 marketing versions together for a coordinated release, while incrementing each
 platform’s build number according to its store requirements.
 
@@ -149,7 +150,7 @@ Entry: **Settings** (full controls) or **Home** shortcut → Drive mode screen.
 
 - `BleConnectionService` builds notifications from connection, valve, `receiverStatusMessage`, and default receiver display name.
 - Open/Close notification actions are omitted when disconnected, valve state is unknown, or the receiver reports not-ready (status `0x04`).
-- Quick Settings tile uses `QsTilePresenter`; opens the app when disconnected; shows `not ready` when status blocks commands.
+- Quick Settings tile uses `QsTilePresenter`; opens the app when disconnected (a `PendingIntent` on Android 14+, because the `Intent` overload throws there); shows `not ready` when status blocks commands. The subtitle is set only on Android 10+.
 
 ## UI System
 
@@ -207,7 +208,7 @@ The manifest must declare `com.google.android.gms.car.application` pointing at `
 
 Google's car testing guide (6 October 2026) requires a real vehicle to install an Android for Cars App Library app from a trusted source. **Unknown sources does not apply** to this library, so an `adb` or APK install is absent from Customize launcher and from the car. Debug package id `com.akrapovic.soundkit.community.debug` does not change that.
 
-The supported install is the Play **internal testing** release of `com.akrapovic.soundkit.community`. Target build is `0.3.3` (versionCode 6). It keeps the workshop UI and accepts the Android Auto host certificate installed on the Pixel (`1ca8dcc0…b5295`). The store and launcher title is **Car Sound Kit Control**. The opt-in link is `https://play.google.com/apps/internaltest/4699579818900841316`. Open that link on the phone while signed into a listed tester account, install or update from Play, force-stop Android Auto, reconnect to the car, and enable **Car Sound Kit Control** in Customize launcher if it is listed. The package will not end in `.debug`.
+The supported install is the Play **internal testing** release of `com.akrapovic.soundkit.community`. Target build is `0.3.4` (versionCode 7). It keeps the host allowlist from `0.3.3`, including the Android Auto certificate installed on the Pixel (`1ca8dcc0…b5295`), shows one stable valve grid, and accepts Open/Close only while parked. The store and launcher title is **Car Sound Kit Control**. The opt-in link is `https://play.google.com/apps/internaltest/4699579818900841316`. Open that link on the phone while signed into a listed tester account, install or update from Play, force-stop Android Auto, reconnect to the car, and enable **Car Sound Kit Control** in Customize launcher if it is listed. The package will not end in `.debug`.
 
 That track is not a public listing. Production is unpublished, and public Android Auto has not been sent for review. A public projected listing stays a non-goal because valve control does not fit a published category. Reclassifying the service as POI or navigation would not pass the install-source check.
 

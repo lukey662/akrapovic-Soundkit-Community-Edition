@@ -9,8 +9,17 @@ import com.akrapovic.soundkit.community.domain.ValveState
 /**
  * Converts state from Android-facing collaborators into a small, testable car-screen contract.
  * Setup remains phone-only because the car surface must stay low distraction.
+ *
+ * After setup the car shows one GridTemplate whose title and item titles never change, so every
+ * update is a template refresh and does not use up the host's step quota. Live status goes in
+ * item text only.
  */
 object CarScreenPresenter {
+    const val TITLE = "Car Sound Kit Control"
+    const val STATUS_ITEM_TITLE = "Status"
+    const val OPEN_ITEM_TITLE = "Open"
+    const val CLOSE_ITEM_TITLE = "Close"
+
     fun present(
         onboardingCompleted: Boolean,
         permissionsGranted: Boolean,
@@ -32,27 +41,30 @@ object CarScreenPresenter {
             return CarScreenModel.SetupRequired(setupReason)
         }
 
-        val commandInFlight = commandPhase.isInFlight()
-        val connectionInFlight = connectionState is ConnectionState.Connecting ||
-            connectionState is ConnectionState.Reconnecting ||
-            connectionState == ConnectionState.Scanning
-        val controlsVisible = connectionState is ConnectionState.Connected &&
+        val inFlightTarget = commandPhase.inFlightTarget()
+        val controlsReady = connectionState is ConnectionState.Connected &&
             valveState != ValveState.Unknown &&
             receiverStatusMessage == null
-        // A GridTemplate cannot be loading and have a list, and it cannot be idle with neither.
-        // Loading is only for the empty connecting state. A command keeps the grid and disables taps.
+        val status = when {
+            receiverStatusMessage != null -> "Receiver not ready"
+            inFlightTarget == ValveState.Open -> "Opening…"
+            inFlightTarget == ValveState.Closed -> "Closing…"
+            else -> connectionState.statusText(valveState, quietHoldEndsAtMillis, nowMillis)
+        }
         return CarScreenModel.Controls(
-            status = receiverStatusMessage
-                ?: connectionState.statusText(valveState, quietHoldEndsAtMillis, nowMillis),
-            loading = !controlsVisible && connectionInFlight,
-            showControls = controlsVisible,
-            openEnabled = controlsVisible && valveState == ValveState.Closed && !commandInFlight,
-            closeEnabled = controlsVisible && valveState == ValveState.Open && !commandInFlight,
+            status = status,
+            openEnabled = controlsReady && valveState == ValveState.Closed && inFlightTarget == null,
+            closeEnabled = controlsReady && valveState == ValveState.Open && inFlightTarget == null,
+            retryEnabled = connectionState is ConnectionState.Disconnected ||
+                connectionState is ConnectionState.Error ||
+                connectionState is ConnectionState.Away,
         )
     }
 
-    private fun CommandPhase.isInFlight(): Boolean {
-        return this is CommandPhase.Writing || this is CommandPhase.AwaitingConfirmation
+    private fun CommandPhase.inFlightTarget(): ValveState? = when (this) {
+        is CommandPhase.Writing -> target
+        is CommandPhase.AwaitingConfirmation -> target
+        else -> null
     }
 
     private fun ConnectionState.statusText(
@@ -61,9 +73,9 @@ object CarScreenPresenter {
         nowMillis: Long,
     ): String = when (this) {
         ConnectionState.Disconnected -> "Receiver disconnected"
-        ConnectionState.Scanning -> "Connecting"
-        is ConnectionState.Connecting -> "Connecting"
-        is ConnectionState.Reconnecting -> "Connecting"
+        ConnectionState.Scanning -> "Connecting…"
+        is ConnectionState.Connecting -> "Connecting…"
+        is ConnectionState.Reconnecting -> "Connecting…"
         is ConnectionState.Connected -> valveState.statusText(quietHoldEndsAtMillis, nowMillis)
         is ConnectionState.Error -> "Connection failed"
         is ConnectionState.Away -> when (reason) {
@@ -85,23 +97,18 @@ object CarScreenPresenter {
 }
 
 enum class CarTemplateKind {
-    Loading,
     Controls,
     Message,
 }
 
 /**
- * GridTemplate.build() throws unless the template is loading or has a list, and never both.
- * Callers must follow this instead of combining [CarScreenModel.Controls.loading] with a list.
+ * Setup is a MessageTemplate. Everything after setup is one GridTemplate with a list and never
+ * a loading state, so a status change can never swap template types mid-drive.
  */
 fun carTemplateKind(model: CarScreenModel): CarTemplateKind {
     return when (model) {
         is CarScreenModel.SetupRequired -> CarTemplateKind.Message
-        is CarScreenModel.Controls -> when {
-            model.loading -> CarTemplateKind.Loading
-            model.showControls -> CarTemplateKind.Controls
-            else -> CarTemplateKind.Message
-        }
+        is CarScreenModel.Controls -> CarTemplateKind.Controls
     }
 }
 
@@ -110,9 +117,11 @@ sealed interface CarScreenModel {
 
     data class Controls(
         val status: String,
-        val loading: Boolean,
-        val showControls: Boolean,
         val openEnabled: Boolean,
         val closeEnabled: Boolean,
-    ) : CarScreenModel
+        val retryEnabled: Boolean,
+    ) : CarScreenModel {
+        /** Grid item text for the status tile; the item title stays [CarScreenPresenter.STATUS_ITEM_TITLE]. */
+        val statusText: String get() = if (retryEnabled) "$status · tap to retry" else status
+    }
 }

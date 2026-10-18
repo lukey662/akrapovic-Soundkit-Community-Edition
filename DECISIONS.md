@@ -674,3 +674,91 @@ Add SHA-256 `1ca8dcc0bed3cbd872d2cb791200c0292ca9975768a82d676b8b424fb65b5295` f
 - Version `0.3.3` (versionCode 6) is the internal build that can complete the car handshake on this Pixel.
 - A later Android Auto update with a new signing certificate will fail the same way until that digest is added.
 
+## 2026-10-18: Re-read the valve after an unconfirmed toggle
+
+### Context
+
+The receiver accepts only a toggle (`01`). A command that times out may or may not have moved the valve. Keeping the old state let the next Open or Close from any surface send a second toggle and reverse the valve.
+
+### Decision
+
+On a confirmation timeout or write failure, `BleConnectionManager` sets valve state to Unknown and reads the command characteristic. `ValveCommandCoordinator` already refuses Unknown, so every surface waits for fresh status.
+
+### Consequences
+
+- A lost notification blocks commands until a read or notification restores the state.
+- The phone shows the checking state instead of an Open or Close that might be wrong.
+
+## 2026-10-18: Apply drive mode once per drive
+
+### Context
+
+Each BLE reconnect started a new connect-ready session and re-applied the preferred mode. A link blip after the driver closed the valves reopened them with no tap.
+
+### Decision
+
+`DriveModeEngine` treats a reconnect within 10 minutes, with no car-presence change, as the same drive. It keeps a manual change, resumes a running quiet hold, and does not re-apply the preferred mode. Getting in or out of the car (Bluetooth or projection presence) or a longer gap starts a new drive. Opening or closing the car screen is not a boundary.
+
+### Consequences
+
+- Drive mode still applies on the first connect of each drive and after Resume.
+- The rule is in memory; a process restart starts a new drive.
+
+## 2026-10-18: One stable, parked-only car template
+
+### Context
+
+The car `GridTemplate` used the live status as its title and switched to `MessageTemplate` for transient states. A changed title or template type is not a refresh, so countdowns and toggles risked the host's template step limit. Open and Close also worked while driving, against the parked-only guidance.
+
+### Decision
+
+After setup, the car shows one `GridTemplate` with the constant title **Car Sound Kit Control** and constant Status, Open, and Close item titles. Status lives in item text. Open and Close use `ParkedOnlyOnClickListener`. Status offers Retry when disconnected, failed, or away.
+
+### Consequences
+
+- Updates are template refreshes, including the quiet-start countdown.
+- A driver cannot change the valves while moving; the host refuses the tap.
+
+## 2026-10-18: Every foreground-service start promotes first
+
+### Context
+
+A start while the Away card was detached, or a start whose state matched the last notification, never called `startForeground`, which crashes after the start window. Android 14+ also rejects a `connectedDevice` service without Bluetooth connect permission, which crashed the car's “Allow Bluetooth on phone” state.
+
+### Decision
+
+`BleConnectionService.onStartCommand` calls `startForeground` for every start except dismissing the Away card, then re-detaches if needed. Starts check Bluetooth connect permission first and catch background-start refusals. The service stops instead of crashing when promotion fails.
+
+### Consequences
+
+- Opening the app or the car screen without permission no longer crashes; the screens still ask for the permission.
+- Callers get `false` from `BleConnectionService.start` and retry later.
+
+## 2026-10-18: Store copy names the brand only to identify hardware
+
+### Context
+
+The short description led with “Akrapovic Car Sound Kit valves”, and the full description called the app a replacement for the “abandoned official” app. That reads as an Akrapovič product and disparages the brand owner.
+
+### Decision
+
+Lead with “independent, unofficial” and say the app is not made, endorsed, or supported by Akrapovič. Use the brand name only to identify compatible hardware. Drop the replacement and abandoned wording in the listing and README.
+
+### Consequences
+
+- The Play title stays **Car Sound Kit Control**.
+- Future copy must keep the disclaimer before any feature text.
+
+## 2026-10-18: Withdraw the Wear handoff claim
+
+### Context
+
+The Wear tile builds an intent for the phone package's activity on the watch, where that package is not installed, so the tap does nothing. The Wear module is not in the Play bundle.
+
+### Decision
+
+Docs describe the Wear tile as not shipped and say it does not control the valves. A real handoff would need the Wearable Data Layer or `RemoteActivityHelper`.
+
+### Consequences
+
+- No surface claims Wear valve control until a working handoff ships.

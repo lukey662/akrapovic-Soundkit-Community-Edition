@@ -95,13 +95,17 @@ Record results in your test notes as **Pass / Fail / Not tested**.
 | 1 | Install debug APK; complete first-run onboarding; connect to receiver once on phone | Remembered receiver stored |
 | 2 | Settings → Connected devices → Connection preferences → **Android Auto** (Pixel) or search Settings; tap **Version** 10× → **Developer mode** | Developer menu visible |
 | 3 | Enable **Unknown sources** (and **Start head unit server** for DHU) | Settings stick after restart |
-| 4 | **DHU (Mac):** run Desktop Head Unit; launch **Sound Kit** from launcher | Grid shows Open/Close + status (or phone-setup message) |
+| 4 | **DHU (Mac):** run Desktop Head Unit; launch **Car Sound Kit Control** from launcher | Grid shows Status/Open/Close with title **Car Sound Kit Control** (or phone-setup message) |
 | 5 | **Real car:** install from Play internal sharing or an internal test track, then open the AA launcher | App listed. An `adb` install is expected to be absent; Unknown sources does not apply to the Car App Library |
 | 6 | Open Sound Kit on head unit while **parked** | Template loads without crash |
 | 7 | With remembered receiver: confirm auto-reconnect or **Connecting…** row | No need to open phone app first |
-| 8 | When connected + status known: tap **Open valves** / **Close valves** (toggle label) | Receiver accepts command |
+| 8 | When connected + status known: tap **Open** / **Close** while parked | Receiver accepts command; Status tile shows the new state |
 | 9 | If receiver sends status `04`: car shows **Not ready**; toggle hidden | Matches phone behavior |
 | 10 | If app never appears in AA launcher: use **fallback controls** (below) | Notification + Quick Settings still work |
+| 11 | DHU: toggle six times, then run a full quiet-start countdown | No host error or step-limit message; title never changes |
+| 12 | DHU: set the driving state, then tap **Open** or **Close** | Host refuses the tap (parked only); no command in diagnostics |
+| 13 | Revoke **Nearby devices** on the phone, then open the app on the car | Car shows **Allow Bluetooth on phone**; no crash on phone or car |
+| 14 | Turn the receiver off while connected | Status tile shows **Receiver disconnected · tap to retry**; tapping reconnects |
 
 ### Fallback when Sound Kit is not in the AA launcher
 
@@ -280,6 +284,12 @@ If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel app
 10. **Diagnostics support:** export report → **Email support** or **Copy email** for support@appsforgood.net.
 11. **Reconnect cap:** leave the car or turn the receiver off → confirm reconnect stops after ~8 attempts. Home and the notification say “Left the car at …” or “Receiver out of range since …”, not an error. Connect brings it back. In Settings, choose the Audi's Bluetooth device so return-to-car can reconnect.
 12. **Drive mode pause:** Pause drive mode from the notification → reconnect or wait for its next eligible apply → confirm no drive-mode action occurs until Resume.
+13. **Reconnect keeps a manual change:** preferred **Open** → connect (valves open) → tap Close → power-cycle the receiver within 10 minutes → after reconnect the valves stay closed.
+14. **Quick Settings on Android 14+:** disconnect, then tap the tile → the app opens with no crash. On Android 8 or 9, add the tile and confirm it renders.
+15. **Away then open app:** leave the car until the notification says “Left the car” (occasional scan off) → open the app at home and wait 15 seconds → no crash.
+16. **Command timeout:** if a command shows “did not confirm”, every surface shows Checking/waiting and refuses Open/Close until the receiver reports status again.
+17. **Launcher shortcuts:** `adb shell dumpsys shortcut` lists open_valves, close_valves, and valve_status for the installed package; launch each from the launcher icon.
+18. **Widget after stop:** force-stop the app with the widget on the home screen → the widget no longer shows a live valve state.
 
 ### Command Smoke Pass
 

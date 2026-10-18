@@ -4,6 +4,7 @@ import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.SettingsStore
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
@@ -41,8 +42,7 @@ class VoiceValveActionRouter @Inject constructor(
     private suspend fun connectDefaultWithinDeadline(receiver: SoundKitDevice): String? {
         when (val current = bleRepository.connectionState.value) {
             is ConnectionState.Connected ->
-                if (current.device.address == receiver.address) return null
-                else return "The saved default receiver is not connected."
+                if (current.device.address != receiver.address) return "The saved default receiver is not connected."
             is ConnectionState.Connecting ->
                 if (current.device.address != receiver.address) return "The saved default receiver is not connected."
             is ConnectionState.Reconnecting ->
@@ -54,15 +54,22 @@ class VoiceValveActionRouter @Inject constructor(
             -> bleRepository.connect(receiver, userInitiated = false)
         }
 
-        val connected = withTimeoutOrNull(CONNECTION_DEADLINE_MS) {
+        var connected = false
+        withTimeoutOrNull(CONNECTION_DEADLINE_MS) {
             bleRepository.connectionState
                 .filter { it is ConnectionState.Connected && it.device.address == receiver.address }
                 .first()
+            connected = true
+            // Notifications are enabled before the first status arrives. A command sent in that
+            // gap would always be refused, so wait for a known state or a not-ready report.
+            combine(bleRepository.valveState, bleRepository.receiverStatusMessage) { valve, notReady ->
+                valve != ValveState.Unknown || notReady != null
+            }.first { it }
         }
-        return if (connected == null) {
-            "Couldn't reconnect to the saved default receiver. Open Sound Kit and try again."
-        } else {
+        return if (connected) {
             null
+        } else {
+            "Couldn't reconnect to the saved default receiver. Open Car Sound Kit Control and try again."
         }
     }
 

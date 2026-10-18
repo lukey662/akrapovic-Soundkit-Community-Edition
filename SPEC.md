@@ -17,7 +17,7 @@ Provide a modern Android app that locally controls an Akrapovic Sound Kit BLE re
 - Android release artifacts are signed only when `ANDROID_RELEASE_STORE_FILE`,
   `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`, and
   `ANDROID_RELEASE_KEY_PASSWORD` are supplied by the build environment.
-- Android marketing version: 0.3.1 (version code: 4). iOS remains 0.3.0 until its next cut.
+- Android marketing version: 0.3.4 (version code: 7). iOS remains 0.3.0 until its next cut.
 
 ## Architecture
 
@@ -54,8 +54,9 @@ flowchart TD
 - Play internal testing ships `com.akrapovic.soundkit.community` with store and
   launcher title **Car Sound Kit Control**. Production is unpublished, and public
   Android Auto has not been sent for review.
-- Android excludes `files/crashes/` and `files/diagnostics/` from cloud backup
-  and device transfer. User-created diagnostics exports use
+- Android excludes `files/crashes/`, `files/diagnostics/`, DataStore settings,
+  and the `soundkit_car_mirror` preferences (saved car Bluetooth address) from
+  cloud backup and device transfer. User-created diagnostics exports use
   `cache/diagnostics/`, which Android does not back up.
 - iOS ships `PrivacyInfo.xcprivacy`: no tracking, no collected data, and
   `UserDefaults` access declared for local app settings (`CA92.1`).
@@ -96,12 +97,14 @@ flowchart TD
 
 ## Background Behavior
 
-- A foreground service maintains the BLE connection and persistent notification.
+- A foreground service maintains the BLE connection and persistent notification. Every service start calls `startForeground` first, including when the Away card is detached, and starts are skipped or stopped when Bluetooth connect permission is missing (Android 14+ rejects a `connectedDevice` service without it).
+- The receiver accepts only a toggle. If a command is not confirmed (timeout or write failure), valve state becomes Unknown and the app re-reads the characteristic. Every surface stays blocked until a fresh status arrives, so a retry can never reverse an unconfirmed toggle.
+- Drive mode applies at most once per drive. A BLE reconnect within 10 minutes and with no car-presence change is the same drive: a manual change is kept, a running quiet hold resumes its remainder, and the preferred mode is not re-applied.
 - UI, notification, Quick Settings, widget, drive mode, and Android Auto commands use the process-wide `ValveCommandCoordinator`. It serializes requests, returns no-op success for a matching known state, and rejects disconnected, unknown, and not-ready state before a repository call.
-- Android Open/Close/Status launcher-shortcut fulfillment is internal-only: `AssistantActionActivity` accepts a fixed action only, and `VoiceValveActionRouter` resolves the saved default receiver without accepting a BLE address. It reconnects only that receiver within 8 seconds and sends Open/Close through `ValveCommandCoordinator`; status reports only a known receiver notification state. Google Assistant custom App Actions are deliberately not advertised because no reliable IoT fulfillment contract is declared.
+- Android Open/Close/Status launcher-shortcut fulfillment is internal-only: `AssistantActionActivity` accepts a fixed action only, and `VoiceValveActionRouter` resolves the saved default receiver without accepting a BLE address. It reconnects only that receiver within 8 seconds and waits for the first receiver status, then sends Open/Close through `ValveCommandCoordinator`; status reports only a known receiver notification state. Google Assistant custom App Actions are deliberately not advertised because no reliable IoT fulfillment contract is declared.
 - GATT discovery and notification subscription establish readiness; write acknowledgement is transport-only and a target-state notification confirms a command result.
-- Quick Settings tile opens the app when disconnected and toggles the last known valve state when connected.
-- Android Auto exposes minimal low-distraction controls through the IoT category. It is testable on DHU and compatible Automotive OS targets. A real car lists it only when the app is installed from Play internal sharing or the internal test track; Unknown sources does not apply to the Car App Library. Version `0.3.0` is on that internal track. A public Google Play projected listing remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
+- Quick Settings tile opens the app when disconnected (through a `PendingIntent` on Android 14+) and toggles the last known valve state when connected.
+- Android Auto exposes minimal low-distraction controls through the IoT category: one `GridTemplate` with a constant title and constant Status/Open/Close item titles, so status changes are template refreshes. Open and Close use `ParkedOnlyOnClickListener`; Status offers Retry when disconnected. It is testable on DHU and compatible Automotive OS targets. A real car lists it only when the app is installed from Play internal sharing or the internal test track; Unknown sources does not apply to the Car App Library. Version `0.3.4` is on that internal track. A public Google Play projected listing remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
 
 ## Security
 

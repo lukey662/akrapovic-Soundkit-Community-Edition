@@ -1,10 +1,12 @@
 package com.akrapovic.soundkit.community.service
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.content.ContextCompat
@@ -13,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import com.akrapovic.soundkit.community.car.CarPresenceSource
 import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.data.BleRepository
+import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
 import com.akrapovic.soundkit.community.data.SettingsStore
 import com.akrapovic.soundkit.community.domain.ConnectionState
@@ -40,12 +43,15 @@ class BleConnectionService : LifecycleService() {
     @Inject lateinit var carPresence: CarPresenceSource
     @Inject lateinit var carSessionTracker: CarSessionTracker
     @Inject lateinit var clock: WallClock
+    @Inject lateinit var diagnosticsRepository: DiagnosticsRepository
 
     private var connectSessionId = 0L
     private var lastNotificationKey: String? = null
     private var detachedForAway = false
     private val carWake = MutableStateFlow(false)
     private var notificationsSuppressed = false
+    private var lastPublished: Notification? = null
+    private var lastPublishedQuietAway = false
 
     override fun onCreate() {
         super.onCreate()
@@ -113,6 +119,8 @@ class BleConnectionService : LifecycleService() {
                 PublishedNotification(notification, key, quietAway, release)
             }.collect { published ->
                 if (notificationsSuppressed) return@collect
+                lastPublished = published.notification
+                lastPublishedQuietAway = published.quietAway
                 if (published.release) {
                     notificationsSuppressed = true
                     publishNotification(published.notification, quietAway = false)
@@ -176,6 +184,12 @@ class BleConnectionService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         val wokeFromCar = intent == null || intent.getBooleanExtra(EXTRA_CAR_WAKE, false)
+        if (intent?.action != ACTION_DISMISS_AWAY) {
+            // Every startForegroundService needs startForeground, even when the shade card is
+            // detached for Away or the next state matches the last one published.
+            notificationsSuppressed = false
+            if (!promoteToForeground()) return START_NOT_STICKY
+        }
         when (intent?.action) {
             ACTION_DISMISS_AWAY -> {
                 notificationsSuppressed = true
@@ -246,33 +260,79 @@ class BleConnectionService : LifecycleService() {
     private fun publishNotification(notification: Notification, quietAway: Boolean) {
         if (!quietAway) {
             detachedForAway = false
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    SoundKitNotificationFactory.NOTIFICATION_ID,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
-                )
-            } else {
-                startForeground(SoundKitNotificationFactory.NOTIFICATION_ID, notification)
-            }
+            startForegroundSafely(notification)
             return
         }
         if (!detachedForAway) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    SoundKitNotificationFactory.NOTIFICATION_ID,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
-                )
-            } else {
-                startForeground(SoundKitNotificationFactory.NOTIFICATION_ID, notification)
-            }
+            if (!startForegroundSafely(notification)) return
             stopForeground(STOP_FOREGROUND_DETACH)
             detachedForAway = true
         } else {
             getSystemService(NotificationManager::class.java)
                 .notify(SoundKitNotificationFactory.NOTIFICATION_ID, notification)
         }
+    }
+
+    /**
+     * Satisfies the startForegroundService contract for this start, then restores a detached
+     * Away card. Returns false when the service could not become foreground and is stopping.
+     */
+    private fun promoteToForeground(): Boolean {
+        val notification = lastPublished ?: notificationFactory.build(
+            connectionState = bleRepository.connectionState.value,
+            valveState = bleRepository.valveState.value,
+            receiverStatusMessage = bleRepository.receiverStatusMessage.value,
+        )
+        if (!startForegroundSafely(notification)) return false
+        if (detachedForAway && lastPublishedQuietAway) {
+            stopForeground(STOP_FOREGROUND_DETACH)
+        } else {
+            detachedForAway = false
+        }
+        return true
+    }
+
+    /**
+     * Android 14+ rejects a connectedDevice foreground service without Bluetooth permission, and
+     * Android 12+ rejects background starts. Either must stop the service, not crash the process.
+     */
+    private fun startForegroundSafely(notification: Notification): Boolean {
+        if (!hasForegroundPrerequisites(this)) {
+            diagnosticsRepository.warning("Connection service stopped: Bluetooth permission is not granted")
+            stopSelfAfterFailedPromotion()
+            return false
+        }
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    SoundKitNotificationFactory.NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
+                )
+            } else {
+                startForeground(SoundKitNotificationFactory.NOTIFICATION_ID, notification)
+            }
+            true
+        } catch (error: SecurityException) {
+            diagnosticsRepository.error("Connection service could not start in the foreground", error)
+            stopSelfAfterFailedPromotion()
+            false
+        } catch (error: IllegalStateException) {
+            diagnosticsRepository.error("Connection service could not start in the foreground", error)
+            stopSelfAfterFailedPromotion()
+            false
+        }
+    }
+
+    private fun stopSelfAfterFailedPromotion() {
+        notificationsSuppressed = true
+        stopSelf()
+    }
+
+    override fun onDestroy() {
+        // A stopped service no longer pushes widget state, so the last live valve label must go.
+        SoundKitWidgetProvider.requestUpdate(context = this)
+        super.onDestroy()
     }
 
     companion object {
@@ -293,16 +353,42 @@ class BleConnectionService : LifecycleService() {
         @Deprecated("Use ACTION_RESUME_DRIVE_MODE", ReplaceWith("ACTION_RESUME_DRIVE_MODE"))
         const val ACTION_RESUME_AUTOMATION = ACTION_RESUME_DRIVE_MODE
 
-        fun start(context: Context) {
+        /** @return false when the service was not started; callers may retry later. */
+        fun start(context: Context): Boolean {
             val intent = Intent(context, BleConnectionService::class.java).setAction(ACTION_START)
-            ContextCompat.startForegroundService(context, intent)
+            return startForegroundServiceSafely(context, intent)
         }
 
-        fun startFromCarWake(context: Context) {
+        fun startFromCarWake(context: Context): Boolean {
             val intent = Intent(context, BleConnectionService::class.java)
                 .setAction(ACTION_START)
                 .putExtra(EXTRA_CAR_WAKE, true)
-            ContextCompat.startForegroundService(context, intent)
+            return startForegroundServiceSafely(context, intent)
+        }
+
+        fun startAction(context: Context, action: String): Boolean {
+            val intent = Intent(context, BleConnectionService::class.java).setAction(action)
+            return startForegroundServiceSafely(context, intent)
+        }
+
+        /** The connectedDevice type needs Bluetooth connect permission on Android 12+. */
+        fun hasForegroundPrerequisites(context: Context): Boolean {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+            return ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
+                PackageManager.PERMISSION_GRANTED
+        }
+
+        private fun startForegroundServiceSafely(context: Context, intent: Intent): Boolean {
+            if (!hasForegroundPrerequisites(context)) return false
+            return try {
+                ContextCompat.startForegroundService(context, intent)
+                true
+            } catch (_: IllegalStateException) {
+                // ForegroundServiceStartNotAllowedException: the app is in the background.
+                false
+            } catch (_: SecurityException) {
+                false
+            }
         }
     }
 }

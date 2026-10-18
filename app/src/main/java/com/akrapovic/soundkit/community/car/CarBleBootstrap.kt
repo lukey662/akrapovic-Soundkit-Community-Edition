@@ -23,7 +23,8 @@ object CarBleBootstrap {
         scope: CoroutineScope,
     ): Boolean {
         return try {
-            BleConnectionService.start(context.applicationContext)
+            // No Bluetooth permission or a background-start refusal: retry on the next render.
+            if (!BleConnectionService.start(context.applicationContext)) return false
             if (!settings.onboardingCompleted) return true
             val device = RememberedDeviceConnector.defaultDevice(settings) ?: return true
             scope.launch {

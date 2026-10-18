@@ -86,6 +86,31 @@ class VoiceValveActionRouterTest {
     }
 
     @Test
+    fun shortcutWaitsForTheFirstStatusAfterConnecting() = runTest {
+        val ble = FakeBleRepository()
+        val default = testDevice(address = "00:11:22:33:44:55")
+        val settings = FakeSettingsStore(
+            SoundKitSettings(
+                savedReceivers = listOf(SavedReceiver(default.address, default.name, isDefault = true)),
+                onboardingCompletedAt = 1L,
+            ),
+        )
+        ble.openResult = CompletableDeferred(CommandResult.Success(ValveState.Open))
+        val router = VoiceValveActionRouter(ble, settings, ValveCommandCoordinator(ble))
+
+        val result = async { router.execute(VoiceValveAction.Open) }
+        runCurrent()
+        ble.connectionState.value = ConnectionState.Connected(ble.connectedDevices.single())
+        runCurrent()
+        assertEquals(0, ble.openValveCount)
+        ble.valveState.value = ValveState.Closed
+        runCurrent()
+
+        assertEquals("Valves are open.", (result.await() as VoiceValveActionResult.Success).message)
+        assertEquals(1, ble.openValveCount)
+    }
+
+    @Test
     fun statusReturnsFailureCopyWhenReceiverHasNotReportedState() = runTest {
         val ble = FakeBleRepository()
         val device = testDevice()

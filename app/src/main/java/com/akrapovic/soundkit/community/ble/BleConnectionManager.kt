@@ -163,13 +163,32 @@ class BleConnectionManager @Inject constructor(
 
         val result = withTimeoutOrNull(BleTimeouts.COMMAND_CONFIRMATION_MS) { deferred.await() }
             ?: CommandResult.Failure(
-                "The receiver did not confirm the change. Check the valve state before trying again.",
+                "The receiver did not confirm the change. Checking the valve position before allowing another tap.",
                 recoverable = true,
             )
         if (pendingWrite == deferred) {
             clearPendingCommand()
         }
+        if (result is CommandResult.Failure && gatt === activeGatt) {
+            resyncValveState(activeGatt, characteristic)
+        }
         result
+    }
+
+    /**
+     * The receiver only understands a toggle. After an unconfirmed write the valve may or may not
+     * have moved, so the old state must not authorize another toggle. Unknown blocks every surface
+     * in [com.akrapovic.soundkit.community.domain.ValveCommandCoordinator] until status returns.
+     */
+    @SuppressLint("MissingPermission")
+    private fun resyncValveState(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+        _valveState.value = ValveState.Unknown
+        if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_READ == 0) {
+            diagnosticsRepository.warning("Valve state unknown after an unconfirmed command; waiting for a status notification")
+            return
+        }
+        val started = gatt.readCharacteristic(characteristic)
+        diagnosticsRepository.info("Valve state unknown after an unconfirmed command; status read started=$started")
     }
 
     @SuppressLint("MissingPermission")
@@ -300,6 +319,27 @@ class BleConnectionManager @Inject constructor(
             handleStatusNotification(value)
         }
 
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray,
+            status: Int,
+        ) {
+            if (!isActiveGatt(gatt)) return
+            handleStatusRead(characteristic, value, status)
+        }
+
+        @Deprecated("Required by Android BluetoothGattCallback before API 33.")
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int,
+        ) {
+            if (!isActiveGatt(gatt)) return
+            @Suppress("DEPRECATION")
+            handleStatusRead(characteristic, characteristic.value ?: byteArrayOf(), status)
+        }
+
         @Deprecated("Required by Android BluetoothGattCallback before API 33.")
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
@@ -351,6 +391,18 @@ class BleConnectionManager @Inject constructor(
             .asSequence()
             .flatMap { it.characteristics.asSequence() }
             .firstOrNull { it.uuid == uuid }
+    }
+
+    private fun handleStatusRead(characteristic: BluetoothGattCharacteristic, value: ByteArray, status: Int) {
+        if (characteristic.uuid != SoundKitProtocol.commandCharacteristicUuid) return
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            diagnosticsRepository.warning("Status read failed with status $status; waiting for a notification")
+            return
+        }
+        diagnosticsRepository.debug("BLE read ${characteristic.uuid}: ${value.toHexString()}")
+        // An empty read is not a fault; the next notification still carries status.
+        if (value.isEmpty()) return
+        handleStatusNotification(value)
     }
 
     private fun handleStatusNotification(value: ByteArray) {

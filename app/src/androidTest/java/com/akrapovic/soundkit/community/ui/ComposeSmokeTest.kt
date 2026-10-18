@@ -71,6 +71,7 @@ private fun smokeDriveModeEngine(
     diagnosticsRepository = diagnosticsRepository,
     valveCommandCoordinator = valveCommandCoordinator,
     clock = com.akrapovic.soundkit.community.domain.SystemWallClock(),
+    carPresence = IdleCarPresence,
 )
 
 @SdkSuppress(maxSdkVersion = 35)

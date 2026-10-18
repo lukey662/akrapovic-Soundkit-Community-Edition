@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.domain
 
+import com.akrapovic.soundkit.community.car.CarPresenceSource
 import com.akrapovic.soundkit.community.data.BleRepository
 import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.data.RuleExecutionLogStore
@@ -14,7 +15,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -27,6 +31,7 @@ class DriveModeEngine @Inject constructor(
     private val diagnosticsRepository: DiagnosticsRepository,
     private val valveCommandCoordinator: ValveCommandCoordinator,
     private val clock: WallClock,
+    carPresence: CarPresenceSource,
 ) {
     private val mutex = Mutex()
     private val persistScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -34,6 +39,13 @@ class DriveModeEngine @Inject constructor(
     private var activeSessionId: Long? = null
     private var userAdjustedSessionId: Long? = null
     private var holdCancelled = false
+
+    // One drive spans BLE drops. Drive mode acts once per drive; a manual change holds until it ends.
+    private var appliedThisDrive = false
+    private var manualChangeThisDrive = false
+    private var disconnectedAtMillis: Long? = null
+    private var holdEndsAtDisconnect: Long? = null
+    private var driveBoundarySinceDisconnect = false
 
     private val _quietHoldEndsAt = MutableStateFlow<Long?>(null)
     val quietHoldEndsAt: StateFlow<Long?> = _quietHoldEndsAt.asStateFlow()
@@ -46,9 +58,26 @@ class DriveModeEngine @Inject constructor(
                 endsAt > 0L -> settingsStore.setQuietHoldEndsAt(null)
             }
         }
+        persistScope.launch {
+            // Getting in or out of the car starts a new drive, even if the receiver link survived.
+            // Opening or closing the car screen is not a boundary, so the session flag is ignored.
+            carPresence.presence
+                .map { it.inCar }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { endDrive() }
+        }
+    }
+
+    private fun endDrive() {
+        appliedThisDrive = false
+        manualChangeThisDrive = false
+        holdEndsAtDisconnect = null
+        driveBoundarySinceDisconnect = true
     }
 
     fun onUserValveAdjustment() {
+        manualChangeThisDrive = true
         holdCancelled = true
         userAdjustedSessionId = activeSessionId
         quietJob?.cancel()
@@ -57,6 +86,11 @@ class DriveModeEngine @Inject constructor(
     }
 
     fun onDisconnect() {
+        if (disconnectedAtMillis == null) {
+            disconnectedAtMillis = clock.nowMillis()
+            holdEndsAtDisconnect = _quietHoldEndsAt.value
+            driveBoundarySinceDisconnect = false
+        }
         holdCancelled = true
         quietJob?.cancel()
         quietJob = null
@@ -95,6 +129,8 @@ class DriveModeEngine @Inject constructor(
             diagnosticsRepository.debug("Drive mode skipped: not ready")
             return
         }
+        if (resumeAfterReconnect(sessionId, scope, now, settings)) return
+        appliedThisDrive = true
 
         if (resumeExisting && persistedEnd != null) {
             armQuietHold(sessionId, scope, persistedEnd)
@@ -117,6 +153,48 @@ class DriveModeEngine @Inject constructor(
             clearHold()
             applyPreferredMode(settings.preferredValveMode, "connect")
         }
+    }
+
+    /**
+     * A short BLE drop in the same drive must not re-run drive mode. Without this, a link blip
+     * after the driver closed the valves would reopen them with no tap.
+     * @return true when this reconnect was fully handled.
+     */
+    private suspend fun resumeAfterReconnect(
+        sessionId: Long,
+        scope: CoroutineScope,
+        now: Long,
+        settings: SoundKitSettings,
+    ): Boolean {
+        val disconnectedAt = disconnectedAtMillis
+        val holdEnd = holdEndsAtDisconnect
+        disconnectedAtMillis = null
+        holdEndsAtDisconnect = null
+        val sameDrive = disconnectedAt != null &&
+            !driveBoundarySinceDisconnect &&
+            now - disconnectedAt < SAME_DRIVE_GAP_MS
+        driveBoundarySinceDisconnect = false
+        if (!sameDrive) return false
+        when {
+            manualChangeThisDrive -> {
+                userAdjustedSessionId = sessionId
+                diagnosticsRepository.info("Drive mode kept the manual valve change after a reconnect")
+                logApply(settings.preferredValveMode, "reconnect", skipped = true)
+            }
+            holdEnd != null && holdEnd > now -> {
+                diagnosticsRepository.info("Drive mode resumed the quiet hold after a reconnect")
+                publishHold(holdEnd)
+                armQuietHold(sessionId, scope, holdEnd)
+            }
+            holdEnd != null -> {
+                clearHold()
+                applyPreferredMode(settings.preferredValveMode, "quiet end")
+            }
+            appliedThisDrive -> diagnosticsRepository.debug("Drive mode already applied this drive")
+            else -> return false
+        }
+        appliedThisDrive = true
+        return true
     }
 
     private fun armQuietHold(sessionId: Long, scope: CoroutineScope, endsAt: Long) {
@@ -209,6 +287,11 @@ class DriveModeEngine @Inject constructor(
                 detail = detail,
             ),
         )
+    }
+
+    companion object {
+        /** A reconnect within this gap, with no car presence change, is the same drive. */
+        const val SAME_DRIVE_GAP_MS = 10L * 60L * 1000L
     }
 
     private fun isReadyForAutomation(): Boolean {
