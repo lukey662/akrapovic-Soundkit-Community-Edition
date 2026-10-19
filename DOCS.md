@@ -246,3 +246,6 @@ Built-in head units (Polestar, Volvo, etc.) can host IoT Car apps without phone 
 
 The current build uses the verified APK toggle protocol and keeps commands state-gated. It is suitable for parked physical receiver smoke testing before public release.
 
+## Branches
+
+`main` is the release line: every Play upload is built from a tagged commit on `main` (`v0.3.7` for 0.3.7 / versionCode 10). Work happens on short-lived feature or `release/x.y.z` branches that are merged fast-forward and then deleted. Dependabot update branches stay open until their pull request is merged or closed.
