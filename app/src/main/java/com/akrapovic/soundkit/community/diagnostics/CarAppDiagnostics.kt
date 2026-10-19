@@ -23,7 +23,7 @@ object CarAppDiagnostics {
             appendLine("carAppServiceRegistered=${isCarAppServiceRegistered(context)}")
             appendLine("packageName=${context.packageName}")
             appendLine("packageSuffix=${context.packageName.substringAfter("community", missingDelimiterValue = "")}")
-            appendLine("minCarApiLevel=6")
+            appendLine("minCarApiLevel=${declaredMinCarApiLevel(context)}")
             appendLine("hostPackage=${latestSession.field("hostPackage")}")
             appendLine("carApiLevel=${latestSession.field("carApiLevel")}")
             appendLine("protocolVerified=${SoundKitProtocol.VERIFIED}")
@@ -45,6 +45,20 @@ object CarAppDiagnostics {
             ?.takeIf { it.isNotBlank() }
             ?: "unknown"
     }
+
+    /**
+     * What the Car App Library itself will see: the application-level meta-data. "missing" means
+     * the host will refuse every launch, which is exactly the 0.3.6 head-unit error.
+     */
+    fun declaredMinCarApiLevel(context: Context): String {
+        val metaData = runCatching {
+            context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA).metaData
+        }.getOrNull() ?: return "missing"
+        val level = metaData.getInt(MIN_CAR_API_LEVEL_KEY, -1)
+        return if (level == -1) "missing" else level.toString()
+    }
+
+    private const val MIN_CAR_API_LEVEL_KEY = "androidx.car.app.minCarApiLevel"
 
     private fun hasBlePermissions(context: Context): Boolean {
         return PermissionPolicy.requiredBlePermissions().all { permission ->

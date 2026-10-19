@@ -17,7 +17,7 @@ Provide a modern Android app that locally controls an Akrapovic Sound Kit BLE re
 - Android release artifacts are signed only when `ANDROID_RELEASE_STORE_FILE`,
   `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`, and
   `ANDROID_RELEASE_KEY_PASSWORD` are supplied by the build environment.
-- Android marketing version: 0.3.6 (version code: 9). iOS remains 0.3.0 until its next cut.
+- Android marketing version: 0.3.7 (version code: 10). iOS remains 0.3.0 until its next cut.
 
 ## Architecture
 
@@ -42,7 +42,7 @@ flowchart TD
 
 - The phone module targets Android 16 (`compileSdk` and `targetSdk` 36) so a
   new Play app can be uploaded. The Wear module targets 35, shares the phone's
-  application id (`com.akrapovic.soundkit.community`, versionCode 1000009) so the
+  application id (`com.akrapovic.soundkit.community`, versionCode 1000010) so the
   Wearable Data Layer links them, and ships on the internal track as a Wear OS
   artifact. The watch sends Open/Close only; the phone accepts them only while
   connected and runs them through `ValveCommandCoordinator`.

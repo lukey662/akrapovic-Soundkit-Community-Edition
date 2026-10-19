@@ -299,6 +299,7 @@ If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel app
 25. **Wear OS:** pair a Wear OS emulator (API 33+) with the phone emulator using Android Studio's pairing assistant and install both debug builds. The tile shows "Phone not connected" until the phone connects; tapping "Open phone app" opens the phone app. On real hardware, while parked and connected, Open and Close from the watch move the valves and appear in Activity as Watch.
 26. **Disconnected Home:** with the receiver off, Home shows the same shell as when connected (header with grey chip, dimmed valve, "Not connected", Connect and Scan nearby, the three rows) and no "Sound Kit" bar above it. Left the car and a failed connect read as "Left the car" / "Couldn't connect" with plain-language helpers.
 27. **Car error log:** on the head unit, if the app shows a message instead of the grid, More → Diagnostics → Export → the report ends with LAST CAR ERROR containing the exception; with no failure the section reads "none" and CAR APP READINESS shows hostPackage and carApiLevel.
+28. **Car API level:** Diagnostics export shows `minCarApiLevel=6`; `missing` means the meta-data left `<application>` and Android Auto will refuse every launch.
 
 ### Command Smoke Pass
 

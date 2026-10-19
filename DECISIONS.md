@@ -951,3 +951,18 @@ Tile images render at 56dp capped at 144px as immutable bitmaps, cached per them
 
 - Version 0.3.6 / versionCode 9 (watch 1000009), internal track only.
 - If the error persists, Export diagnostics now carries the real exception; `car_app_hosts.xml` and the release host validator are unchanged.
+
+## 2026-10-19: Declare the car API level on the application
+
+### Context
+
+0.3.6 still showed the head-unit error. With a 64 MB log buffer the host's own log gave the cause: `IllegalArgumentException: Min API level not declared in manifest (androidx.car.app.minCarApiLevel)` thrown from `CarAppService.getAppInfo`. `AppInfo.retrieveMinCarAppApiLevel` reads application meta-data; the manifest had declared it on `SoundKitCarAppService` since the first commit, so no real Android Auto host had ever created a session. The earlier template and bitmap suspicions were wrong; the 0.3.6 hardening stays because it turned a silent failure into a diagnosable one.
+
+### Decision
+
+Move `androidx.car.app.minCarApiLevel` into `<application>` and keep the value at 6. `CarAppDiagnostics` reports the value from `ApplicationInfo.metaData` so a future regression reads `missing` in the export. Ship as 0.3.7 / versionCode 10 (watch 1000010), internal track only.
+
+### Consequences
+
+- Host validation, `car_app_hosts.xml`, and the IoT category are unchanged; the Pixel's Android Auto certificate was verified against the allowlist during this investigation.
+- The debug build is refused by Android Auto (`CAR.VALIDATOR: Package DENIED`) unless Unknown sources is on in Android Auto's developer settings; the Play build is accepted.

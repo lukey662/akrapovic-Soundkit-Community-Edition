@@ -50,6 +50,14 @@
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
+        <!--
+          The Car App Library reads this from the application, not the service. Declared on the
+          service it is invisible to AppInfo, and the host answers every launch with
+          "encountered an unexpected error" before the app's screen is created.
+        -->
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="6" />
 
         <activity
             android:name=".MainActivity"
@@ -164,9 +172,6 @@
                 <action android:name="androidx.car.app.CarAppService" />
                 <category android:name="androidx.car.app.category.IOT" />
             </intent-filter>
-            <meta-data
-                android:name="androidx.car.app.minCarApiLevel"
-                android:value="6" />
         </service>
     </application>
 

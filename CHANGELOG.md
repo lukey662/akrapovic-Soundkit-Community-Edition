@@ -2,6 +2,14 @@
 
 Android releases of Car Sound Kit Control. Store text lives in `play/listing/en-US/`.
 
+## 0.3.7 (versionCode 10) — Play internal testing
+
+### Fixed
+
+- Android Auto no longer shows "Car Sound Kit Control has encountered an unexpected error". The `androidx.car.app.minCarApiLevel` meta-data was declared on the car service; the Car App Library reads it from the application, so every launch failed in `CarAppService.getAppInfo` before the app's screen was created. It now sits in `<application>`. Diagnostics report the level the library actually sees (`minCarApiLevel=6`, or `missing`).
+
+The watch build is 1000010.
+
 ## 0.3.6 (versionCode 9) — Play internal testing
 
 ### Fixed

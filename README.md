@@ -8,7 +8,7 @@ Independent, unofficial open-source Android app that controls a **Car Sound Kit*
 
 ## For Sound Kit owners
 
-**[Install guide → INSTALL.md](INSTALL.md)** · Current build: **0.3.6 (versionCode 9)** on the Play internal testing track (see `DOCS.md` § Android Auto Testing for the tester link)
+**[Install guide → INSTALL.md](INSTALL.md)** · Current build: **0.3.7 (versionCode 10)** on the Play internal testing track (see `DOCS.md` § Android Auto Testing for the tester link)
 
 | Feature | What it does |
 |---------|----------------|

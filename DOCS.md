@@ -98,7 +98,7 @@ They run without opening the app where iOS permits it, but never start an unsafe
 
 ### Release versions
 
-Android is at **0.3.6** (`versionCode` 9) on Play internal testing. The watch artifact is versionCode 1000009. iOS remains
+Android is at **0.3.7** (`versionCode` 10) on Play internal testing. The watch artifact is versionCode 1000010. iOS remains
 **0.3.0** (`CURRENT_PROJECT_VERSION` 3) until its next cut. Update both platform
 marketing versions together for a coordinated release, while incrementing each
 platform’s build number according to its store requirements.
@@ -210,7 +210,7 @@ The manifest must declare `com.google.android.gms.car.application` pointing at `
 
 Google's car testing guide (6 October 2026) requires a real vehicle to install an Android for Cars App Library app from a trusted source. **Unknown sources does not apply** to this library, so an `adb` or APK install is absent from Customize launcher and from the car. Debug package id `com.akrapovic.soundkit.community.debug` does not change that.
 
-The supported install is the Play **internal testing** release of `com.akrapovic.soundkit.community`. Target build is `0.3.6` (versionCode 9). It keeps the host allowlist from `0.3.3`, including the Android Auto certificate installed on the Pixel (`1ca8dcc0…b5295`), shows one stable valve grid, and accepts Open/Close only while parked. The store and launcher title is **Car Sound Kit Control**. The opt-in link is `https://play.google.com/apps/internaltest/4699579818900841316`. Open that link on the phone while signed into a listed tester account, install or update from Play, force-stop Android Auto, reconnect to the car, and enable **Car Sound Kit Control** in Customize launcher if it is listed. The package will not end in `.debug`.
+The supported install is the Play **internal testing** release of `com.akrapovic.soundkit.community`. Target build is `0.3.7` (versionCode 10). It keeps the host allowlist from `0.3.3`, including the Android Auto certificate installed on the Pixel (`1ca8dcc0…b5295`), shows one stable valve grid, and accepts Open/Close only while parked. The store and launcher title is **Car Sound Kit Control**. The opt-in link is `https://play.google.com/apps/internaltest/4699579818900841316`. Open that link on the phone while signed into a listed tester account, install or update from Play, force-stop Android Auto, reconnect to the car, and enable **Car Sound Kit Control** in Customize launcher if it is listed. The package will not end in `.debug`.
 
 That track is not a public listing. Production is unpublished, and public Android Auto has not been sent for review. A public projected listing stays a non-goal because valve control does not fit a published category. Reclassifying the service as POI or navigation would not pass the install-source check.
 
