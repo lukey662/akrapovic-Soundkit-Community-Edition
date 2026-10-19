@@ -43,7 +43,7 @@ class CarScreenPresenterTest {
             quietHoldEndsAtMillis = 125_000L,
             nowMillis = 0L,
         ) as CarScreenModel.Controls
-        assertEquals("Opening in 2:05", countdown.status)
+        assertEquals("Opens in 2:05", countdown.status)
         assertTrue(countdown.openEnabled)
 
         val open = present(ValveState.Open)
@@ -57,7 +57,7 @@ class CarScreenPresenterTest {
         val unknown = present(ValveState.Unknown)
         assertFalse(unknown.openEnabled)
         assertFalse(unknown.closeEnabled)
-        assertEquals("Checking status", unknown.status)
+        assertEquals("Checking", unknown.status)
 
         val notReady = CarScreenPresenter.present(
             true, true, true, ConnectionState.Connected(device), ValveState.Open,
@@ -65,7 +65,7 @@ class CarScreenPresenterTest {
         ) as CarScreenModel.Controls
         assertFalse(notReady.openEnabled)
         assertFalse(notReady.closeEnabled)
-        assertEquals("Receiver not ready", notReady.status)
+        assertEquals("Not ready", notReady.status)
 
         val writing = CarScreenPresenter.present(
             true, true, true, ConnectionState.Connected(device), ValveState.Closed,
@@ -136,12 +136,12 @@ class CarScreenPresenterTest {
             null, CommandPhase.Idle,
         ) as CarScreenModel.Controls
 
-        assertEquals("Receiver disconnected", disconnected.status)
-        assertEquals("Receiver disconnected · tap to retry", disconnected.statusText)
+        assertEquals("Disconnected", disconnected.status)
+        assertEquals("Tap to retry", disconnected.statusText)
         assertFalse(disconnected.openEnabled)
         assertFalse(disconnected.closeEnabled)
         assertTrue(disconnected.retryEnabled)
-        assertEquals("Connection failed", error.status)
+        assertEquals("Failed · retry", error.status)
         assertTrue(error.retryEnabled)
         assertFalse(error.openEnabled)
         assertEquals("Left the car", away.status)

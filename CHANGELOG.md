@@ -8,6 +8,8 @@ Android releases of Car Sound Kit Control. Store text lives in `play/listing/en-
 
 - Android Auto no longer shows "Car Sound Kit Control has encountered an unexpected error". The `androidx.car.app.minCarApiLevel` meta-data was declared on the car service; the Car App Library reads it from the application, so every launch failed in `CarAppService.getAppInfo` before the app's screen was created. It now sits in `<application>`. Diagnostics report the level the library actually sees (`minCarApiLevel=6`, or `missing`).
 
+- Android Auto polish, verified on the Desktop Head Unit: status text fits the tile ("Disconnected", "Failed · retry", "Opens in 2:05"), the Status tile reads "Tap to retry" when disconnected, and inert Open/Close tiles are dimmed.
+
 The watch build is 1000010.
 
 ## 0.3.6 (versionCode 9) — Play internal testing

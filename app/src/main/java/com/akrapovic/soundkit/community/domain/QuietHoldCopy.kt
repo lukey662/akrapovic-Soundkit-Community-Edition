@@ -8,7 +8,7 @@ object QuietHoldCopy {
     }
 
     fun shortStatus(endsAtMillis: Long, nowMillis: Long): String {
-        return "Opening in ${formatRemaining(endsAtMillis, nowMillis)}"
+        return "Opens in ${formatRemaining(endsAtMillis, nowMillis)}"
     }
 
     fun formatRemaining(endsAtMillis: Long, nowMillis: Long): String {

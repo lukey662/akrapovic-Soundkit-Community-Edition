@@ -45,8 +45,9 @@ object CarScreenPresenter {
         val controlsReady = connectionState is ConnectionState.Connected &&
             valveState != ValveState.Unknown &&
             receiverStatusMessage == null
+        // Grid item text gets roughly 14 characters on a compact head unit before it is cut off.
         val status = when {
-            receiverStatusMessage != null -> "Receiver not ready"
+            receiverStatusMessage != null -> "Not ready"
             inFlightTarget == ValveState.Open -> "Opening…"
             inFlightTarget == ValveState.Closed -> "Closing…"
             else -> connectionState.statusText(valveState, quietHoldEndsAtMillis, nowMillis)
@@ -72,15 +73,15 @@ object CarScreenPresenter {
         quietHoldEndsAtMillis: Long?,
         nowMillis: Long,
     ): String = when (this) {
-        ConnectionState.Disconnected -> "Receiver disconnected"
+        ConnectionState.Disconnected -> "Disconnected"
         ConnectionState.Scanning -> "Connecting…"
         is ConnectionState.Connecting -> "Connecting…"
         is ConnectionState.Reconnecting -> "Connecting…"
         is ConnectionState.Connected -> valveState.statusText(quietHoldEndsAtMillis, nowMillis)
-        is ConnectionState.Error -> "Connection failed"
+        is ConnectionState.Error -> "Failed · retry"
         is ConnectionState.Away -> when (reason) {
             AwayReason.LeftCar -> "Left the car"
-            AwayReason.OutOfRange -> "Receiver out of range"
+            AwayReason.OutOfRange -> "Out of range"
         }
     }
 
@@ -91,7 +92,7 @@ object CarScreenPresenter {
         return when (this) {
             ValveState.Closed -> "Closed"
             ValveState.Open -> "Open"
-            ValveState.Unknown -> "Checking status"
+            ValveState.Unknown -> "Checking"
         }
     }
 }
@@ -121,7 +122,11 @@ sealed interface CarScreenModel {
         val closeEnabled: Boolean,
         val retryEnabled: Boolean,
     ) : CarScreenModel {
-        /** Grid item text for the status tile; the item title stays [CarScreenPresenter.STATUS_ITEM_TITLE]. */
-        val statusText: String get() = if (retryEnabled) "$status · tap to retry" else status
+        /**
+         * Grid item text for the status tile; the item title stays [CarScreenPresenter.STATUS_ITEM_TITLE].
+         * Kept short enough not to truncate on a compact head unit; a plain disconnect reads as the
+         * action the tap performs.
+         */
+        val statusText: String get() = if (retryEnabled && status == "Disconnected") "Tap to retry" else status
     }
 }

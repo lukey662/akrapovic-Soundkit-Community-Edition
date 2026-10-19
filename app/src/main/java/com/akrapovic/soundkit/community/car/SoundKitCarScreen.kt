@@ -75,7 +75,7 @@ class SoundKitCarScreen(
      * Icons keyed by (themeId, openAmount). The quiet-hold countdown invalidates every second, and
      * each invalidate must not re-render or re-send bitmaps, so the three tiles reuse these.
      */
-    private val iconCache = HashMap<Pair<String?, Float>, CarIcon>()
+    private val iconCache = HashMap<Triple<String?, Float, Boolean>, CarIcon>()
 
     init {
         carSessionTracker.beginSession()
@@ -174,7 +174,10 @@ class SoundKitCarScreen(
                         gridItem(
                             title = CarScreenPresenter.STATUS_ITEM_TITLE,
                             text = model.statusText,
-                            icon = valveIcon(if (repository.valveState.value == ValveState.Open) 1f else 0f),
+                            icon = valveIcon(
+                                openAmount = if (repository.valveState.value == ValveState.Open) 1f else 0f,
+                                enabled = repository.connectionState.value is ConnectionState.Connected,
+                            ),
                             onClick = if (model.retryEnabled) OnClickListener { retryConnection() } else null,
                         ),
                     )
@@ -182,7 +185,7 @@ class SoundKitCarScreen(
                         gridItem(
                             title = CarScreenPresenter.OPEN_ITEM_TITLE,
                             text = null,
-                            icon = valveIcon(1f),
+                            icon = valveIcon(1f, enabled = model.openEnabled),
                             onClick = if (model.openEnabled) valveClick { openValve() } else null,
                         ),
                     )
@@ -190,7 +193,7 @@ class SoundKitCarScreen(
                         gridItem(
                             title = CarScreenPresenter.CLOSE_ITEM_TITLE,
                             text = null,
-                            icon = valveIcon(0f),
+                            icon = valveIcon(0f, enabled = model.closeEnabled),
                             onClick = if (model.closeEnabled) valveClick { closeValve() } else null,
                         ),
                     )
@@ -206,9 +209,9 @@ class SoundKitCarScreen(
      * fails for any reason the tile falls back to the tinted vector glyph rather than failing the
      * whole template.
      */
-    private fun valveIcon(openAmount: Float): CarIcon {
+    private fun valveIcon(openAmount: Float, enabled: Boolean): CarIcon {
         val themeId = settingsSnapshot.garageThemeId
-        return iconCache.getOrPut(themeId to openAmount) {
+        return iconCache.getOrPut(Triple(themeId, openAmount, enabled)) {
             val palette = ValveArtPalette.from(darkVariantFor(themeId))
             runCatching {
                 val metrics = carContext.resources.displayMetrics
@@ -218,6 +221,8 @@ class SoundKitCarScreen(
                     palette = palette,
                     density = metrics.density,
                     maxPx = TILE_IMAGE_MAX_PX,
+                    // Inert tiles fade so a glowing Open tile never invites a tap it cannot take.
+                    contentAlpha = if (enabled) 1f else INERT_TILE_ALPHA,
                 )
                 CarIcon.Builder(IconCompat.createWithBitmap(bitmap)).build()
             }.getOrElse { throwable ->
@@ -276,6 +281,7 @@ class SoundKitCarScreen(
         /** Three ARGB tiles at 56dp capped at 144px stay far below the host's 1MB binder budget. */
         const val TILE_IMAGE_DP = 56
         const val TILE_IMAGE_MAX_PX = 144
+        const val INERT_TILE_ALPHA = 0.38f
         const val ERROR_MESSAGE = "Something went wrong. Open Car Sound Kit on the phone and export diagnostics."
     }
 

@@ -27,9 +27,10 @@ object ValveBitmaps {
         palette: ValveArtPalette,
         density: Float,
         maxPx: Int = Int.MAX_VALUE,
+        contentAlpha: Float = 1f,
     ): Bitmap {
         val size = sizePx.coerceIn(1, maxPx.coerceAtLeast(1))
-        val key = "$size-$openAmount-${palette.glow.toArgb()}-${palette.heatTintedLip}-$density"
+        val key = "$size-$openAmount-${palette.glow.toArgb()}-${palette.heatTintedLip}-$density-$contentAlpha"
         cache.get(key)?.let { return it }
         val image = ImageBitmap(size, size)
         CanvasDrawScope().draw(
@@ -38,7 +39,7 @@ object ValveBitmaps {
             canvas = Canvas(image),
             size = Size(size.toFloat(), size.toFloat()),
         ) {
-            with(ValveArt) { drawValve(openAmount = openAmount, palette = palette) }
+            with(ValveArt) { drawValve(openAmount = openAmount, palette = palette, contentAlpha = contentAlpha) }
         }
         val mutable = image.asAndroidBitmap()
         val bitmap = mutable.copy(Bitmap.Config.ARGB_8888, false) ?: mutable
