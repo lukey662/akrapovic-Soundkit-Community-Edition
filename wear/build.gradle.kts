@@ -25,8 +25,8 @@ android {
         minSdk = 30
         targetSdk = 35
         // Unique per artifact on Play; the watch build is filtered by android.hardware.type.watch.
-        versionCode = 1_000_010
-        versionName = "0.3.7"
+        versionCode = 1_000_011
+        versionName = "0.3.8"
     }
 
     signingConfigs {

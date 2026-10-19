@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.util.LruCache
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -28,9 +29,10 @@ object ValveBitmaps {
         density: Float,
         maxPx: Int = Int.MAX_VALUE,
         contentAlpha: Float = 1f,
+        busyRing: Color? = null,
     ): Bitmap {
         val size = sizePx.coerceIn(1, maxPx.coerceAtLeast(1))
-        val key = "$size-$openAmount-${palette.glow.toArgb()}-${palette.heatTintedLip}-$density-$contentAlpha"
+        val key = "$size-$openAmount-${palette.glow.toArgb()}-${palette.heatTintedLip}-$density-$contentAlpha-${busyRing?.toArgb()}"
         cache.get(key)?.let { return it }
         val image = ImageBitmap(size, size)
         CanvasDrawScope().draw(
@@ -39,7 +41,7 @@ object ValveBitmaps {
             canvas = Canvas(image),
             size = Size(size.toFloat(), size.toFloat()),
         ) {
-            with(ValveArt) { drawValve(openAmount = openAmount, palette = palette, contentAlpha = contentAlpha) }
+            with(ValveArt) { drawValve(openAmount = openAmount, palette = palette, contentAlpha = contentAlpha, busyRing = busyRing) }
         }
         val mutable = image.asAndroidBitmap()
         val bitmap = mutable.copy(Bitmap.Config.ARGB_8888, false) ?: mutable

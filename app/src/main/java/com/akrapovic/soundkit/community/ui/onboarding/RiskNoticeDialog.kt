@@ -49,7 +49,7 @@ fun RiskNoticeDialog(
                 Bullet("The valve protocol was reverse-engineered from a public APK. Behavior may differ from the official app.")
                 Bullet("Using this app may void your exhaust, vehicle, or component warranty.")
                 Bullet("Operating exhaust valves can change emissions, sound levels, and legal compliance. You are responsible for following local noise and emissions regulations.")
-                Bullet("Never operate the valves while driving. Use only when the vehicle is parked with safe ventilation.")
+                Bullet("Change the valves only when it's safe and legal where you drive. While driving, use the large Android Auto buttons and keep your eyes on the road; don't handle the phone.")
                 Bullet("The app is provided as-is, with no warranty of any kind. You accept all risk of equipment damage, legal exposure, and personal injury that may result from use.")
             }
         },

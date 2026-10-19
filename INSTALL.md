@@ -30,7 +30,7 @@ Plain-language guide for Akrapovič Sound Kit owners. No developer tools require
 
 ## Daily use
 
-- **Home** — open/close valves when parked (never while driving).
+- **Home** — open/close valves on the phone while parked; while driving, use the Android Auto buttons.
 - **More → Settings** — saved receivers, auto-reconnect, drive mode.
 - **More → Appearance** — garage themes.
 - **More → Advanced → Diagnostics** — export logs and email **support@appsforgood.net** if something fails.

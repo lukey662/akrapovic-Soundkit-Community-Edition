@@ -966,3 +966,19 @@ Move `androidx.car.app.minCarApiLevel` into `<application>` and keep the value a
 
 - Host validation, `car_app_hosts.xml`, and the IoT category are unchanged; the Pixel's Android Auto certificate was verified against the allowlist during this investigation.
 - The debug build is refused by Android Auto (`CAR.VALIDATOR: Package DENIED`) unless Unknown sources is on in Android Auto's developer settings; the Play build is accepted.
+
+## 2026-10-19: Valve buttons work while driving on a two-button pane
+
+### Context
+
+0.3.7 worked in the owner's car, but Open and Close answered "you can't use this while driving". The point of the app is changing exhaust volume on the move: quiet through a street at night, open on the open road. The Car App Library requires `ParkedOnlyOnClickListener` only for actions that send the driver to the phone; a single in-car tap does not. The owner also found three tiles busy and wanted no buttons while connecting.
+
+### Decision
+
+Supersede "One stable, parked-only car template". The car shows one `PaneTemplate` with constant title **Car Sound Kit**, the valve art as the pane image, and one row titled with the receiver name whose text carries the status. `PaneTemplate` counts an update as a refresh while the title and row titles stay the same, so buttons can appear, disappear, enable and change colour without using the host's template quota. Buttons: none while connecting or checking, **Connect** when disconnected, failed or away, otherwise **Open** and **Close** (primary = the one that changes state; the other disabled). Plain `OnClickListener`s; commands still go through `ValveCommandCoordinator`.
+
+### Consequences
+
+- Safety copy changes from "never while driving" to "only when safe and legal; use the car buttons, not the phone".
+- No favourites, menus or action strip on the car screen.
+- The receiver name is the row title; changing the default receiver mid-session costs one template step.

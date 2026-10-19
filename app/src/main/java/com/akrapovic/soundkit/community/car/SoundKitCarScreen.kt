@@ -6,12 +6,11 @@ import androidx.car.app.Screen
 import androidx.car.app.model.Action
 import androidx.car.app.model.CarColor
 import androidx.car.app.model.CarIcon
-import androidx.car.app.model.GridItem
-import androidx.car.app.model.GridTemplate
-import androidx.car.app.model.ItemList
 import androidx.car.app.model.MessageTemplate
 import androidx.car.app.model.OnClickListener
-import androidx.car.app.model.ParkedOnlyOnClickListener
+import androidx.car.app.model.Pane
+import androidx.car.app.model.PaneTemplate
+import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
@@ -36,6 +35,7 @@ import com.akrapovic.soundkit.community.service.BleConnectionService
 import com.akrapovic.soundkit.community.ui.components.ValveArtPalette
 import com.akrapovic.soundkit.community.ui.components.ValveBitmaps
 import com.akrapovic.soundkit.community.ui.theme.darkVariantFor
+import com.akrapovic.soundkit.community.domain.SavedReceiver
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -72,10 +72,10 @@ class SoundKitCarScreen(
     private var quietHoldEndsAt: Long? = null
 
     /**
-     * Icons keyed by (themeId, openAmount). The quiet-hold countdown invalidates every second, and
-     * each invalidate must not re-render or re-send bitmaps, so the three tiles reuse these.
+     * Valve images keyed by theme and look. The quiet-hold countdown invalidates every second, and
+     * each invalidate must reuse the same bitmap rather than render a new one.
      */
-    private val iconCache = HashMap<Triple<String?, Float, Boolean>, CarIcon>()
+    private val iconCache = HashMap<ValveLook, CarIcon>()
 
     init {
         carSessionTracker.beginSession()
@@ -131,7 +131,10 @@ class SoundKitCarScreen(
     }
 
     private fun buildTemplate(): Template {
-        if (settingsReady) ensureBootstrap(settingsSnapshot)
+        // Loading pane first: the host treats loading -> anything as a refresh, so the first real
+        // state costs nothing.
+        if (!settingsReady) return loadingTemplate()
+        ensureBootstrap(settingsSnapshot)
         if (!SoundKitProtocol.VERIFIED) {
             return messageTemplate("Controls are unavailable in this build.")
         }
@@ -149,7 +152,7 @@ class SoundKitCarScreen(
         )
         return when (model) {
             is CarScreenModel.SetupRequired -> messageTemplate(model.message)
-            is CarScreenModel.Controls -> buildGridTemplate(model)
+            is CarScreenModel.Controls -> paneTemplate(model)
         }
     }
 
@@ -160,94 +163,108 @@ class SoundKitCarScreen(
             .build()
     }
 
-    /**
-     * Title and item titles are constant, so each invalidate is a refresh rather than a new step.
-     * Status lives in item text.
-     */
-    private fun buildGridTemplate(model: CarScreenModel.Controls): Template {
-        return GridTemplate.Builder()
+    @Suppress("DEPRECATION") // Header.Builder needs car API 7; the app supports hosts from API 6.
+    private fun loadingTemplate(): Template {
+        return PaneTemplate.Builder(Pane.Builder().setLoading(true).build())
             .setTitle(CarScreenPresenter.TITLE)
             .setHeaderAction(Action.APP_ICON)
-            .setSingleList(
-                ItemList.Builder()
-                    .addItem(
-                        gridItem(
-                            title = CarScreenPresenter.STATUS_ITEM_TITLE,
-                            text = model.statusText,
-                            icon = valveIcon(
-                                openAmount = if (repository.valveState.value == ValveState.Open) 1f else 0f,
-                                enabled = repository.connectionState.value is ConnectionState.Connected,
-                            ),
-                            onClick = if (model.retryEnabled) OnClickListener { retryConnection() } else null,
-                        ),
-                    )
-                    .addItem(
-                        gridItem(
-                            title = CarScreenPresenter.OPEN_ITEM_TITLE,
-                            text = null,
-                            icon = valveIcon(1f, enabled = model.openEnabled),
-                            onClick = if (model.openEnabled) valveClick { openValve() } else null,
-                        ),
-                    )
-                    .addItem(
-                        gridItem(
-                            title = CarScreenPresenter.CLOSE_ITEM_TITLE,
-                            text = null,
-                            icon = valveIcon(0f, enabled = model.closeEnabled),
-                            onClick = if (model.closeEnabled) valveClick { closeValve() } else null,
-                        ),
-                    )
-                    .build(),
-            )
             .build()
     }
 
     /**
-     * Untinted valve art in the theme's dark glow; the car display is always dark.
-     *
-     * Rendered once per (theme, openAmount) at a size the host can carry over binder. If rendering
-     * fails for any reason the tile falls back to the tinted vector glyph rather than failing the
-     * whole template.
+     * Header title and the single row's title (the receiver name) never change, so every update is
+     * a refresh; the buttons are free to change. Open, Close and Connect use plain click listeners
+     * so they work while driving.
      */
-    private fun valveIcon(openAmount: Float, enabled: Boolean): CarIcon {
+    @Suppress("DEPRECATION") // Header.Builder needs car API 7; the app supports hosts from API 6.
+    private fun paneTemplate(model: CarScreenModel.Controls): Template {
+        val pane = Pane.Builder()
+            .setImage(valveImage(model))
+            .addRow(
+                Row.Builder()
+                    .setTitle(receiverName())
+                    .addText(model.rowText)
+                    .build(),
+            )
+        when (val buttons = model.buttons) {
+            CarButtons.None -> Unit
+            CarButtons.Connect -> pane.addAction(
+                primaryAction("Connect") { retryConnection() },
+            )
+            is CarButtons.OpenClose -> {
+                pane.addAction(
+                    valveAction("Open", buttons.primary == ValveTarget.Open, buttons.openEnabled) { openValve() },
+                )
+                pane.addAction(
+                    valveAction("Close", buttons.primary == ValveTarget.Close, buttons.closeEnabled) { closeValve() },
+                )
+            }
+        }
+        return PaneTemplate.Builder(pane.build())
+            .setTitle(CarScreenPresenter.TITLE)
+            .setHeaderAction(Action.APP_ICON)
+            .build()
+    }
+
+    private fun receiverName(): String {
+        val saved: SavedReceiver? = settingsSnapshot.savedReceivers.firstOrNull { it.isDefault }
+        return saved?.displayName() ?: "Receiver"
+    }
+
+    private fun valveAction(title: String, primary: Boolean, enabled: Boolean, command: suspend () -> Unit): Action {
+        val builder = Action.Builder()
+            .setTitle(title)
+            .setEnabled(enabled)
+            .setOnClickListener(OnClickListener { scope.launch { command() } })
+        if (primary) builder.setFlags(Action.FLAG_PRIMARY).setBackgroundColor(buttonColor())
+        return builder.build()
+    }
+
+    private fun primaryAction(title: String, onClick: () -> Unit): Action {
+        return Action.Builder()
+            .setTitle(title)
+            .setFlags(Action.FLAG_PRIMARY)
+            .setBackgroundColor(buttonColor())
+            .setOnClickListener(OnClickListener { onClick() })
+            .build()
+    }
+
+    private fun buttonColor(): CarColor {
+        val argb = darkVariantFor(settingsSnapshot.garageThemeId).button.toArgb()
+        return CarColor.createCustom(argb, argb)
+    }
+
+    /**
+     * The same exhaust-tip art as Home, rendered large for the pane hero image on a transparent
+     * background so the open glow sits on the car's dark surface. Not connected = closed and faded,
+     * in flight = busy ring. If rendering fails the pane falls back to the tinted vector glyph.
+     */
+    private fun valveImage(model: CarScreenModel.Controls): CarIcon {
         val themeId = settingsSnapshot.garageThemeId
-        return iconCache.getOrPut(Triple(themeId, openAmount, enabled)) {
-            val palette = ValveArtPalette.from(darkVariantFor(themeId))
+        val look = ValveLook(themeId, model.valveOpen, model.dimmed, model.busy)
+        return iconCache.getOrPut(look) {
+            val theme = darkVariantFor(themeId)
+            val palette = ValveArtPalette.from(theme)
             runCatching {
                 val metrics = carContext.resources.displayMetrics
                 val bitmap = ValveBitmaps.render(
-                    sizePx = (TILE_IMAGE_DP * metrics.density).toInt(),
-                    openAmount = openAmount,
+                    sizePx = (PANE_IMAGE_DP * metrics.density).toInt(),
+                    openAmount = if (model.valveOpen) 1f else 0f,
                     palette = palette,
                     density = metrics.density,
-                    maxPx = TILE_IMAGE_MAX_PX,
-                    // Inert tiles fade so a glowing Open tile never invites a tap it cannot take.
-                    contentAlpha = if (enabled) 1f else INERT_TILE_ALPHA,
+                    maxPx = PANE_IMAGE_MAX_PX,
+                    contentAlpha = if (model.dimmed) DIMMED_ALPHA else 1f,
+                    busyRing = if (model.busy) theme.glow.copy(alpha = 0.6f) else null,
                 )
                 CarIcon.Builder(IconCompat.createWithBitmap(bitmap)).build()
             }.getOrElse { throwable ->
-                carErrorLog.record("valveIcon", throwable)
+                carErrorLog.record("valveImage", throwable)
                 val glowArgb = palette.glow.toArgb()
                 CarIcon.Builder(IconCompat.createWithResource(carContext, R.drawable.ic_valve_tile))
                     .setTint(CarColor.createCustom(glowArgb, glowArgb))
                     .build()
             }
         }
-    }
-
-    private fun gridItem(title: String, text: String?, icon: CarIcon, onClick: OnClickListener?): GridItem {
-        val builder = GridItem.Builder()
-            .setTitle(title)
-            .setImage(icon, GridItem.IMAGE_TYPE_LARGE)
-        if (text != null) builder.setText(text)
-        // GridItem has no enabled API. Omitting the click listener makes the host render it inert.
-        if (onClick != null) builder.setOnClickListener(onClick)
-        return builder.build()
-    }
-
-    /** Valve changes are parked-only; the host refuses the tap while the car is moving. */
-    private fun valveClick(command: suspend () -> Unit): OnClickListener {
-        return ParkedOnlyOnClickListener.create { scope.launch { command() } }
     }
 
     private fun retryConnection() {
@@ -278,12 +295,19 @@ class SoundKitCarScreen(
     }
 
     private companion object {
-        /** Three ARGB tiles at 56dp capped at 144px stay far below the host's 1MB binder budget. */
-        const val TILE_IMAGE_DP = 56
-        const val TILE_IMAGE_MAX_PX = 144
-        const val INERT_TILE_ALPHA = 0.38f
+        /** One 256px ARGB hero image (~260 KB) per template stays well inside the 1 MB binder budget. */
+        const val PANE_IMAGE_DP = 200
+        const val PANE_IMAGE_MAX_PX = 256
+        const val DIMMED_ALPHA = 0.45f
         const val ERROR_MESSAGE = "Something went wrong. Open Car Sound Kit on the phone and export diagnostics."
     }
+
+    private data class ValveLook(
+        val themeId: String?,
+        val open: Boolean,
+        val dimmed: Boolean,
+        val busy: Boolean,
+    )
 
     private data class CarRenderState(
         val settings: SoundKitSettings,

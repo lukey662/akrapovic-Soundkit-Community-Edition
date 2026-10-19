@@ -41,9 +41,9 @@ fun AndroidAutoSetupScreen(modifier: Modifier = Modifier) {
             )
             SetupStep(
                 number = 3,
-                title = "Use the phone while parked",
-                body = "Open and close from the notification or the Quick Settings tile. " +
-                    "Connect in car still reconnects the receiver from the car's Bluetooth without a car-screen icon.",
+                title = "Open and close from the car screen",
+                body = "The car screen has two large buttons, Open and Close, that work while driving. " +
+                    "On the phone, use the notification or the Quick Settings tile only while parked.",
             )
         }
 

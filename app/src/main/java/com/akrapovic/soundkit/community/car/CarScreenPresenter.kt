@@ -10,15 +10,17 @@ import com.akrapovic.soundkit.community.domain.ValveState
  * Converts state from Android-facing collaborators into a small, testable car-screen contract.
  * Setup remains phone-only because the car surface must stay low distraction.
  *
- * After setup the car shows one GridTemplate whose title and item titles never change, so every
- * update is a template refresh and does not use up the host's step quota. Live status goes in
- * item text only.
+ * After setup the car shows one PaneTemplate: a constant header, the valve art, one row whose
+ * title is the receiver name and whose text is the live status, and at most two buttons. The
+ * host treats a pane as a refresh while the title and row titles stay the same, so buttons can
+ * appear, disappear and change colour on every connection change without using up the host's
+ * template quota.
+ *
+ * Open, Close and Connect act inside the car, so they work while driving; nothing here sends the
+ * driver to the phone.
  */
 object CarScreenPresenter {
-    const val TITLE = "Car Sound Kit Control"
-    const val STATUS_ITEM_TITLE = "Status"
-    const val OPEN_ITEM_TITLE = "Open"
-    const val CLOSE_ITEM_TITLE = "Close"
+    const val TITLE = "Car Sound Kit"
 
     fun present(
         onboardingCompleted: Boolean,
@@ -41,24 +43,45 @@ object CarScreenPresenter {
             return CarScreenModel.SetupRequired(setupReason)
         }
 
+        val connected = connectionState is ConnectionState.Connected
         val inFlightTarget = commandPhase.inFlightTarget()
-        val controlsReady = connectionState is ConnectionState.Connected &&
-            valveState != ValveState.Unknown &&
-            receiverStatusMessage == null
-        // Grid item text gets roughly 14 characters on a compact head unit before it is cut off.
-        val status = when {
-            receiverStatusMessage != null -> "Not ready"
-            inFlightTarget == ValveState.Open -> "Opening…"
-            inFlightTarget == ValveState.Closed -> "Closing…"
-            else -> connectionState.statusText(valveState, quietHoldEndsAtMillis, nowMillis)
+        val rowText = when (connectionState) {
+            is ConnectionState.Connected -> "Connected · " + when {
+                receiverStatusMessage != null -> "Receiver not ready"
+                inFlightTarget == ValveState.Open -> "Opening…"
+                inFlightTarget == ValveState.Closed -> "Closing…"
+                else -> valveState.statusText(quietHoldEndsAtMillis, nowMillis)
+            }
+            ConnectionState.Scanning,
+            is ConnectionState.Connecting,
+            is ConnectionState.Reconnecting,
+            -> "Connecting…"
+            ConnectionState.Disconnected -> "Not connected"
+            is ConnectionState.Error -> "Couldn't connect"
+            is ConnectionState.Away -> when (connectionState.reason) {
+                AwayReason.LeftCar -> "Left the car"
+                AwayReason.OutOfRange -> "Receiver out of range"
+            }
+        }
+        val buttons = when {
+            connectionState is ConnectionState.Disconnected ||
+                connectionState is ConnectionState.Error ||
+                connectionState is ConnectionState.Away -> CarButtons.Connect
+            !connected || receiverStatusMessage != null || valveState == ValveState.Unknown -> CarButtons.None
+            inFlightTarget != null -> CarButtons.OpenClose(
+                primary = if (inFlightTarget == ValveState.Open) ValveTarget.Open else ValveTarget.Close,
+                openEnabled = false,
+                closeEnabled = false,
+            )
+            valveState == ValveState.Closed -> CarButtons.OpenClose(ValveTarget.Open, openEnabled = true, closeEnabled = false)
+            else -> CarButtons.OpenClose(ValveTarget.Close, openEnabled = false, closeEnabled = true)
         }
         return CarScreenModel.Controls(
-            status = status,
-            openEnabled = controlsReady && valveState == ValveState.Closed && inFlightTarget == null,
-            closeEnabled = controlsReady && valveState == ValveState.Open && inFlightTarget == null,
-            retryEnabled = connectionState is ConnectionState.Disconnected ||
-                connectionState is ConnectionState.Error ||
-                connectionState is ConnectionState.Away,
+            rowText = rowText,
+            buttons = buttons,
+            valveOpen = connected && valveState == ValveState.Open,
+            dimmed = !connected,
+            busy = connected && inFlightTarget != null,
         )
     }
 
@@ -68,31 +91,14 @@ object CarScreenPresenter {
         else -> null
     }
 
-    private fun ConnectionState.statusText(
-        valveState: ValveState,
-        quietHoldEndsAtMillis: Long?,
-        nowMillis: Long,
-    ): String = when (this) {
-        ConnectionState.Disconnected -> "Disconnected"
-        ConnectionState.Scanning -> "Connecting…"
-        is ConnectionState.Connecting -> "Connecting…"
-        is ConnectionState.Reconnecting -> "Connecting…"
-        is ConnectionState.Connected -> valveState.statusText(quietHoldEndsAtMillis, nowMillis)
-        is ConnectionState.Error -> "Failed · retry"
-        is ConnectionState.Away -> when (reason) {
-            AwayReason.LeftCar -> "Left the car"
-            AwayReason.OutOfRange -> "Out of range"
-        }
-    }
-
     private fun ValveState.statusText(quietHoldEndsAtMillis: Long?, nowMillis: Long): String {
         if (this == ValveState.Closed && quietHoldEndsAtMillis != null && quietHoldEndsAtMillis > nowMillis) {
             return QuietHoldCopy.shortStatus(quietHoldEndsAtMillis, nowMillis)
         }
         return when (this) {
-            ValveState.Closed -> "Closed"
-            ValveState.Open -> "Open"
-            ValveState.Unknown -> "Checking"
+            ValveState.Closed -> "Valves closed"
+            ValveState.Open -> "Valves open"
+            ValveState.Unknown -> "Checking valves"
         }
     }
 }
@@ -103,8 +109,8 @@ enum class CarTemplateKind {
 }
 
 /**
- * Setup is a MessageTemplate. Everything after setup is one GridTemplate with a list and never
- * a loading state, so a status change can never swap template types mid-drive.
+ * Setup is a MessageTemplate. Everything after setup is one PaneTemplate, so a status change can
+ * never swap template types mid-drive.
  */
 fun carTemplateKind(model: CarScreenModel): CarTemplateKind {
     return when (model) {
@@ -113,20 +119,29 @@ fun carTemplateKind(model: CarScreenModel): CarTemplateKind {
     }
 }
 
+enum class ValveTarget { Open, Close }
+
+/** The pane's action row: nothing while connecting, Connect when the link is down, else Open and Close. */
+sealed interface CarButtons {
+    data object None : CarButtons
+    data object Connect : CarButtons
+
+    /** [primary] is the button that would change the valves; the other mirrors the current state and is disabled. */
+    data class OpenClose(
+        val primary: ValveTarget,
+        val openEnabled: Boolean,
+        val closeEnabled: Boolean,
+    ) : CarButtons
+}
+
 sealed interface CarScreenModel {
     data class SetupRequired(val message: String) : CarScreenModel
 
     data class Controls(
-        val status: String,
-        val openEnabled: Boolean,
-        val closeEnabled: Boolean,
-        val retryEnabled: Boolean,
-    ) : CarScreenModel {
-        /**
-         * Grid item text for the status tile; the item title stays [CarScreenPresenter.STATUS_ITEM_TITLE].
-         * Kept short enough not to truncate on a compact head unit; a plain disconnect reads as the
-         * action the tap performs.
-         */
-        val statusText: String get() = if (retryEnabled && status == "Disconnected") "Tap to retry" else status
-    }
+        val rowText: String,
+        val buttons: CarButtons,
+        val valveOpen: Boolean,
+        val dimmed: Boolean,
+        val busy: Boolean,
+    ) : CarScreenModel
 }

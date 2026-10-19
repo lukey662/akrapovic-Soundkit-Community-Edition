@@ -2,6 +2,21 @@
 
 Android releases of Car Sound Kit Control. Store text lives in `play/listing/en-US/`.
 
+## 0.3.8 (versionCode 11) — Play internal testing
+
+### Changed
+
+- Open and Close on Android Auto now work while driving. They act inside the car and do not send the driver to the phone, so they no longer use `ParkedOnlyOnClickListener`.
+- The car screen is one `PaneTemplate`: the valve art, the receiver name, a live status line ("Connected · Valves closed"), and two large buttons. No buttons while connecting; one **Connect** button when the link is down; otherwise **Open** and **Close**, with the button that changes the valves in the theme's button colour and the other disabled.
+- The car valve image is the same art as Home, rendered at 256px with the open glow, the faded not-connected look and a busy ring while a command is in flight.
+- Onboarding, the risk notice and the listing now say to change the valves only when it is safe and legal, using the Android Auto buttons while driving.
+
+### Fixed
+
+- Instrumented smoke tests compile again (they predated the `CarErrorLog` diagnostics parameter).
+
+The watch build is 1000011.
+
 ## 0.3.7 (versionCode 10) — Play internal testing
 
 ### Fixed

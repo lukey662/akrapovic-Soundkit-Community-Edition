@@ -8,7 +8,7 @@ Independent, unofficial open-source Android app that controls a **Car Sound Kit*
 
 ## For Sound Kit owners
 
-**[Install guide → INSTALL.md](INSTALL.md)** · Current build: **0.3.7 (versionCode 10)** on the Play internal testing track (see `DOCS.md` § Android Auto Testing for the tester link)
+**[Install guide → INSTALL.md](INSTALL.md)** · Current build: **0.3.8 (versionCode 11)** on the Play internal testing track (see `DOCS.md` § Android Auto Testing for the tester link)
 
 | Feature | What it does |
 |---------|----------------|
@@ -58,7 +58,7 @@ By installing or using this app you acknowledge and accept that:
 - The valve protocol was **reverse-engineered** from a public APK. Behavior may differ from the official app.
 - Using this app may **void your exhaust, vehicle, or component warranty**.
 - Operating exhaust valves can change **emissions, sound levels, and legal compliance**. You are solely responsible for following all applicable **local noise and emissions regulations**.
-- **Never operate the valves while driving.** Use only when the vehicle is parked with safe ventilation.
+- **Change the valves only when it's safe and legal.** While driving, use the large Android Auto buttons and keep your eyes on the road; don't handle the phone.
 - The app is provided **as-is**, with **no warranty of any kind**, express or implied. The authors and contributors accept **no liability** for equipment damage, legal exposure, personal injury, or any other loss arising from use.
 
 The app shows this disclaimer once on first launch; you must accept it before any features are enabled.
@@ -102,7 +102,7 @@ Testing strategy and the physical receiver smoke checklist are documented in `TE
 - Quick Settings tile and home-screen widget
 - Launcher shortcuts for Open, Close, and Valve status
 - Local diagnostics log and export
-- Local-only Android Auto IoT template surface (Open and Close work only while parked)
+- Android Auto screen with the valve art, a live status line, and two large Open and Close buttons that work while driving
 - Wear OS tile that shows the valve state and sends Open/Close through the phone
 - Activity history of every valve change and its source
 - Wake when the receiver is nearby (Android 12+ companion pairing)
@@ -154,6 +154,6 @@ Google’s IoT category supports **projected Android Auto** (phone USB/wireless)
 
 See **More → Android Auto** in the app and `DOCS.md` § Android Auto Testing. Diagnostics exports include a **CAR APP READINESS** section.
 
-A public Play listing remains out of scope. Until an internal Play install exists, use the foreground notification or Quick Settings tile while parked.
+A public Play listing remains out of scope. Until an internal Play install exists, use the foreground notification or Quick Settings tile.
 
 This does not use the internet.

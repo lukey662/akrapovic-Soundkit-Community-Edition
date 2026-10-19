@@ -337,6 +337,7 @@ class ComposeSmokeTest {
                         context,
                         crashReporter,
                         carSessionTracker,
+                        com.akrapovic.soundkit.community.diagnostics.CarErrorLog(context),
                     ),
                     crashReporter = crashReporter,
                     driveModeEngine = smokeDriveModeEngine(
@@ -383,6 +384,7 @@ class ComposeSmokeTest {
                         context,
                         crashReporter,
                         carSessionTracker,
+                        com.akrapovic.soundkit.community.diagnostics.CarErrorLog(context),
                     ),
                     crashReporter = crashReporter,
                     driveModeEngine = smokeDriveModeEngine(

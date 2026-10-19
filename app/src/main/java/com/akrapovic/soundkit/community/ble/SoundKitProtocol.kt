@@ -27,7 +27,7 @@ object SoundKitProtocol {
     private val togglePayload = byteArrayOf(0x01)
 
     const val RECEIVER_NOT_READY_MESSAGE: String =
-        "Receiver isn't ready to change valves. Use while parked with ignition on (if required by your kit). Check the official app once, then try again."
+        "Receiver isn't ready to change valves. Switch the ignition on (if your kit requires it), check the official app once, then try again."
 
     fun isReceiverNotReadyStatus(value: ByteArray): Boolean {
         return value.firstOrNull()?.toInt()?.and(0xFF) == 0x04

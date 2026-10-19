@@ -198,7 +198,7 @@ fun OnboardingFlow(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = "Independent open-source app, not affiliated with Akrapovič. " +
-                            "Reverse-engineered protocol; use only when parked. You accept all risk.",
+                            "Reverse-engineered protocol. Change the valves only when it's safe and legal. You accept all risk.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -595,7 +595,7 @@ private fun RiskNoticeBullets() {
         Bullet("Not affiliated with or endorsed by Akrapovič d.d.")
         Bullet("Protocol reverse-engineered from a public APK; behavior may differ from the official app.")
         Bullet("May void exhaust or vehicle warranty; follow local noise and emissions rules.")
-        Bullet("Never operate valves while driving. Parked use only with safe ventilation.")
+        Bullet("Change the valves only when it's safe and legal. While driving, use the Android Auto buttons, not the phone.")
         Bullet("Provided as-is with no warranty; you accept all risk of damage, legal exposure, or injury.")
     }
 }

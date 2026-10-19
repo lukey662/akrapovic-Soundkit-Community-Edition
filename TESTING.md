@@ -95,17 +95,17 @@ Record results in your test notes as **Pass / Fail / Not tested**.
 | 1 | Install debug APK; complete first-run onboarding; connect to receiver once on phone | Remembered receiver stored |
 | 2 | Settings → Connected devices → Connection preferences → **Android Auto** (Pixel) or search Settings; tap **Version** 10× → **Developer mode** | Developer menu visible |
 | 3 | Enable **Unknown sources** (and **Start head unit server** for DHU) | Settings stick after restart |
-| 4 | **DHU (Mac):** run Desktop Head Unit; launch **Car Sound Kit Control** from launcher | Grid shows Status/Open/Close with title **Car Sound Kit Control** (or phone-setup message) |
+| 4 | **DHU (Mac):** run Desktop Head Unit; launch **Car Sound Kit Control** from launcher | Pane shows the valve art, receiver name and status line under title **Car Sound Kit** (or phone-setup message) |
 | 5 | **Real car:** install from Play internal sharing or an internal test track, then open the AA launcher | App listed. An `adb` install is expected to be absent; Unknown sources does not apply to the Car App Library |
-| 6 | Open Sound Kit on head unit while **parked** | Template loads without crash |
+| 6 | Open Sound Kit on the head unit | Template loads without crash |
 | 7 | With remembered receiver: confirm auto-reconnect or **Connecting…** row | No need to open phone app first |
-| 8 | When connected + status known: tap **Open** / **Close** while parked | Receiver accepts command; Status tile shows the new state |
-| 9 | If receiver sends status `04`: car shows **Not ready**; toggle hidden | Matches phone behavior |
+| 8 | When connected + status known: tap the coloured button (**Open** or **Close**) | Receiver accepts command; status line and buttons swap |
+| 9 | If receiver sends status `04`: car shows **Connected · Receiver not ready**; no buttons | Matches phone behavior |
 | 10 | If app never appears in AA launcher: use **fallback controls** (below) | Notification + Quick Settings still work |
-| 11 | DHU: toggle six times, then run a full quiet-start countdown | No host error or step-limit message; title never changes |
-| 12 | DHU: set the driving state, then tap **Open** or **Close** | Host refuses the tap (parked only); no command in diagnostics |
+| 11 | DHU: toggle six times, then run a full quiet-start countdown | No host error or step-limit message; title and row title never change |
+| 12 | DHU: `restrict all` (driving), then tap **Connect** / **Open** / **Close** | The tap acts; no "can't use while driving" message |
 | 13 | Revoke **Nearby devices** on the phone, then open the app on the car | Car shows **Allow Bluetooth on phone**; no crash on phone or car |
-| 14 | Turn the receiver off while connected | Status tile shows **Receiver disconnected · tap to retry**; tapping reconnects |
+| 14 | Turn the receiver off while connected | Status line shows **Not connected** with one **Connect** button; tapping reconnects |
 
 ### Fallback when Sound Kit is not in the AA launcher
 
@@ -301,6 +301,7 @@ If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel app
 27. **Car error log:** on the head unit, if the app shows a message instead of the grid, More → Diagnostics → Export → the report ends with LAST CAR ERROR containing the exception; with no failure the section reads "none" and CAR APP READINESS shows hostPackage and carApiLevel.
 28. **Car API level:** Diagnostics export shows `minCarApiLevel=6`; `missing` means the meta-data left `<application>` and Android Auto will refuse every launch.
 29. **DHU grid:** with the Desktop Head Unit (`sdkmanager "extras;google;auto"`, Android Auto developer mode → Start head unit server, Unknown sources for debug builds, `adb forward tcp:5277 tcp:5277`) the app shows Status / Open / Close with short status text and dimmed inert tiles; the host log reads `Host received new template (type: androidx.car.app.model.GridTemplate)` with no `E/CarApp` lines.
+30. **Driving:** on the DHU console run `restrict all`, then tap **Connect**, **Open** or **Close**; each acts and the host shows no "can't use while driving" message. In the car, the coloured button changes the valves while moving.
 
 ### Command Smoke Pass
 
