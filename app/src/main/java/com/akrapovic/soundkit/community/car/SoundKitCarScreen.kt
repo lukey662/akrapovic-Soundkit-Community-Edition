@@ -34,6 +34,7 @@ import com.akrapovic.soundkit.community.domain.ValveState
 import com.akrapovic.soundkit.community.service.BleConnectionService
 import com.akrapovic.soundkit.community.ui.components.ValveArtPalette
 import com.akrapovic.soundkit.community.ui.components.ValveBitmaps
+import com.akrapovic.soundkit.community.ui.theme.GarageThemeFamilies
 import com.akrapovic.soundkit.community.ui.theme.darkVariantFor
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import dagger.hilt.android.EntryPointAccessors
@@ -229,10 +230,12 @@ class SoundKitCarScreen(
             .build()
     }
 
-    private fun buttonColor(): CarColor {
-        val argb = darkVariantFor(settingsSnapshot.garageThemeId).button.toArgb()
-        return CarColor.createCustom(argb, argb)
-    }
+    /**
+     * The host drops a custom button colour that fails its contrast check and falls back to its own
+     * default, so the primary button uses the nearest standard car colour, which the host tunes per
+     * display.
+     */
+    private fun buttonColor(): CarColor = carButtonColorFor(settingsSnapshot.garageThemeId)
 
     /**
      * The same exhaust-tip art as Home, rendered large for the pane hero image on a transparent
@@ -316,4 +319,16 @@ class SoundKitCarScreen(
         val receiverStatusMessage: String?,
         val commandPhase: CommandPhase,
     )
+}
+
+/** Theme family -> the standard car colour closest to its button colour. */
+internal fun carButtonColorFor(themeId: String?): CarColor {
+    val family = GarageThemeFamilies.firstOrNull { it.contains(themeId.orEmpty()) }?.id
+    return when (family) {
+        "akrapovic", "audi-rs", "porsche" -> CarColor.RED
+        "bmw-m", "volkswagen-r" -> CarColor.BLUE
+        "lamborghini", "studio" -> CarColor.YELLOW
+        "mercedes-amg" -> CarColor.GREEN
+        else -> CarColor.PRIMARY
+    }
 }
