@@ -57,6 +57,9 @@ struct ConnectedDeviceView: View {
                 if bleManager.receiverNotReady {
                     ReceiverNotReadyChecklistView()
                 }
+                if let problem = bleManager.pairingProblem {
+                    PairingChecklistView(problem: problem)
+                }
                 if case .error = bleManager.connectionPhase {
                     Button("Retry connection") { bleManager.retryConnection() }
                         .buttonStyle(PrimaryButtonStyle())
@@ -432,6 +435,9 @@ struct ScanView: View {
                 Text(bleManager.statusMessage ?? "No receivers yet")
                     .foregroundStyle(theme.muted)
                     .padding(.top, 8)
+                Text(PairingCopy.pinHint)
+                    .font(.footnote)
+                    .foregroundStyle(theme.muted)
             } else {
                 ForEach(bleManager.discoveredDevices.sorted { $0.rssi > $1.rssi }) { device in
                     Button {

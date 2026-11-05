@@ -167,7 +167,7 @@ struct SettingsView: View {
             }
             Button("Cancel", role: .cancel) { receiverToForget = nil }
         } message: {
-            Text("This removes it from this iPhone. You can scan and connect again later.")
+            Text("This removes it from this app. You can scan and connect again later. \(PairingCopy.stillPairedNote)")
         }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
             switch result {

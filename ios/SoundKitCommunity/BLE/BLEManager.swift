@@ -26,6 +26,8 @@ final class BLEManager: NSObject, ObservableObject {
     @Published private(set) var connectionYieldState: ConnectionYieldState = .none
     @Published private(set) var commandInFlight = false
     @Published private(set) var commandPhase: CommandPhase = .idle
+    /// Set when the receiver refused this iPhone's pairing; cleared only by a user connect.
+    @Published private(set) var pairingProblem: PairingProblem?
 
     static let yieldMessage =
         "Another phone may be controlling the receiver. Tap Take control if you need this phone."
@@ -129,6 +131,12 @@ final class BLEManager: NSObject, ObservableObject {
     func connect(to device: DiscoveredDevice, userInitiated: Bool = true) {
         guard !userInitiated || !connectionPhase.isConnectingOrConnected else {
             log("BLE connect skipped; connection is already active")
+            return
+        }
+        if userInitiated {
+            pairingProblem = nil
+        } else if !PairingRecoveryPolicy.allowsAutomaticConnect(pairingProblem: pairingProblem) {
+            log("BLE auto-connect skipped; pairing needs the user")
             return
         }
         stopScan()
@@ -236,6 +244,10 @@ final class BLEManager: NSObject, ObservableObject {
     private func handleLinkLoss(userInitiated: Bool, connectFailed: Bool) {
         if suppressNextLinkLoss {
             suppressNextLinkLoss = false
+            return
+        }
+        guard PairingRecoveryPolicy.shouldRecoverFromLinkLoss(pairingProblem: pairingProblem) else {
+            showPairingProblem()
             return
         }
         let signal: BleContentionSignal?
@@ -463,6 +475,23 @@ final class BLEManager: NSObject, ObservableObject {
         onDiagnostics?(message)
     }
 
+    /// Records a pairing refusal and drops the link; the disconnect callback keeps the error on screen.
+    private func failPairing(_ problem: PairingProblem, error: Error?) {
+        pairingProblem = problem
+        log("BLE pairing problem \(problem): \(error?.localizedDescription ?? "none")")
+        showPairingProblem()
+        if let connectedPeripheral {
+            centralManager.cancelPeripheralConnection(connectedPeripheral)
+        }
+    }
+
+    private func showPairingProblem() {
+        guard let pairingProblem else { return }
+        reconnectTask?.cancel()
+        connectionPhase = .error(PairingCopy.title)
+        statusMessage = PairingCopy.message(for: pairingProblem)
+    }
+
     // MARK: - GATT (called from peripheral delegate)
 
     fileprivate func beginServiceDiscovery() {
@@ -498,6 +527,9 @@ final class BLEManager: NSObject, ObservableObject {
         if let error {
             failPendingCommand(error.localizedDescription)
             log("BLE write error: \(error.localizedDescription)")
+            if let problem = PairingErrorClassifier.classify(error) {
+                failPairing(problem, error: error)
+            }
         } else if let pendingCommand {
             commandPhase = .awaitingConfirmation(pendingCommand)
             startCommandConfirmationTimeout(for: pendingCommand)
@@ -580,6 +612,11 @@ extension BLEManager: CBCentralManagerDelegate {
     nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         Task { @MainActor in
             log("BLE connect failed: \(error?.localizedDescription ?? "unknown")")
+            if let problem = PairingErrorClassifier.classify(error) {
+                pairingProblem = problem
+                showPairingProblem()
+                return
+            }
             handleLinkLoss(userInitiated: false, connectFailed: true)
         }
     }
@@ -588,7 +625,14 @@ extension BLEManager: CBCentralManagerDelegate {
         Task { @MainActor in
             log("BLE disconnected: \(error?.localizedDescription ?? "link lost")")
             let hadDevice = selectedDevice != nil
+            if let problem = PairingErrorClassifier.classify(error) {
+                pairingProblem = problem
+            }
             resetConnectionState()
+            if pairingProblem != nil {
+                showPairingProblem()
+                return
+            }
             if hadDevice {
                 handleLinkLoss(userInitiated: false, connectFailed: false)
             }
@@ -653,6 +697,10 @@ extension BLEManager: CBPeripheralDelegate {
         Task { @MainActor in
             guard characteristic.uuid == SoundKitProtocol.commandCharacteristicUUID else { return }
             guard error == nil, characteristic.isNotifying else {
+                if let problem = PairingErrorClassifier.classify(error) {
+                    failPairing(problem, error: error)
+                    return
+                }
                 statusMessage = error?.localizedDescription ?? "Receiver did not accept status notifications."
                 if let connectedPeripheral { centralManager.cancelPeripheralConnection(connectedPeripheral) }
                 return
@@ -665,6 +713,10 @@ extension BLEManager: CBPeripheralDelegate {
     nonisolated func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         Task { @MainActor in
             if let error {
+                if let problem = PairingErrorClassifier.classify(error) {
+                    failPairing(problem, error: error)
+                    return
+                }
                 statusMessage = error.localizedDescription
                 return
             }

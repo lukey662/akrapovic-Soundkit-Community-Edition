@@ -16,6 +16,7 @@
 		4B23122C52EDF610993AEA47 /* ValveControlState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00A24FCE49661F135E2F5FC /* ValveControlState.swift */; };
 		4B26C3FB6270ADC24F3DAD6D /* SoundKitProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5CEDD2EBF7BA01B44B79343 /* SoundKitProtocol.swift */; };
 		4E6BE3394336EA03AD8B7920 /* DriveModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616771C3F059C4A6400A5432 /* DriveModeView.swift */; };
+		5EB15A186FAFBEE8591A7477 /* PairingErrorClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0358052E0B5D263A2FF870F0 /* PairingErrorClassifierTests.swift */; };
 		609F6CDDE87CA6B8642C2C56 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 692F46DF043A25FCB9EC8C8E /* CarPlaySceneDelegate.swift */; };
 		6582F5A20B41DF957A17C200 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460BA18EABBDC7EC554F313C /* BLEManager.swift */; };
 		69C13E558065BD6734E1DD03 /* VehicleCompatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = B59F17D759B215A8614E4D5A /* VehicleCompatibility.swift */; };
@@ -33,6 +34,7 @@
 		BD7BA16204DEFFFF42A58AB6 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762E40F221E43DC18CFBFD4E /* OnboardingFlowView.swift */; };
 		CAF8C10825CBFE08A80A5FC9 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8379B280A796F61000CD80D /* RootView.swift */; };
 		D4BA22538731EEAFAE5D3590 /* GarageThemes.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA3ADB436C74CA7D6AF3E2F9 /* GarageThemes.swift */; };
+		D78BB4A0D25C7F0C6AD30BAA /* PairingErrorClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02DDDCF454AFA4CB3005491E /* PairingErrorClassifier.swift */; };
 		E3CA8677307FC189FBB6F7A8 /* SoundKitProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14EA887F48A69E8CB935DCD /* SoundKitProtocolTests.swift */; };
 		EF37FC3E0F66D5D1763E2C60 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E604BDEB549412412F91BA97 /* SettingsStore.swift */; };
 		F42BAC52F049A318CF1930D8 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4C7C04306B571BE30D331D /* DiagnosticsView.swift */; };
@@ -50,6 +52,8 @@
 
 /* Begin PBXFileReference section */
 		028101C144E8B54183FFAF1D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		02DDDCF454AFA4CB3005491E /* PairingErrorClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingErrorClassifier.swift; sourceTree = "<group>"; };
+		0358052E0B5D263A2FF870F0 /* PairingErrorClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingErrorClassifierTests.swift; sourceTree = "<group>"; };
 		086BF04B0242802D929B11F8 /* SoundKitCommunityTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SoundKitCommunityTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C09EE4F6EC1C4943102DE2C /* ValveControlCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValveControlCoordinator.swift; sourceTree = "<group>"; };
 		131EBF40677C71C6FD152437 /* SoundKitCommunityApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundKitCommunityApp.swift; sourceTree = "<group>"; };
@@ -182,6 +186,7 @@
 				BF4F32D0C1A1711B51AEB62E /* ConnectReadyObserver.swift */,
 				E981FEB9EE0CC43755764D99 /* DriveModeEngine.swift */,
 				1AEA6BCFED6E504063333627 /* DriveModeSummary.swift */,
+				02DDDCF454AFA4CB3005491E /* PairingErrorClassifier.swift */,
 				3FC6C98126DA3FABE70C0A04 /* QuietWindowEvaluator.swift */,
 				0C09EE4F6EC1C4943102DE2C /* ValveControlCoordinator.swift */,
 				E00A24FCE49661F135E2F5FC /* ValveControlState.swift */,
@@ -238,6 +243,7 @@
 		D4BC94E2751D41317C99782B /* SoundKitCommunityTests */ = {
 			isa = PBXGroup;
 			children = (
+				0358052E0B5D263A2FF870F0 /* PairingErrorClassifierTests.swift */,
 				A14EA887F48A69E8CB935DCD /* SoundKitProtocolTests.swift */,
 			);
 			path = SoundKitCommunityTests;
@@ -365,6 +371,7 @@
 				41BC73E90A80982E7AA8AF98 /* HomeView.swift in Sources */,
 				8E1E78EA8792E7D738AF2ED9 /* MoreView.swift in Sources */,
 				BD7BA16204DEFFFF42A58AB6 /* OnboardingFlowView.swift in Sources */,
+				D78BB4A0D25C7F0C6AD30BAA /* PairingErrorClassifier.swift in Sources */,
 				2BC3D0131D441661FC911F40 /* QuietWindowEvaluator.swift in Sources */,
 				0D4C6837D32761BBB84E61BF /* ReceiverNotReadyChecklist.swift in Sources */,
 				CAF8C10825CBFE08A80A5FC9 /* RootView.swift in Sources */,
@@ -384,6 +391,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5EB15A186FAFBEE8591A7477 /* PairingErrorClassifierTests.swift in Sources */,
 				E3CA8677307FC189FBB6F7A8 /* SoundKitProtocolTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

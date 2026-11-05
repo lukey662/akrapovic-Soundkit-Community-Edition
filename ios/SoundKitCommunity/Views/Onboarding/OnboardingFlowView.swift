@@ -229,6 +229,9 @@ struct OnboardingFlowView: View {
             Text("After Get started, grant Bluetooth if asked, then scan for your Sound Kit receiver on Home.")
                 .font(.subheadline)
                 .foregroundStyle(theme.muted)
+            Text(PairingCopy.pinHint)
+                .font(.footnote)
+                .foregroundStyle(theme.muted)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
