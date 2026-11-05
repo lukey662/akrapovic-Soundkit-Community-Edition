@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.R
 import com.akrapovic.soundkit.community.domain.CommandFailureCopy
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.PairingCopy
 import com.akrapovic.soundkit.community.domain.QuietHoldCopy
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.ValveState
@@ -117,7 +118,15 @@ fun ConnectedDeviceScreen(
             },
         )
 
-        if (state.connectionState is ConnectionState.Connecting) {
+        val connecting = state.connectionState as? ConnectionState.Connecting
+        if (connecting?.pairing == true) {
+            AkraBanner(
+                title = PairingCopy.IN_PROGRESS_TITLE,
+                body = PairingCopy.IN_PROGRESS_BODY,
+                accent = AkraColors.Amber,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        } else if (connecting != null) {
             AkraBanner(
                 title = "Connecting",
                 body = "Preparing ${connectedDevice?.name ?: "receiver"} for valve control.",
@@ -334,9 +343,9 @@ private fun ValveState.helperText(receiverNotReady: String?): String {
 fun ConnectionState.shortText(): String = when (this) {
     ConnectionState.Disconnected -> "Disconnected"
     ConnectionState.Scanning -> "Scanning"
-    is ConnectionState.Connecting -> "Connecting"
+    is ConnectionState.Connecting -> if (pairing) "Pairing" else "Connecting"
     is ConnectionState.Connected -> "Connected"
     is ConnectionState.Reconnecting -> "Reconnecting"
-    is ConnectionState.Error -> "Needs attention"
+    is ConnectionState.Error -> if (isPairingProblem) "Pairing needed" else "Needs attention"
     is ConnectionState.Away -> "Away"
 }

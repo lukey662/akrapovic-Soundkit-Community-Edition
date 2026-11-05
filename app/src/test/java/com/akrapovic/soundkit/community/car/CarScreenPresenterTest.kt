@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.car
 
+import com.akrapovic.soundkit.community.domain.ConnectionErrorKind
 import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.CommandPhase
 import com.akrapovic.soundkit.community.domain.ConnectionState
@@ -153,5 +154,19 @@ class CarScreenPresenterTest {
 
     private fun assertSetup(model: CarScreenModel, message: String) {
         assertEquals(message, (model as CarScreenModel.SetupRequired).message)
+    }
+
+    @Test
+    fun pairingStatesPointToThePhoneButKeepConnect() {
+        val pairing = present(ConnectionState.Connecting(device, pairing = true), ValveState.Unknown)
+        assertEquals("Pairing on phone…", pairing.rowText)
+        assertEquals(CarButtons.None, pairing.buttons)
+
+        val failed = present(
+            ConnectionState.Error("x", recoverable = false, kind = ConnectionErrorKind.PairingFailed),
+            ValveState.Unknown,
+        )
+        assertEquals("Pair on phone (PIN on receiver)", failed.rowText)
+        assertEquals(CarButtons.Connect, failed.buttons)
     }
 }

@@ -52,16 +52,6 @@ object ConnectionPriorityPolicy {
         if (!settings.autoReconnect || !settings.connectInCar) return false
         if (settings.defaultReceiver == null) return false
         if (yieldState is ConnectionYieldState.Yielded) return false
-        return when (connectionState) {
-            ConnectionState.Disconnected,
-            is ConnectionState.Away,
-            is ConnectionState.Error,
-            -> true
-            ConnectionState.Scanning,
-            is ConnectionState.Connecting,
-            is ConnectionState.Connected,
-            is ConnectionState.Reconnecting,
-            -> false
-        }
+        return connectionState.allowsAutomaticConnect()
     }
 }

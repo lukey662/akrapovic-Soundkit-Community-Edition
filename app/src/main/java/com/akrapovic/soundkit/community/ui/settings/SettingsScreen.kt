@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.akrapovic.soundkit.community.domain.CarBluetoothCandidate
 import com.akrapovic.soundkit.community.domain.CarBluetoothCatalog
+import com.akrapovic.soundkit.community.domain.PairingCopy
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.ui.SoundKitUiState
 import com.akrapovic.soundkit.community.ui.components.AkraActionButton
@@ -36,6 +37,7 @@ import com.akrapovic.soundkit.community.ui.components.AkraListRow
 import com.akrapovic.soundkit.community.ui.components.AkraScreen
 import com.akrapovic.soundkit.community.ui.components.AkraSectionTitle
 import com.akrapovic.soundkit.community.ui.components.AkraSwitchRow
+import com.akrapovic.soundkit.community.ui.system.openBluetoothSettings
 import com.akrapovic.soundkit.community.companion.CompanionPairing
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.IntentSenderRequest
@@ -72,6 +74,7 @@ fun SettingsScreen(
         powerManager?.isIgnoringBatteryOptimizations(context.packageName) == true
     val removeTarget = remember { mutableStateOf<SavedReceiver?>(null) }
     val showForgetAllConfirm = remember { mutableStateOf(false) }
+    var showStillPaired by remember { mutableStateOf(false) }
     val savedReceivers = state.settings.savedReceivers
     var showCarPicker by remember { mutableStateOf(false) }
     val carCandidates = remember(showCarPicker) { CarBluetoothCatalog.bondedCandidates(context) }
@@ -263,6 +266,7 @@ fun SettingsScreen(
                     TextButton(onClick = {
                         onRemoveReceiver(receiver.address)
                         removeTarget.value = null
+                        showStillPaired = true
                     }) { Text("Remove") }
                 },
                 dismissButton = {
@@ -322,10 +326,28 @@ fun SettingsScreen(
                     TextButton(onClick = {
                         showForgetAllConfirm.value = false
                         onForgetAll()
+                        showStillPaired = true
                     }) { Text("Forget all") }
                 },
                 dismissButton = {
                     TextButton(onClick = { showForgetAllConfirm.value = false }) { Text("Cancel") }
+                },
+            )
+        }
+
+        if (showStillPaired) {
+            AlertDialog(
+                onDismissRequest = { showStillPaired = false },
+                title = { Text("Phone is still paired") },
+                text = { Text(PairingCopy.STILL_PAIRED_NOTE) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showStillPaired = false
+                        openBluetoothSettings(context)
+                    }) { Text(PairingCopy.OPEN_BLUETOOTH_SETTINGS) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showStillPaired = false }) { Text("Not now") }
                 },
             )
         }

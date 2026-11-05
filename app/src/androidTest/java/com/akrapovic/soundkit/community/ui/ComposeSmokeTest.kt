@@ -1,5 +1,9 @@
 package com.akrapovic.soundkit.community.ui
 
+import org.junit.Assert.assertTrue
+import com.akrapovic.soundkit.community.domain.PairingCopy
+import com.akrapovic.soundkit.community.domain.ConnectionErrorKind
+import androidx.compose.ui.test.performClick
 import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -485,6 +489,56 @@ class ComposeSmokeTest {
 
         composeRule.onNodeWithText("Set up Sound Kit").assertIsDisplayed()
         composeRule.onNodeWithText("Get started").assertIsDisplayed()
+    }
+
+    @Test
+    fun scanScreenExplainsPairingFailureWithRetryAndSettings() {
+        var retried = false
+        composeRule.setContent {
+            SoundKitTheme {
+                ScanScreen(
+                    state = SoundKitUiState(
+                        connectionState = ConnectionState.Error(
+                            "Receiver pairing failed (reason=1)",
+                            recoverable = false,
+                            kind = ConnectionErrorKind.PairingFailed,
+                        ),
+                        settings = SoundKitSettings(
+                            savedReceivers = listOf(SavedReceiver("00:11:22:33:44:55", "SoundKit", isDefault = true)),
+                        ),
+                    ),
+                    permissions = emptyList(),
+                    permissionsGranted = true,
+                    onRequestPermissions = {},
+                    onStartScan = {},
+                    onStopScan = {},
+                    onConnect = {},
+                    onRetryConnection = { retried = true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(PairingCopy.ERROR_TITLE).assertIsDisplayed()
+        composeRule.onNodeWithText(PairingCopy.OPEN_BLUETOOTH_SETTINGS).assertIsDisplayed()
+        composeRule.onNodeWithText(PairingCopy.TRY_AGAIN).performClick()
+        composeRule.runOnIdle { assertTrue(retried) }
+    }
+
+    @Test
+    fun pairingInProgressExplainsThePin() {
+        composeRule.setContent {
+            SoundKitTheme {
+                ConnectedDeviceScreen(
+                    state = SoundKitUiState(
+                        connectionState = ConnectionState.Connecting(testDeviceForSmoke(), pairing = true),
+                    ),
+                    onToggleValve = {},
+                    onDisconnect = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(PairingCopy.IN_PROGRESS_BODY).assertIsDisplayed()
     }
 }
 

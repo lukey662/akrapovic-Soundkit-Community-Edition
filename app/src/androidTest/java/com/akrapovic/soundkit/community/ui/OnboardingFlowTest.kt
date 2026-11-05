@@ -1,5 +1,7 @@
 package com.akrapovic.soundkit.community.ui
 
+import com.akrapovic.soundkit.community.domain.PairingCopy
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -88,5 +90,26 @@ class OnboardingFlowTest {
         }
 
         composeRule.onNodeWithContentDescription("Grant Bluetooth permissions").assertIsDisplayed()
+    }
+
+    @Test
+    fun bluetoothStepExplainsTheReceiverPin() {
+        composeRule.setContent {
+            SoundKitTheme {
+                OnboardingFlow(
+                    blePermissionsGranted = false,
+                    notificationsGranted = false,
+                    selectedVehicleId = "audi-rs3",
+                    onAcceptRisk = {},
+                    onSelectVehicle = {},
+                    onRequestBlePermissions = {},
+                    onRequestNotificationPermission = {},
+                    onComplete = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Accept risk disclaimer").performClick()
+        composeRule.onNodeWithText(PairingCopy.PIN_HINT).performScrollTo().assertIsDisplayed()
     }
 }

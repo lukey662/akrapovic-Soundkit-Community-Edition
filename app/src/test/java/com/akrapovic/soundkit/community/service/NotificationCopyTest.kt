@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.service
 
+import com.akrapovic.soundkit.community.domain.ConnectionErrorKind
 import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
@@ -155,5 +156,57 @@ class NotificationCopyTest {
         assertEquals("Pairing was cancelled", ConnectionErrorCopy.friendly("Receiver pairing was cancelled"))
         assertEquals("Receiver didn't start sending status", ConnectionErrorCopy.friendly("Could not enable receiver notifications"))
         assertEquals("Connection problem", ConnectionErrorCopy.friendly("Something else"))
+    }
+
+    @Test
+    fun pairingErrorsUseTheirKindNotTheRawMessage() {
+        fun friendly(kind: ConnectionErrorKind) =
+            ConnectionErrorCopy.friendly(ConnectionState.Error("Receiver pairing failed (reason=1)", false, kind))
+        assertEquals("Pairing was cancelled", friendly(ConnectionErrorKind.PairingCancelled))
+        assertEquals("Pairing failed — check the PIN", friendly(ConnectionErrorKind.PairingFailed))
+        assertEquals("Pairing timed out", friendly(ConnectionErrorKind.PairingTimedOut))
+        assertEquals("Couldn't start pairing", friendly(ConnectionErrorKind.PairingNotStarted))
+        assertEquals("Phone and receiver pairing is out of date", friendly(ConnectionErrorKind.StalePairing))
+        assertEquals(
+            "Receiver dropped the connection",
+            ConnectionErrorCopy.friendly(ConnectionState.Error("GATT disconnected with status 8", true)),
+        )
+    }
+
+    @Test
+    fun couldNotStartPairingIsNoLongerCalledCancelled() {
+        assertEquals("Pairing didn't finish", ConnectionErrorCopy.friendly("Could not start receiver pairing"))
+        assertEquals("Pairing was cancelled", ConnectionErrorCopy.friendly("Receiver pairing was cancelled (reason=3)"))
+    }
+
+    @Test
+    fun pairingInProgressExplainsThePinInTheShade() {
+        val receiver = SavedReceiver("00:11:22:33:44:55", "RS3", isDefault = true)
+        val presentation = NotificationCopy.build(
+            connectionState = ConnectionState.Connecting(testDevice(), pairing = true),
+            valveState = ValveState.Unknown,
+            receiverStatusMessage = null,
+            defaultReceiver = receiver,
+        )
+        assertTrue(presentation.contentText.contains("PIN"))
+        assertTrue(presentation.ongoing)
+    }
+
+    @Test
+    fun pairingErrorStillOffersRetryInTheShade() {
+        val receiver = SavedReceiver("00:11:22:33:44:55", "RS3", isDefault = true)
+        val presentation = NotificationCopy.build(
+            connectionState = ConnectionState.Error(
+                "Receiver pairing failed (reason=1)",
+                recoverable = false,
+                kind = ConnectionErrorKind.PairingFailed,
+            ),
+            valveState = ValveState.Unknown,
+            receiverStatusMessage = null,
+            defaultReceiver = receiver,
+        )
+        assertTrue(presentation.contentText.startsWith("Pairing failed"))
+        assertFalse(presentation.contentText.contains("reason"))
+        assertTrue(presentation.retryEnabled)
     }
 }

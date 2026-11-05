@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.companion
 
+import com.akrapovic.soundkit.community.domain.ConnectionErrorKind
 import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.SavedReceiver
@@ -36,5 +37,19 @@ class CompanionPresencePolicyTest {
                 ConnectionState.Disconnected,
             ),
         )
+    }
+
+    @Test
+    fun pairingProblemsWaitForTheUserInsteadOfReconnecting() {
+        ConnectionErrorKind.entries.filter { it.isPairing }.forEach { kind ->
+            assertFalse(
+                "$kind",
+                CompanionPresencePolicy.shouldConnect(
+                    address,
+                    ready,
+                    ConnectionState.Error("pairing", recoverable = false, kind = kind),
+                ),
+            )
+        }
     }
 }

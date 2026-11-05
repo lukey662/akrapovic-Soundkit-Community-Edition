@@ -26,16 +26,6 @@ object RememberedDeviceConnector {
 
     private fun canConnectDefault(connectionState: ConnectionState, settings: SoundKitSettings): Boolean {
         if (defaultDevice(settings) == null) return false
-        return when (connectionState) {
-            ConnectionState.Disconnected,
-            is ConnectionState.Error,
-            is ConnectionState.Away,
-            -> true
-            ConnectionState.Scanning,
-            is ConnectionState.Connecting,
-            is ConnectionState.Connected,
-            is ConnectionState.Reconnecting,
-            -> false
-        }
+        return connectionState.allowsAutomaticConnect()
     }
 }

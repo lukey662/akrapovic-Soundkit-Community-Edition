@@ -24,6 +24,7 @@ import com.akrapovic.soundkit.community.data.DiagnosticsRepository
 import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.BleTimeouts
 import com.akrapovic.soundkit.community.domain.CommandResult
+import com.akrapovic.soundkit.community.domain.ConnectionErrorKind
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.ValveCommand
@@ -250,10 +251,17 @@ class BleConnectionManager @Inject constructor(
                     setValveUnknown()
                     unregisterBondReceiver()
                     completePendingOnce(CommandResult.Failure("Disconnected", recoverable = true))
-                    _connectionState.value = if (status == BluetoothGatt.GATT_SUCCESS) {
-                        ConnectionState.Disconnected
-                    } else {
-                        ConnectionState.Error("GATT disconnected with status $status", recoverable = true)
+                    _connectionState.value = when {
+                        status == BluetoothGatt.GATT_SUCCESS -> ConnectionState.Disconnected
+                        PairingOutcome.isStalePairingDisconnectReason(status) -> {
+                            diagnosticsRepository.warning("Link lost with pairing failure status $status")
+                            ConnectionState.Error(
+                                "GATT disconnected with status $status",
+                                recoverable = false,
+                                kind = ConnectionErrorKind.StalePairing,
+                            )
+                        }
+                        else -> ConnectionState.Error("GATT disconnected with status $status", recoverable = true)
                     }
                     if (this@BleConnectionManager.gatt === gatt) {
                         this@BleConnectionManager.gatt = null
@@ -303,7 +311,16 @@ class BleConnectionManager @Inject constructor(
             )
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 diagnosticsRepository.error("CCCD write failed with status $status")
-                failAndClose(gatt, "Could not enable receiver notifications", recoverable = true)
+                if (PairingOutcome.isStalePairingGattStatus(status)) {
+                    failAndClose(
+                        gatt,
+                        "Could not enable receiver notifications: pairing rejected ($status)",
+                        recoverable = false,
+                        kind = ConnectionErrorKind.StalePairing,
+                    )
+                } else {
+                    failAndClose(gatt, "Could not enable receiver notifications", recoverable = true)
+                }
                 return
             }
             notificationsReady = true
@@ -486,17 +503,33 @@ class BleConnectionManager @Inject constructor(
             }
             BluetoothDevice.BOND_BONDING -> {
                 diagnosticsRepository.info("Waiting for receiver pairing to finish")
+                markPairing(gatt)
                 registerBondReceiver()
             }
             else -> {
+                markPairing(gatt)
                 registerBondReceiver()
                 val started = gatt.device.createBond()
                 diagnosticsRepository.info("Starting Android pairing for receiver: $started")
                 if (!started) {
-                    failAndClose(gatt, "Could not start receiver pairing", recoverable = true)
+                    failAndClose(
+                        gatt,
+                        "Could not start receiver pairing",
+                        recoverable = false,
+                        kind = ConnectionErrorKind.PairingNotStarted,
+                    )
                 }
             }
         }
+    }
+
+    /** Home and the notification explain the system PIN dialog while this is set. */
+    private fun markPairing(gatt: BluetoothGatt) {
+        val device = connectedDevice ?: SoundKitDevice(
+            name = safeDeviceName(gatt.device),
+            address = gatt.device.address,
+        )
+        _connectionState.value = ConnectionState.Connecting(device, pairing = true)
     }
 
     private fun registerBondReceiver() {
@@ -508,12 +541,28 @@ class BleConnectionManager @Inject constructor(
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
         bondReceiverRegistered = true
+        mainHandler.removeCallbacks(bondTimeout)
+        mainHandler.postDelayed(bondTimeout, BleTimeouts.PAIRING_MS)
     }
 
     private fun unregisterBondReceiver() {
+        mainHandler.removeCallbacks(bondTimeout)
         if (!bondReceiverRegistered) return
         runCatching { context.unregisterReceiver(bondReceiver) }
         bondReceiverRegistered = false
+    }
+
+    /** A PIN dialog left open (or hidden in the shade) must not hold the link forever. */
+    private val bondTimeout = Runnable {
+        val activeGatt = gatt ?: return@Runnable
+        if (!bondReceiverRegistered) return@Runnable
+        diagnosticsRepository.warning("Receiver pairing did not finish within ${BleTimeouts.PAIRING_MS / 1000}s")
+        failAndClose(
+            activeGatt,
+            "Receiver pairing timed out",
+            recoverable = false,
+            kind = ConnectionErrorKind.PairingTimedOut,
+        )
     }
 
     private val bondReceiver = object : BroadcastReceiver() {
@@ -534,25 +583,34 @@ class BleConnectionManager @Inject constructor(
                 BluetoothDevice.BOND_BONDED -> {
                     diagnosticsRepository.info("Receiver pairing complete; discovering GATT services")
                     unregisterBondReceiver()
+                    connectedDevice?.let { _connectionState.value = ConnectionState.Connecting(it) }
                     activeGatt.discoverServices()
                 }
                 BluetoothDevice.BOND_NONE -> {
-                    diagnosticsRepository.warning("Receiver pairing was cancelled or failed")
-                    failAndClose(activeGatt, "Receiver pairing was cancelled", recoverable = true)
+                    val reason = intent.getIntExtra(PairingOutcome.EXTRA_BOND_REASON, PairingOutcome.REASON_UNKNOWN)
+                    val kind = PairingOutcome.classifyBondEnded(reason)
+                    val message = PairingOutcome.diagnosticsMessage(kind, reason)
+                    diagnosticsRepository.warning(message)
+                    failAndClose(activeGatt, message, recoverable = false, kind = kind)
                 }
             }
         }
     }
 
     @SuppressLint("MissingPermission")
-    private fun failAndClose(gatt: BluetoothGatt, message: String, recoverable: Boolean) {
+    private fun failAndClose(
+        gatt: BluetoothGatt,
+        message: String,
+        recoverable: Boolean,
+        kind: ConnectionErrorKind = ConnectionErrorKind.Generic,
+    ) {
         if (!isActiveGatt(gatt)) return
         completePendingOnce(CommandResult.Failure(message, recoverable = recoverable))
         commandCharacteristic = null
         notificationsReady = false
         _notificationsEnabled.value = false
         unregisterBondReceiver()
-        _connectionState.value = ConnectionState.Error(message, recoverable = recoverable)
+        _connectionState.value = ConnectionState.Error(message, recoverable = recoverable, kind = kind)
         if (this.gatt === gatt) {
             this.gatt = null
         }

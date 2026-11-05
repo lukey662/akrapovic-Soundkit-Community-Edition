@@ -1,5 +1,6 @@
 package com.akrapovic.soundkit.community.data
 
+import com.akrapovic.soundkit.community.domain.ConnectionErrorKind
 import com.akrapovic.soundkit.community.ble.RetryPolicy
 import com.akrapovic.soundkit.community.car.CarSessionTracker
 import com.akrapovic.soundkit.community.domain.CommandResult
@@ -666,5 +667,69 @@ class BleRepositoryImplTest {
         assertEquals(disconnects, connection.disconnectCount)
         assertTrue(connection.connectionState.value is ConnectionState.Connected)
     }
-}
 
+    @Test
+    fun pairingFailureDoesNotAutoReconnectOrGoAway() = runTest(mainDispatcherRule.dispatcher) {
+        val repository = repository()
+        val device = testDevice()
+
+        repository.connect(device)
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Connecting(device, pairing = true)
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Error(
+            "Receiver pairing failed (reason=1)",
+            recoverable = false,
+            kind = ConnectionErrorKind.PairingFailed,
+        )
+        advanceTimeBy(60_000)
+        runCurrent()
+
+        assertEquals("a wrong PIN must not re-open Android's pairing prompt", 1, connection.connectedDevices.size)
+        assertTrue(connection.reconnectMarks.isEmpty())
+        assertTrue(connection.awayMarks.isEmpty())
+        assertTrue(repository.connectionState.value is ConnectionState.Error)
+    }
+
+    @Test
+    fun stalePairingAfterAStableLinkDoesNotAutoReconnect() = runTest(mainDispatcherRule.dispatcher) {
+        val repository = repository()
+        val device = testDevice()
+
+        repository.connect(device)
+        connection.connectionState.value = ConnectionState.Connected(device)
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Error(
+            "GATT disconnected with status 6",
+            recoverable = false,
+            kind = ConnectionErrorKind.StalePairing,
+        )
+        advanceTimeBy(60_000)
+        runCurrent()
+
+        assertEquals(1, connection.connectedDevices.size)
+        assertTrue(connection.reconnectMarks.isEmpty())
+        assertTrue(connection.awayMarks.isEmpty())
+    }
+
+    @Test
+    fun userCanRetryAfterAPairingFailure() = runTest(mainDispatcherRule.dispatcher) {
+        val repository = repository()
+        val device = testDevice()
+
+        repository.connect(device)
+        runCurrent()
+        connection.connectionState.value = ConnectionState.Error(
+            "Receiver pairing was cancelled (reason=3)",
+            recoverable = false,
+            kind = ConnectionErrorKind.PairingCancelled,
+        )
+        runCurrent()
+
+        repository.connect(device, userInitiated = true)
+        runCurrent()
+
+        assertEquals(2, connection.connectedDevices.size)
+        assertTrue(connection.reconnectMarks.isEmpty())
+    }
+}

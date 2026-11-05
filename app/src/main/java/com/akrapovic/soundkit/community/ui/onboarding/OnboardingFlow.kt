@@ -54,6 +54,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.akrapovic.soundkit.community.domain.PairingCopy
 import com.akrapovic.soundkit.community.ui.components.AkraActionButton
 import com.akrapovic.soundkit.community.ui.components.AkraCard
 import com.akrapovic.soundkit.community.ui.components.AkraHeroHeader
@@ -294,6 +295,11 @@ fun OnboardingFlow(
                     Text(
                         text = "Find and control your receiver nearby. Nothing leaves this phone.",
                         style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = PairingCopy.PIN_HINT,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     PermissionStatusPill(granted = blePermissionsGranted)

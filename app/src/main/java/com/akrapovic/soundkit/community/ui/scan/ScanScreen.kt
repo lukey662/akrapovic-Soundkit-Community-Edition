@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -33,6 +34,7 @@ import com.akrapovic.soundkit.community.domain.AwayCopy
 import com.akrapovic.soundkit.community.domain.AwayReason
 import com.akrapovic.soundkit.community.domain.ConnectionState
 import com.akrapovic.soundkit.community.domain.ConnectionYieldState
+import com.akrapovic.soundkit.community.domain.PairingCopy
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.SoundKitDevice
 import com.akrapovic.soundkit.community.domain.ValveState
@@ -50,6 +52,7 @@ import com.akrapovic.soundkit.community.ui.components.HomeHeader
 import com.akrapovic.soundkit.community.ui.components.QuietStartRow
 import com.akrapovic.soundkit.community.ui.components.ValveVisual
 import com.akrapovic.soundkit.community.ui.control.shortText
+import com.akrapovic.soundkit.community.ui.system.openBluetoothSettings
 import com.akrapovic.soundkit.community.ui.theme.AkraColors
 
 /**
@@ -107,6 +110,8 @@ fun ScanScreen(
 
     val away = state.connectionState as? ConnectionState.Away
     val connectionError = state.connectionState as? ConnectionState.Error
+    val pairingError = connectionError?.takeIf { it.isPairingProblem }
+    val context = LocalContext.current
     val yielded = state.connectionYieldState is ConnectionYieldState.Yielded
 
     AkraScreen(modifier = modifier, padTopForStatusBar = true) {
@@ -139,6 +144,7 @@ fun ScanScreen(
                     state.isScanning -> "Scanning…"
                     away?.reason == AwayReason.LeftCar -> "Left the car"
                     away?.reason == AwayReason.OutOfRange -> "Out of range"
+                    pairingError != null -> PairingCopy.ERROR_TITLE
                     connectionError != null -> "Couldn't connect"
                     else -> "Not connected"
                 },
@@ -152,7 +158,8 @@ fun ScanScreen(
                     !permissionsGranted -> "Bluetooth access is needed to find the receiver."
                     state.isScanning -> "Keep the phone near the car."
                     away != null -> AwayCopy.statusText(away.reason, away.sinceMillis)
-                    connectionError != null -> ConnectionErrorCopy.friendly(connectionError.message)
+                    pairingError != null -> PairingCopy.body(pairingError.kind).orEmpty()
+                    connectionError != null -> ConnectionErrorCopy.friendly(connectionError)
                     scanCompletedWithoutReceiver -> "No receiver found. Turn the car on, move closer, then try again."
                     defaultReceiver == null -> "Turn the car on, then scan for the receiver."
                     else -> "Turn the car on, then connect."
@@ -198,6 +205,30 @@ fun ScanScreen(
                 onClick = { showTakeControlConfirm.value = true },
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
+            pairingError != null && defaultReceiver != null && !state.isScanning -> {
+                AkraActionButton(
+                    label = PairingCopy.TRY_AGAIN,
+                    contentDescription = "Try pairing with ${defaultReceiver.displayName()} again",
+                    onClick = onRetryConnection,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                )
+                if (PairingCopy.offersBluetoothSettings(pairingError.kind)) {
+                    AkraActionButton(
+                        label = PairingCopy.OPEN_BLUETOOTH_SETTINGS,
+                        contentDescription = "Open Android Bluetooth settings to forget SoundKit",
+                        filled = false,
+                        onClick = { openBluetoothSettings(context) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                AkraActionButton(
+                    label = scanLabel,
+                    contentDescription = scanDescription,
+                    filled = false,
+                    onClick = onStartScan,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             defaultReceiver != null && !state.isScanning -> {
                 AkraActionButton(
                     label = "Connect",
@@ -273,6 +304,12 @@ fun ScanScreen(
                     )
                 }
             }
+            Text(
+                text = PairingCopy.PIN_HINT,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         Spacer(Modifier.height(8.dp))

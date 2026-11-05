@@ -75,6 +75,9 @@ data class ValveControlState(
 
 object BleTimeouts {
     const val CONNECT_MS = 15_000L
+
+    /** Time allowed for the user to read the PIN off the receiver and type it into Android's dialog. */
+    const val PAIRING_MS = 60_000L
     const val DISCOVERY_MS = 10_000L
     const val SUBSCRIPTION_MS = 5_000L
     const val COMMAND_CONFIRMATION_MS = 5_000L

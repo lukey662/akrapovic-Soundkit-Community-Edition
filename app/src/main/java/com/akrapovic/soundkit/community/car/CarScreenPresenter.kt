@@ -52,12 +52,12 @@ object CarScreenPresenter {
                 inFlightTarget == ValveState.Closed -> "Closing…"
                 else -> valveState.statusText(quietHoldEndsAtMillis, nowMillis)
             }
+            is ConnectionState.Connecting -> if (connectionState.pairing) "Pairing on phone…" else "Connecting…"
             ConnectionState.Scanning,
-            is ConnectionState.Connecting,
             is ConnectionState.Reconnecting,
             -> "Connecting…"
             ConnectionState.Disconnected -> "Not connected"
-            is ConnectionState.Error -> "Couldn't connect"
+            is ConnectionState.Error -> if (connectionState.isPairingProblem) "Pair on phone (PIN on receiver)" else "Couldn't connect"
             is ConnectionState.Away -> when (connectionState.reason) {
                 AwayReason.LeftCar -> "Left the car"
                 AwayReason.OutOfRange -> "Receiver out of range"

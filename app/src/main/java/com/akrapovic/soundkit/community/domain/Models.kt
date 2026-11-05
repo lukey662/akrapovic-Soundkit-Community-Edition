@@ -28,16 +28,46 @@ enum class AwayReason {
 sealed interface ConnectionState {
     data object Disconnected : ConnectionState
     data object Scanning : ConnectionState
-    data class Connecting(val device: SoundKitDevice) : ConnectionState
+    /** [pairing] is true while Android's system pairing dialog (PIN entry) is in progress. */
+    data class Connecting(val device: SoundKitDevice, val pairing: Boolean = false) : ConnectionState
     data class Connected(val device: SoundKitDevice) : ConnectionState
     data class Reconnecting(val device: SoundKitDevice, val attempt: Int, val nextDelayMs: Long) : ConnectionState
-    data class Error(val message: String, val recoverable: Boolean) : ConnectionState
+    data class Error(
+        val message: String,
+        val recoverable: Boolean,
+        val kind: ConnectionErrorKind = ConnectionErrorKind.Generic,
+    ) : ConnectionState {
+        /** Pairing problems need the user (PIN, Bluetooth settings), so nothing retries them automatically. */
+        val isPairingProblem: Boolean get() = kind.isPairing
+    }
 
     /**
      * The receiver was unreachable after the short reconnect burst.
      * This is not a fault: the phone left the car, or the receiver is off.
      */
     data class Away(val sinceMillis: Long, val reason: AwayReason) : ConnectionState
+}
+
+enum class ConnectionErrorKind(val isPairing: Boolean) {
+    Generic(false),
+    PairingCancelled(true),
+    PairingFailed(true),
+    PairingNotStarted(true),
+    PairingTimedOut(true),
+    StalePairing(true),
+}
+
+/** True when a background path (launch, car, companion, return) may start a connection from [state]. */
+fun ConnectionState.allowsAutomaticConnect(): Boolean = when (this) {
+    ConnectionState.Disconnected,
+    is ConnectionState.Away,
+    -> true
+    is ConnectionState.Error -> !isPairingProblem
+    ConnectionState.Scanning,
+    is ConnectionState.Connecting,
+    is ConnectionState.Connected,
+    is ConnectionState.Reconnecting,
+    -> false
 }
 
 sealed interface CommandResult {

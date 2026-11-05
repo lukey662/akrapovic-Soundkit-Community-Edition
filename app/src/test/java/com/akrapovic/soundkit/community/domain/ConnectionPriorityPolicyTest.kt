@@ -96,4 +96,19 @@ class ConnectionPriorityPolicyTest {
             ),
         )
     }
+
+    @Test
+    fun returningToTheCarDoesNotRetryAPairingProblem() {
+        val pairingError = ConnectionState.Error("x", recoverable = false, kind = ConnectionErrorKind.StalePairing)
+        assertFalse(
+            ConnectionPriorityPolicy.shouldReconnectOnReturn(settings, pairingError, ConnectionYieldState.None),
+        )
+        assertTrue(
+            ConnectionPriorityPolicy.shouldReconnectOnReturn(
+                settings,
+                ConnectionState.Error("link loss", recoverable = true),
+                ConnectionYieldState.None,
+            ),
+        )
+    }
 }

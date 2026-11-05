@@ -2,6 +2,7 @@ package com.akrapovic.soundkit.community.service
 
 import com.akrapovic.soundkit.community.domain.AwayCopy
 import com.akrapovic.soundkit.community.domain.ConnectionState
+import com.akrapovic.soundkit.community.domain.PairingCopy
 import com.akrapovic.soundkit.community.domain.RuleExecutionEntry
 import com.akrapovic.soundkit.community.domain.SavedReceiver
 import com.akrapovic.soundkit.community.domain.ValveState
@@ -95,10 +96,14 @@ object NotificationCopy {
         return when (this) {
             ConnectionState.Disconnected -> "Disconnected"
             ConnectionState.Scanning -> "Scanning"
-            is ConnectionState.Connecting -> "Connecting to ${displayName ?: device.name}"
+            is ConnectionState.Connecting -> if (pairing) {
+                "Pairing — enter the PIN printed on your receiver"
+            } else {
+                "Connecting to ${displayName ?: device.name}"
+            }
             is ConnectionState.Connected -> "Connected"
             is ConnectionState.Reconnecting -> "Reconnecting…"
-            is ConnectionState.Error -> ConnectionErrorCopy.friendly(message)
+            is ConnectionState.Error -> ConnectionErrorCopy.friendly(this)
             is ConnectionState.Away -> AwayCopy.statusText(reason, sinceMillis)
         }
     }
@@ -108,12 +113,16 @@ object NotificationCopy {
 object ConnectionErrorCopy {
     private val gattStatus = Regex("status (\\d+)")
 
+    fun friendly(error: ConnectionState.Error): String =
+        PairingCopy.shortText(error.kind) ?: friendly(error.message)
+
     fun friendly(message: String): String {
         val text = message.lowercase()
         return when {
             "gatt disconnected" in text && gattStatus.find(text) != null -> "Receiver dropped the connection"
             "service discovery" in text || "characteristic was not found" in text -> "Receiver didn't respond"
-            "pairing" in text -> "Pairing was cancelled"
+            "pairing" in text && "cancelled" in text -> "Pairing was cancelled"
+            "pairing" in text -> "Pairing didn't finish"
             "notification" in text -> "Receiver didn't start sending status"
             else -> "Connection problem"
         }
