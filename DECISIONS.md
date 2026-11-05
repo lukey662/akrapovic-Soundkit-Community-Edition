@@ -982,3 +982,21 @@ Supersede "One stable, parked-only car template". The car shows one `PaneTemplat
 - Safety copy changes from "never while driving" to "only when safe and legal; use the car buttons, not the phone".
 - No favourites, menus or action strip on the car screen.
 - The receiver name is the row title; changing the default receiver mid-session costs one template step.
+
+## 2026-11-06: Pairing failures stay errors and forgetting points to Bluetooth settings
+
+### Context
+
+The receiver's six-digit pairing PIN, entered in Android's own pairing dialog, is the only thing that stops another phone controlling it. The app mentioned the PIN once, in the onboarding vehicle picker, and showed pairing as "Connecting". A cancelled or failed pairing was a recoverable error, so `BleRepository` reconnected and Android re-opened the PIN prompt in a loop before the session fell to Away. Forgetting a receiver only cleared app settings, so a reinstall never asked for the PIN again, which made it hard to tell whether the receiver enforces it.
+
+### Decision
+
+- `ConnectionState.Connecting` carries `pairing = true` while the bond is in progress, and `ConnectionState.Error` carries a `ConnectionErrorKind` (`PairingCancelled`, `PairingFailed`, `PairingTimedOut`, `PairingNotStarted`, `StalePairing`, or `Generic`). `PairingOutcome` maps the hidden bond reason extra and GATT/HCI statuses to a kind and is unit-tested.
+- Every pairing kind is non-recoverable, and `allowsAutomaticConnect()` keeps launch, car, companion and return-to-car connects from retrying it. Only a user tap on **Try again** pairs again. Bonding times out after 60 s.
+- Copy lives in `PairingCopy`. Home shows **Pairing didn't finish** with **Try again** and, for failed, stale or not-started pairing, **Open Bluetooth settings**.
+- No `removeBond` reflection. Forget and Remove tell the user the phone stays paired and open `Settings.ACTION_BLUETOOTH_SETTINGS`.
+
+### Consequences
+
+- A genuine link drop still auto-reconnects; only HCI 5/6 disconnects and GATT 5/15/137 notification failures count as pairing problems.
+- The PIN prompt appears only when the receiver asks for authentication. Whether the receiver enforces the PIN is checked manually (`TESTING.md` § Pairing).

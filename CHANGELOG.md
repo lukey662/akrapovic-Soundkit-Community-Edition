@@ -2,6 +2,22 @@
 
 Android releases of Car Sound Kit Control. Store text lives in `play/listing/en-US/`.
 
+## 0.3.9 (versionCode 12) — Play internal testing
+
+### Changed
+
+- The app now explains the receiver's six-digit pairing PIN when it matters: in the onboarding Bluetooth step, under the Nearby list, and in a **Pairing** banner on Home while Android's pairing prompt is open. The PIN is still entered only in Android's own dialog; the app never sees or stores it.
+- A pairing that is cancelled, fails (wrong PIN), times out (60 s), cannot start, or no longer matches the receiver shows **Pairing didn't finish** on Home with plain copy, **Try again**, and **Open Bluetooth settings** where forgetting SoundKit helps. The notification and Android Auto use the same wording.
+- Removing or forgetting receivers in Settings now says the phone stays paired with SoundKit and offers **Open Bluetooth settings**. The app does not use hidden APIs to unpair.
+
+### Fixed
+
+- A cancelled or failed pairing no longer auto-reconnects, which re-opened Android's PIN prompt in a loop and could end as "Left the car" instead of an error. Launch, car, companion and return-to-car connects also skip pairing problems until the user taps **Try again**.
+- "Could not start receiver pairing" no longer reads as "Pairing was cancelled".
+- A link dropped for a pairing failure (HCI 5/6) or a notification setup rejected for insufficient authentication or encryption (GATT 5/15/137) is reported as out-of-date pairing instead of "Receiver dropped the connection".
+
+The watch build is 1000012.
+
 ## 0.3.8 (versionCode 11) — Play internal testing
 
 ### Changed

@@ -17,7 +17,7 @@ Provide a modern Android app that locally controls an Akrapovic Sound Kit BLE re
 - Android release artifacts are signed only when `ANDROID_RELEASE_STORE_FILE`,
   `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`, and
   `ANDROID_RELEASE_KEY_PASSWORD` are supplied by the build environment.
-- Android marketing version: 0.3.8 (version code: 11). iOS remains 0.3.0 until its next cut.
+- Android marketing version: 0.3.9 (version code: 12). iOS remains 0.3.0 until its next cut.
 
 ## Architecture
 
@@ -42,7 +42,7 @@ flowchart TD
 
 - The phone module targets Android 16 (`compileSdk` and `targetSdk` 36) so a
   new Play app can be uploaded. The Wear module targets 35, shares the phone's
-  application id (`com.akrapovic.soundkit.community`, versionCode 1000011) so the
+  application id (`com.akrapovic.soundkit.community`, versionCode 1000012) so the
   Wearable Data Layer links them, and ships on the internal track as a Wear OS
   artifact. The watch sends Open/Close only; the phone accepts them only while
   connected and runs them through `ValveCommandCoordinator`.
@@ -71,7 +71,8 @@ flowchart TD
 
 - Scan accepts likely receivers by Sound Kit name hints and the original APK advertising signature (`FFFFFF` followed by ASCII `103`).
 - Connect uses `connectGatt` with LE transport where available.
-- If the receiver is not bonded, Android system pairing is started. The app does not hard-code a PIN.
+- If the receiver is not bonded, Android system pairing is started. The app does not hard-code a PIN; the user types the six-digit PIN printed on the receiver into Android's dialog. While bonding, `ConnectionState.Connecting(pairing = true)` drives a **Pairing** banner explaining the PIN.
+- Pairing that is cancelled, fails, times out after 60 s, cannot start, or is out of date (HCI 5/6 on disconnect, GATT 5/15/137 on the CCCD write) becomes a non-recoverable `ConnectionState.Error` with a pairing `ConnectionErrorKind`. Nothing auto-reconnects from it; Home shows **Pairing didn't finish**, **Try again**, and **Open Bluetooth settings** where it helps.
 - Service discovery logs every discovered service and characteristic and emits a copy-ready GATT profile block for troubleshooting.
 - The original APK does not use a service UUID; the app finds characteristic `0000fff4-0000-1000-8000-00805f9b34fb` across all discovered services.
 - Notifications are enabled on the same characteristic through CCCD `00002902-0000-1000-8000-00805f9b34fb`.
@@ -112,7 +113,7 @@ flowchart TD
 - Android Open/Close/Status launcher-shortcut fulfillment is internal-only: `AssistantActionActivity` accepts a fixed action only, and `VoiceValveActionRouter` resolves the saved default receiver without accepting a BLE address. It reconnects only that receiver within 8 seconds and waits for the first receiver status, then sends Open/Close through `ValveCommandCoordinator`; status reports only a known receiver notification state. Google Assistant custom App Actions are deliberately not advertised because no reliable IoT fulfillment contract is declared.
 - GATT discovery and notification subscription establish readiness; write acknowledgement is transport-only and a target-state notification confirms a command result.
 - Quick Settings tile opens the app when disconnected (through a `PendingIntent` on Android 14+) and toggles the last known valve state when connected.
-- Android Auto exposes minimal low-distraction controls through the IoT category: one `PaneTemplate` with a constant title (**Car Sound Kit**), the valve art as the pane image, and one row whose title is the receiver name and whose text is the live status. Because title and row titles stay constant, every update is a template refresh while the buttons change freely: none while connecting, **Connect** when disconnected, otherwise **Open** and **Close** (the one that changes state is primary, the other disabled). The buttons use plain click listeners and work while driving. It is testable on DHU and compatible Automotive OS targets. A real car lists it only when the app is installed from Play internal sharing or the internal test track; Unknown sources does not apply to the Car App Library. Version `0.3.8` is on that internal track. A public Google Play projected listing remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
+- Android Auto exposes minimal low-distraction controls through the IoT category: one `PaneTemplate` with a constant title (**Car Sound Kit**), the valve art as the pane image, and one row whose title is the receiver name and whose text is the live status. Because title and row titles stay constant, every update is a template refresh while the buttons change freely: none while connecting, **Connect** when disconnected, otherwise **Open** and **Close** (the one that changes state is primary, the other disabled). The buttons use plain click listeners and work while driving. It is testable on DHU and compatible Automotive OS targets. A real car lists it only when the app is installed from Play internal sharing or the internal test track; Unknown sources does not apply to the Car App Library. Version `0.3.9` is on that internal track. A public Google Play projected listing remains out of scope because valve control does not fit a published category. See `DOCS.md` § Android Auto Testing.
 
 ## Security
 
@@ -120,7 +121,8 @@ flowchart TD
 - No secrets.
 - No cloud logging.
 - No BLE writes to unknown characteristics or while valve state is unknown.
-- No hard-coded pairing PIN.
+- No hard-coded pairing PIN. The PIN is entered only in the system pairing dialog and is never seen or stored by the app.
+- Receiver pairing (the six-digit PIN) is the only access control on the receiver. The app never retries a failed pairing on its own and never removes a pairing with hidden APIs; Forget and Remove point users to Bluetooth settings.
 - Minimal persisted data: saved receivers (JSON list, max 8), independent phone-launch and car-entry connection flags, selected theme, and user settings.
 
 ## Saved receivers
@@ -210,6 +212,7 @@ Mirrors Android (see `BLE_PROTOCOL.md`):
 
 - Scan filters likely receivers by name hints and advertising signature (`FFFFFF` + ASCII `103`).
 - Connect via `CBCentralManager`; system pairing UI when the receiver requires a PIN.
+- `PairingErrorClassifier` maps `CBATTError` insufficient authentication/encryption and `CBError.peerRemovedPairingInformation` to a `PairingProblem`. A pairing problem shows **Pairing didn't finish** with a checklist (PIN, Settings › Bluetooth › Forget This Device) and blocks auto-reconnect, away-scan connects, and contention signals until the user taps Retry. Onboarding, the empty scan state, and the Forget alert mention the PIN and that the iPhone stays paired.
 - Discover characteristic `0000fff4-0000-1000-8000-00805f9b34fb` across all services.
 - Enable notifications via CCCD `00002902-0000-1000-8000-00805f9b34fb`.
 - Valve state from notifications only: `02`/`07` closed, `03`/`06` open, `04` not ready.

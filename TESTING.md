@@ -268,6 +268,20 @@ The original APK protocol is now statically verified, but physical receiver test
 
 Stop discovery if the receiver repeatedly disconnects, Android shows pairing errors, or the diagnostics report does not include a GATT profile block.
 
+### Pairing Pass
+
+Reinstalling the app does not reset pairing: Android keeps the bond. Start each run from an unpaired phone.
+
+1. In Android **Settings → Connected devices**, open **SoundKit** and tap **Forget**.
+2. Open the app and tap **Connect** (or connect from **Nearby**).
+3. Confirm Home shows the **Pairing** banner and Android shows its pairing prompt asking for a PIN.
+   - If the phone connects with **no** PIN prompt, record it: the receiver does not enforce the PIN, and anyone in range can pair.
+4. Cancel the prompt. Confirm Home shows **Pairing didn't finish** with **Try again**, and that no new prompt appears on its own for at least a minute.
+5. Tap **Try again** and enter a wrong PIN. Confirm the copy asks you to check the PIN and offers **Open Bluetooth settings**.
+6. Tap **Try again**, leave the prompt open for over 60 seconds, and confirm **Pairing timed out**.
+7. Tap **Try again** and enter the correct PIN. Confirm the banner clears, the valve state arrives, and diagnostics log `Receiver pairing complete`.
+8. In **Settings**, remove the receiver. Confirm the **Phone is still paired** dialog, and that **Open Bluetooth settings** opens Android's Bluetooth page.
+
 If the app crashes, reopen it and go to `More -> Diagnostics`. A crash panel appears with `Copy crash`, `Share crash`, and `Dismiss crash log`. Crash logs remain local until the user explicitly shares them.
 
 ### Favorites and connect on launch

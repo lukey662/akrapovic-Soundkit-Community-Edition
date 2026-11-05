@@ -67,6 +67,8 @@ The original APK checks the receiver bond state after connection:
 
 Bundled help/legal text says pairing requires the six-digit PIN printed on the Sound Kit receiver/manual. Android's system pairing UI is expected to collect that PIN.
 
+This app follows the same flow: it never handles the PIN. It explains the PIN while bonding, treats a cancelled, failed, timed-out or out-of-date pairing as an error that only the user can retry, and points users to Bluetooth settings to remove a pairing. Whether the receiver *requires* bonding before it accepts writes on `fff4` is not yet verified; see `TESTING.md` § Pairing Pass.
+
 ## GATT Services
 
 | Purpose | UUID | Evidence | Status |
