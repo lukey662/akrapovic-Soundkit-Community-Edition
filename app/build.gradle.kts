@@ -156,3 +156,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
+
+// Paparazzi goldens render clock times from fixed timestamps; pin the zone so CI (UTC) matches them.
+tasks.withType<Test>().configureEach {
+    systemProperty("user.timezone", "Australia/Sydney")
+}
