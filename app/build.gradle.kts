@@ -157,7 +157,9 @@ dependencies {
 }
 
 
-// Paparazzi goldens render clock times from fixed timestamps; pin the zone so CI (UTC) matches them.
+// Paparazzi goldens render clock times from fixed timestamps; pin zone and locale so CI matches them.
 tasks.withType<Test>().configureEach {
     systemProperty("user.timezone", "Australia/Sydney")
+    systemProperty("user.language", "en")
+    systemProperty("user.country", "AU")
 }
