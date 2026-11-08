@@ -12,3 +12,9 @@ reverse/
 *.hprof
 node_modules/
 
+
+# Local release signing secrets and keys. Never commit.
+.env.local
+*.jks
+*.keystore
+*.pem

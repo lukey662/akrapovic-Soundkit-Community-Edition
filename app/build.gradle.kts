@@ -1,10 +1,24 @@
 import org.gradle.api.GradleException
 
+// Release signing reads environment variables first, then the git-ignored `.env.local` at the repo root.
+val localEnv: Map<String, String> = rootProject.file(".env.local").takeIf { it.isFile }
+    ?.readLines()
+    ?.map { it.trim() }
+    ?.filter { it.isNotEmpty() && !it.startsWith("#") && "=" in it }
+    ?.associate { line ->
+        val (key, value) = line.removePrefix("export ").split("=", limit = 2)
+        key.trim() to value.trim().removeSurrounding("\"").removeSurrounding("'")
+    }
+    .orEmpty()
+
+fun releaseSigningInput(name: String): String? =
+    providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() } ?: localEnv[name]
+
 val releaseSigningInputs = mapOf(
-    "ANDROID_RELEASE_STORE_FILE" to providers.environmentVariable("ANDROID_RELEASE_STORE_FILE").orNull,
-    "ANDROID_RELEASE_STORE_PASSWORD" to providers.environmentVariable("ANDROID_RELEASE_STORE_PASSWORD").orNull,
-    "ANDROID_RELEASE_KEY_ALIAS" to providers.environmentVariable("ANDROID_RELEASE_KEY_ALIAS").orNull,
-    "ANDROID_RELEASE_KEY_PASSWORD" to providers.environmentVariable("ANDROID_RELEASE_KEY_PASSWORD").orNull,
+    "ANDROID_RELEASE_STORE_FILE" to releaseSigningInput("ANDROID_RELEASE_STORE_FILE"),
+    "ANDROID_RELEASE_STORE_PASSWORD" to releaseSigningInput("ANDROID_RELEASE_STORE_PASSWORD"),
+    "ANDROID_RELEASE_KEY_ALIAS" to releaseSigningInput("ANDROID_RELEASE_KEY_ALIAS"),
+    "ANDROID_RELEASE_KEY_PASSWORD" to releaseSigningInput("ANDROID_RELEASE_KEY_PASSWORD"),
 )
 val missingReleaseSigningInputs = releaseSigningInputs
     .filterValues { it.isNullOrBlank() }
@@ -99,7 +113,7 @@ gradle.taskGraph.whenReady {
 
     if (missingReleaseSigningInputs.isNotEmpty()) {
         throw GradleException(
-            "Release signing requires environment variables: " +
+            "Release signing requires environment variables (or .env.local): " +
                 missingReleaseSigningInputs.joinToString(", "),
         )
     }
